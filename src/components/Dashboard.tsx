@@ -288,7 +288,7 @@ const Dashboard: React.FC = ({ setUserProfileFormVisibility }) => {
           </div>
         </div>
 
-        {/* Recent Activity */}
+        
 
         {/* …inside your component… */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
