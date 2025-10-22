@@ -1,5 +1,6 @@
 
 import { X } from 'lucide-react';
+import { optimizeImageUrl } from '../utils/imageCache';
 
 function AttachmentsModal({ imageLink, setAttachmentsModalActiveStatus }) {
   return (
@@ -11,7 +12,7 @@ function AttachmentsModal({ imageLink, setAttachmentsModalActiveStatus }) {
         />
         <div className="w-full h-full flex items-center justify-center">
           <img
-            src={imageLink}
+            src={optimizeImageUrl(imageLink)}
             alt="AttachmentsModal"
             className="w-[80vw] h-[90vh] object-contain "
           />

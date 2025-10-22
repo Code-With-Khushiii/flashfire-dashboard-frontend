@@ -33,42 +33,34 @@ import {
 } from "../utils/getOptimizedResumeUrl";
 
 /* ---------- ENV ---------- */
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "";
-const IMG_UPLOAD_PRESET =
-    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
-    import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET ||
-    "";
-const DOC_UPLOAD_PRESET =
-    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET_PDF ||
-    import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET_PDF ||
-    IMG_UPLOAD_PRESET;
+import { uploadAttachment } from "../utils/uploadService";
+import { optimizeImageUrl } from "../utils/imageCache";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const JOB_UPDATE_ENDPOINT = `${API_BASE}/updatechanges`;
 const PLAN_ENDPOINT = `${API_BASE}/api/plans/select`;
 
-/* ---------- Cloudinary uploader (unsigned) ---------- */
+/* ---------- Upload handler (uses backend API - supports R2 and Cloudinary) ---------- */
 async function uploadToCloudinary(
     file: File,
     {
         resourceType = "auto",
         folder = "flashfirejobs",
-        preset = IMG_UPLOAD_PRESET,
+        preset = undefined,
     }: {
         resourceType?: "auto" | "image" | "raw";
         folder?: string;
         preset?: string;
     } = {}
 ) {
-    if (!CLOUD_NAME || !preset) throw new Error("Missing Cloudinary envs.");
-    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("upload_preset", preset);
-    fd.append("folder", folder);
-    const res = await fetch(endpoint, { method: "POST", body: fd });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json(); // { secure_url, ... }
+    try {
+        // Use the new unified upload service
+        const url = await uploadAttachment(file, folder);
+        return { secure_url: url };
+    } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
+    }
 }
 
 /* ---------- Persist new image URLs into JobModel.attachments[] ---------- */
@@ -409,7 +401,6 @@ useEffect(() => {
                 const up = await uploadToCloudinary(file, {
                     resourceType: "image",
                     folder: "flashfirejobs/attachments",
-                    preset: IMG_UPLOAD_PRESET,
                 });
                 if (up?.secure_url) urls.push(up.secure_url as string);
             }
@@ -488,7 +479,6 @@ useEffect(() => {
             const up = await uploadToCloudinary(imgFile, {
                 resourceType: "image",
                 folder: "flashfirejobs/attachments",
-                preset: IMG_UPLOAD_PRESET,
             });
             const url = up.secure_url as string;
 
@@ -564,7 +554,6 @@ useEffect(() => {
             const up = await uploadToCloudinary(file, {
                 resourceType: "raw",
                 folder: "flashfirejobs/docs",
-                preset: DOC_UPLOAD_PRESET,
             });
             const url = up.secure_url as string;
 
@@ -1176,7 +1165,7 @@ useEffect(() => {
                     {attachments.map((url, idx) => (
                       <img
                         key={idx}
-                        src={url}
+                        src={optimizeImageUrl(url)}
                         alt={`Attachment-${idx}`}
                         className="w-full h-auto object-cover cursor-zoom-in"
                         draggable={false}

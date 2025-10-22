@@ -207,15 +207,16 @@ async function uploadFileLocally(file: File, fileType: 'resume' | 'coverLetter' 
     throw new Error("Authentication required");
   }
 
-  // Create FormData for file upload (use Cloudinary endpoint)
+  // Create FormData for file upload
   const formData = new FormData();
   formData.append('file', file);
   formData.append('email', email);
   formData.append('token', token);
   formData.append('userDetails', JSON.stringify(userAuth.userDetails));
-  console.log('Uploading file to Cloudinary:', token);
+  console.log('Uploading file:', token);
 
   const response = await fetch(`${API_BASE_URL}/upload-profile-file`, {
+    
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

@@ -4,7 +4,6 @@ import { useUserProfile, UserProfile } from "../state_management/ProfileContext"
 import { UserContext } from "../state_management/UserContext";
 import { Link } from "react-router-dom";
 import { toastUtils, toastMessages } from "../utils/toast";
-import { uploadFileLocally } from "../utils/cloudinary";
 
 /* ---------------- Helper Components ----------------- */
 function Placeholder({ label }: { label?: string }) {
@@ -130,30 +129,6 @@ function FileUploadRow({
     isEditing?: boolean;
     onFileChange?: (file: string) => void;
 }) {
-    const [uploading, setUploading] = useState(false);
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setUploading(true);
-        try {
-            // Determine file type based on title
-            const fileType = title.toLowerCase().includes('resume') ? 'resume' : 
-                           title.toLowerCase().includes('transcript') ? 'transcript' : 'coverLetter';
-            
-            // Upload to Cloudinary
-            const cloudinaryUrl = await uploadFileLocally(file, fileType);
-            onFileChange(cloudinaryUrl);
-            toastUtils.success(`${title} uploaded successfully!`);
-        } catch (error) {
-            console.error('Upload failed:', error);
-            toastUtils.error(`Failed to upload ${title}`);
-        } finally {
-            setUploading(false);
-        }
-    };
-
     return (
         <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
             <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 pt-1 mb-1 md:mb-0">
@@ -161,18 +136,15 @@ function FileUploadRow({
             </div>
             <div className="w-full md:w-2/3 flex items-center flex-wrap">
                 {isEditing ? (
-                    <div className="w-full">
-                        <input
-                            type="file"
-                            accept=".pdf,.doc,.docx"
-                            onChange={handleFileUpload}
-                            disabled={uploading}
-                            className="block w-full text-sm text-gray-500"
-                        />
-                        {uploading && (
-                            <p className="text-sm text-blue-600 mt-1">Uploading to Cloudinary...</p>
-                        )}
-                    </div>
+                    <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) onFileChange(file.name);
+                        }}
+                        className="block w-full text-sm text-gray-500"
+                    />
                 ) : currentFile ? (
                     <>
                         <a
