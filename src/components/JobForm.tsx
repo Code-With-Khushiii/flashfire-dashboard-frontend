@@ -5,6 +5,7 @@ import { UserContext } from "../state_management/UserContext";
 import { useNavigate } from "react-router-dom";
 import { useOperationsStore } from "../state_management/Operations";
 import { toastUtils, toastMessages } from "../utils/toast";
+import { uploadFilesToR2 } from "../utils/uploadToR2";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -172,23 +173,44 @@ const JobForm: React.FC<JobFormProps> = ({ job, onCancel, onSuccess, setUserJobs
     }
   };
 
-  const uploadImagesToCloudinary = async (): Promise<string[]> => {
-    const urls: string[] = [];
-    
-    // Use the new unified upload service
-    const { uploadAttachment } = await import('../utils/uploadService');
+  // const uploadImagesToCloudinary = async (): Promise<string[]> => {
+  //   const urls: string[] = [];
+  //   const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  //   const UPLOAD_PRESET =
+  //     import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
+  //     import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET;
 
-    for (const file of images) {
-      try {
-        const url = await uploadAttachment(file, 'flashfirejobs/attachments');
-        if (url) urls.push(url);
-      } catch (error) {
-        console.error('Upload error:', error);
-        // Continue with other files even if one fails
-      }
-    }
-    return urls;
-  };
+  //   if (!CLOUD_NAME || !UPLOAD_PRESET) {
+  //     console.error("Missing Cloudinary envs");
+  //     return urls;
+  //   }
+
+  //   for (const file of images) {
+  //     const fd = new FormData();
+  //     fd.append("file", file);
+  //     fd.append("upload_preset", UPLOAD_PRESET);
+  //     fd.append("folder", "flashfirejobs/attachments");
+
+  //     const res = await fetch(
+  //       `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+  //       { method: "POST", body: fd }
+  //     );
+  //     if (!res.ok) continue;
+
+  //     const data = await res.json();
+  //     if (data.secure_url) urls.push(data.secure_url);
+  //   }
+  //   return urls;
+  // };
+
+/**
+ * Upload multiple files to Cloudflare R2 using backend-issued presigned URLs.
+ * Expects backend endpoint: GET /api/presigned-url that accepts JSON body or query
+ * and returns { uploadUrl, fileUrl } for each file.
+ * Returns array of public file URLs in the same order as input files.
+ */
+// using shared uploadFilesToR2 from ../utils/uploadToR2
+
 
   const handleAddJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,16 +322,16 @@ const JobForm: React.FC<JobFormProps> = ({ job, onCancel, onSuccess, setUserJobs
           // Proceed to upload images and persist attachments in background
           (async () => {
             try {
-              const uploadedUrls = await uploadImagesToCloudinary();
+              const uploadedUrls = await uploadFilesToR2(images, userDetails.email, "image");
               if (uploadedUrls.length) {
                 await persistAttachmentsToJobPUT({
-                    jobID: optimisticId,
-                    userDetails,
-                    token,
-                    urls: uploadedUrls,
-                    role,
-                    operationsName,
-                    operationsEmail,
+                  jobID: optimisticId,
+                  userDetails,
+                  token,
+                  urls: uploadedUrls,
+                  role,
+                  operationsName,
+                  operationsEmail,
                 });
               }
             } catch (err) {
@@ -352,16 +374,16 @@ const JobForm: React.FC<JobFormProps> = ({ job, onCancel, onSuccess, setUserJobs
       // background upload & persist
       (async () => {
         try {
-          const uploadedUrls = await uploadImagesToCloudinary();
+          const uploadedUrls = await uploadFilesToR2(images, userDetails.email, "image");
           if (uploadedUrls.length) {
             const resp = await persistAttachmentsToJobPUT({
-                jobID: job.jobID,
-                userDetails,
-                token,
-                urls: uploadedUrls,
-                role,
-                operationsName,
-                operationsEmail,
+              jobID: job.jobID,
+              userDetails,
+              token,
+              urls: uploadedUrls,
+              role,
+              operationsName,
+              operationsEmail,
             });
             if (resp?.updatedJobs) setUserJobs(resp.updatedJobs);
           }

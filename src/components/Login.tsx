@@ -341,12 +341,11 @@ import { toastUtils, toastMessages } from "../utils/toast"
 import { GoogleLogin } from "@react-oauth/google"
 
 interface LoginResponse {
-  message: string
-  token?: string
-  userDetails?: any
-  userProfile?: any
-  hasProfile?: boolean
-  user?: any
+  message: string;
+  token?: string;
+  userDetails?: any;
+  userProfile?: any;
+  user?: any;
 }
 
 const statsData = [
@@ -851,6 +850,8 @@ export default function Login() {
     </div>
   )
 }
+
+
 
 
 

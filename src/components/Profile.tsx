@@ -4,7 +4,7 @@ import { useUserProfile, UserProfile } from "../state_management/ProfileContext"
 import { UserContext } from "../state_management/UserContext";
 import { Link } from "react-router-dom";
 import { toastUtils, toastMessages } from "../utils/toast";
-
+import GuidePopup from "./GuidePopup";
 /* ---------------- Helper Components ----------------- */
 function Placeholder({ label }: { label?: string }) {
     return <span className="text-gray-400 italic">{label || "Not provided"}</span>;
@@ -300,7 +300,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className={`min-h-screen bg-gray-50 `}>
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-500 to-rose-500 shadow-md">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

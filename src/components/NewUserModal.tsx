@@ -569,26 +569,26 @@ const submitForm = async () => {
 
     const resJson = await res.json();
 
-    if (res.ok) {
-      console.log('Profile saved successfully (200 OK) - closing modal');
-      
-      try {
-        const payloadFromApi =
-          resJson?.userProfile ??
-          resJson?.data?.userProfile ??
-          resJson?.data ??
-          resJson;
-        setProfileFromApi(payloadFromApi);
-      } catch (e) {
-        console.log('Could not save profile data, but modal will still close');
-      }
-      
-      setUserProfileFormVisibility(false);
-      onProfileComplete?.();
-      return;
-    }
-    
-    throw new Error(JSON.stringify(resJson));
+    // ✅ only persist when request is OK
+    if (!res.ok) throw new Error(JSON.stringify(resJson));
+
+    // ✅ robustly pick the profile from common API shapes
+    const payloadFromApi =
+      resJson?.userProfile ??
+      resJson?.data?.userProfile ??
+      resJson?.data ??
+      resJson;
+
+    // ✅ this normalizes + persists to localStorage.userAuth.userProfile via context
+    setProfileFromApi(payloadFromApi);
+    localStorage.setItem('welcomeShown', 'true');
+    localStorage.setItem("dashboardGuideSeen", "no");
+    console.log('Profile saved successfully:', payloadFromApi);
+    console.log('Profile completion status:', isProfileComplete());
+
+    // Close modal and notify parent; dashboard will not show it again
+    setUserProfileFormVisibility(false);
+    onProfileComplete?.();
     
   } catch (err: any) {
     console.error(err);

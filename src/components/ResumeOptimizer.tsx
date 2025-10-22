@@ -110,15 +110,34 @@ export default function DocumentUpload() {
     };
 
     const uploadToCloudinary = async (file: File) => {
-        try {
-            // Use the new unified upload service
-            const { uploadProfileFile } = await import('../utils/uploadService');
-            const url = await uploadProfileFile(file, 'resume');
-            return url;
-        } catch (error) {
-            console.error("Upload failed:", error);
-            throw new Error("Upload failed");
-        }
+        const isPdf = file.type === "application/pdf";
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append(
+            "upload_preset",
+            import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET_PDF
+        );
+
+        // Use the correct endpoint for PDFs so we get a clean PDF URL
+        const resource = isPdf ? "raw" : "auto";
+        const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${
+                import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+            }/${resource}/upload`,
+            { method: "POST", body: formData }
+        );
+        if (!res.ok) throw new Error("Cloudinary upload failed");
+        const data = await res.json();
+        if (!data?.secure_url) throw new Error("No secure_url returned");
+
+        const url: string = isPdf
+            ? (data.secure_url as string).replace(
+                  "/image/upload/",
+                  "/raw/upload/"
+              )
+            : (data.secure_url as string);
+
+        return url;
     };
 
   const persistToBackend = async (payload: any) => {
