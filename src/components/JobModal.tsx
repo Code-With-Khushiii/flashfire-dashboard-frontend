@@ -12,7 +12,7 @@ import {
     Upload as UploadIcon,
     Check,
     Loader2,
-    Mail,
+  Mail,
     GitCommit,
 } from "lucide-react";
 import { useRef, useState, Suspense, lazy, useContext, useEffect } from "react";
@@ -27,51 +27,41 @@ import ResumeChangesComparison from "./ResumeChangesComparison.tsx";
 import { useOperationsStore } from "../state_management/Operations.ts";
 import { useResumeStore } from "./AiOprimizer/store/useResumeStore.ts";
 import { toastUtils, toastMessages } from "../utils/toast";
-import { uploadFilesToR2 } from "../utils/uploadToR2";
 import {
     getOptimizedResumeUrl,
     getOptimizedResumeTitle,
 } from "../utils/getOptimizedResumeUrl";
 
 /* ---------- ENV ---------- */
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "";
-const IMG_UPLOAD_PRESET =
-    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
-    import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET ||
-    "";
-const DOC_UPLOAD_PRESET =
-    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET_PDF ||
-    import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET_PDF ||
-    IMG_UPLOAD_PRESET;
+import { uploadAttachment } from "../utils/uploadService";
+import { optimizeImageUrl } from "../utils/imageCache";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const JOB_UPDATE_ENDPOINT = `${API_BASE}/updatechanges`;
 const PLAN_ENDPOINT = `${API_BASE}/api/plans/select`;
 
-/* ---------- Cloudinary uploader (unsigned) ---------- */
-// async function uploadToCloudinary(
-//     file: File,
-//     {
-//         resourceType = "auto",
-//         folder = "flashfirejobs",
-//         preset = IMG_UPLOAD_PRESET,
-//     }: {
-//         resourceType?: "auto" | "image" | "raw";
-//         folder?: string;
-//         preset?: string;
-//     } = {}
-// ) {
-//     if (!CLOUD_NAME || !preset) throw new Error("Missing Cloudinary envs.");
-//     const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
-//     const fd = new FormData();
-//     fd.append("file", file);
-//     fd.append("upload_preset", preset);
-//     fd.append("folder", folder);
-//     const res = await fetch(endpoint, { method: "POST", body: fd });
-//     if (!res.ok) throw new Error(await res.text());
-//     return res.json(); // { secure_url, ... }
-// }
-// using shared uploadFilesToR2 from ../utils/uploadToR2
+/* ---------- Upload handler (uses backend API - supports R2 and Cloudinary) ---------- */
+async function uploadToCloudinary(
+    file: File,
+    {
+        resourceType = "auto",
+        folder = "flashfirejobs",
+        preset = undefined,
+    }: {
+        resourceType?: "auto" | "image" | "raw";
+        folder?: string;
+        preset?: string;
+    } = {}
+) {
+    try {
+        // Use the new unified upload service
+        const url = await uploadAttachment(file, folder);
+        return { secure_url: url };
+    } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
+    }
+}
 
 /* ---------- Persist new image URLs into JobModel.attachments[] ---------- */
 async function persistAttachmentsToJob({
@@ -165,8 +155,8 @@ async function persistOptimizedResumeToUser({
                 jobRole: entry.jobRole ?? "",
                 jobId: entry.jobId ?? "",
                 jobLink: entry.jobLink ?? "",
-                name: entry.jobRole,
-                createdAt: Date.now()
+                name : entry.jobRole,
+                createdAt : Date.now()
             },
         };
 
@@ -180,12 +170,12 @@ async function persistOptimizedResumeToUser({
         let json: any = {};
         try {
             json = text ? JSON.parse(text) : {};
-        } catch { }
+        } catch {}
         if (!res.ok)
             throw new Error(
                 (json && json.message) ||
-                text ||
-                "Failed to save optimized resume"
+                    text ||
+                    "Failed to save optimized resume"
             );
         return json as { message?: string; userDetails?: any };
     } else {
@@ -211,12 +201,12 @@ async function persistOptimizedResumeToUser({
         let json: any = {};
         try {
             json = text ? JSON.parse(text) : {};
-        } catch { }
+        } catch {}
         if (!res.ok)
             throw new Error(
                 (json && json.message) ||
-                text ||
-                "Failed to save optimized resume"
+                    text ||
+                    "Failed to save optimized resume"
             );
         return json as { message?: string; userDetails?: any };
     }
@@ -286,7 +276,7 @@ export default function JobModal({
             // Check for Ctrl + Shift + C
             if (event.ctrlKey && event.shiftKey && event.key === 'C') {
                 event.preventDefault();
-
+                
                 // Only copy if we're in the description section and have job description
                 if (activeSection === 'description' && jobDetails?.jobDescription) {
                     const text = document.querySelector(".job-description-html")?.textContent || "";
@@ -368,26 +358,26 @@ export default function JobModal({
         hasOptimizedResumeLocal(jobDetails?.jobID, jobDetails?.companyName)
     );
 
-    // Always keep it in sync when job or local user changes
-    useEffect(() => {
-        setHasResumeForJob(hasOptimizedResumeLocal(jobDetails?.jobID, jobDetails?.companyName));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [jobDetails?.jobID, jobDetails?.companyName, ctx?.userDetails]);
-    // NEW: capture images from Ctrl+V
-    const handlePasteImages = (e: React.ClipboardEvent<HTMLDivElement>) => {
-        setPasteError(null);
-        const items = e.clipboardData?.items || [];
-        for (const item of items) {
-            if (item.type && item.type.startsWith("image/")) {
-                const f = item.getAsFile();
-                if (f) {
-                    // ✅ Append new image(s) to the existing pasted list
-                    setPastedImages((prev) => [...prev, f]);
-                    setPastedPreviews((prev) => [...prev, URL.createObjectURL(f)]);
-                }
-            }
-        }
-    };
+// Always keep it in sync when job or local user changes
+useEffect(() => {
+  setHasResumeForJob(hasOptimizedResumeLocal(jobDetails?.jobID, jobDetails?.companyName));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [jobDetails?.jobID, jobDetails?.companyName, ctx?.userDetails]);
+  // NEW: capture images from Ctrl+V
+  const handlePasteImages = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  setPasteError(null);
+  const items = e.clipboardData?.items || [];
+  for (const item of items) {
+    if (item.type && item.type.startsWith("image/")) {
+      const f = item.getAsFile();
+      if (f) {
+        // ✅ Append new image(s) to the existing pasted list
+        setPastedImages((prev) => [...prev, f]);
+        setPastedPreviews((prev) => [...prev, URL.createObjectURL(f)]);
+      }
+    }
+  }
+};
 
 
     // NEW: upload pasted images -> Cloudinary -> persist to job.attachments[]
@@ -405,33 +395,40 @@ export default function JobModal({
         }
 
         setIsUploadingPasted(true);
-            try {
-                // Upload all pasted images to R2 (attachments)
-                const uploadedUrls = await uploadFilesToR2(pastedImages, currentUser?.email || 'frontend', 'image');
+        try {
+            const urls: string[] = [];
+            for (const file of pastedImages) {
+                const up = await uploadToCloudinary(file, {
+                    resourceType: "image",
+                    folder: "flashfirejobs/attachments",
+                });
+                if (up?.secure_url) urls.push(up.secure_url as string);
+            }
 
-                if (uploadedUrls.length) {
-                    // Append uploaded pasted images to existing attachments
-                    setAttachments((prev) => [...(Array.isArray(prev) ? prev : []), ...uploadedUrls]);
+      if (urls.length) {
+  // ✅ Append uploaded pasted images to existing attachments
+  setAttachments((prev) => [...(Array.isArray(prev) ? prev : []), ...urls]);
 
-                    const resp = await persistAttachmentsToJob({
-                        jobID,
-                        userEmail,
-                        urls: uploadedUrls,
-                        token,
-                        role,
-                        userDetails: currentUser,
-                        operationsUserName,
-                        operationsUserEmail,
-                    });
+                   const resp = await persistAttachmentsToJob({
+               jobID,
+               userEmail,
+               urls,
+               token,
+               role,
+               userDetails: currentUser, // Pass user details
+               operationsUserName, // Pass operations user name
+               operationsUserEmail, // Pass operations user email
+           });
 
-                    if (resp?.updatedJobs) {
-                        setUserJobs(resp.updatedJobs);
-                        const updated = resp.updatedJobs.find((j) => j.jobID === jobID);
-                        if (updated?.attachments) {
-                            setAttachments(updated.attachments);
-                        }
-                    }
-                }
+  if (resp?.updatedJobs) {
+    setUserJobs(resp.updatedJobs);
+    const updated = resp.updatedJobs.find((j) => j.jobID === jobID);
+    if (updated?.attachments) {
+      // ✅ Reflect full attachments array returned by backend
+      setAttachments(updated.attachments);
+    }
+  }
+}
 
 
             // clear paste buffer
@@ -479,13 +476,14 @@ export default function JobModal({
 
         setIsUploadingImg(true);
         try {
-            // Upload single image to R2
-            const urls = await uploadFilesToR2([imgFile!], currentUser?.email || 'frontend', 'image');
-            const url = urls[0];
+            const up = await uploadToCloudinary(imgFile, {
+                resourceType: "image",
+                folder: "flashfirejobs/attachments",
+            });
+            const url = up.secure_url as string;
 
-            if (!url) throw new Error('Image upload failed');
+      setAttachments([url]); // ✅ replace array with just this one
 
-            setAttachments([url]);
 
             const resp = await persistAttachmentsToJob({
                 jobID,
@@ -543,7 +541,7 @@ export default function JobModal({
             file.type === "application/pdf" ||
             file.type === "application/msword" ||
             file.type ===
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         if (!isDoc) {
             setDocError("Please select a PDF/DOC/DOCX file.");
             e.target.value = "";
@@ -552,11 +550,12 @@ export default function JobModal({
 
         setIsUploadingDoc(true);
         try {
-            // Upload document to R2 (docs)
-            const urls = await uploadFilesToR2([file], currentUser?.email || 'frontend', 'pdf');
-            const url = urls[0];
-
-            if (!url) throw new Error('Document upload failed');
+            // 1) upload to Cloudinary as raw document
+            const up = await uploadToCloudinary(file, {
+                resourceType: "raw",
+                folder: "flashfirejobs/docs",
+            });
+            const url = up.secure_url as string;
 
             // 2) persist to user (PlanSelect + LocalTokenValidator)
             const resp = await persistOptimizedResumeToUser({
@@ -796,175 +795,175 @@ export default function JobModal({
                             </p>
                         </div>
 
-                        {/* Card 3: Position */}
-                        <div className="bg-white rounded-lg border border-gray-200 p-4">
-                            <div className="flex items-center mb-2">
-                                <Briefcase className="w-4 h-4 text-gray-500 mr-2" />
-                                <span className="text-sm font-medium text-gray-600">Position</span>
-                            </div>
-                            <p className="text-lg font-semibold text-gray-900">{jobDetails.jobTitle}</p>
-                        </div>
+            {/* Card 3: Position */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center mb-2">
+                <Briefcase className="w-4 h-4 text-gray-500 mr-2" />
+                <span className="text-sm font-medium text-gray-600">Position</span>
+              </div>
+              <p className="text-lg font-semibold text-gray-900">{jobDetails.jobTitle}</p>
+            </div>
 
-                        {/* Card 4: Candidate */}
-                        <div className="bg-white rounded-lg border border-gray-200 p-4">
-                            <div className="flex items-center mb-2">
-                                <User className="w-4 h-4 text-gray-500 mr-2" />
-                                <span className="text-sm font-medium text-gray-600">Candidate</span>
-                            </div>
-                            <p className="text-lg font-semibold text-gray-900">
-                                {currentUser?.email || jobDetails.userID}
-                            </p>
-                        </div>
-                    </div>
-                );
+            {/* Card 4: Candidate */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center mb-2">
+                <User className="w-4 h-4 text-gray-500 mr-2" />
+                <span className="text-sm font-medium text-gray-600">Candidate</span>
+              </div>
+              <p className="text-lg font-semibold text-gray-900">
+                {currentUser?.email || jobDetails.userID}
+              </p>
+            </div>
+          </div>
+        );
 
-            case "link":
-                return (
-                    <div className="space-y-4">
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-lg font-semibold text-gray-900">Job Application Link</h4>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => copyToClipboard(jobDetails.joblink)}
-                                        className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                                    >
-                                        <Copy className="w-4 h-4 mr-1" />
-                                        Copy
-                                    </button>
-                                    <a
-                                        href={jobDetails.joblink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                                    >
-                                        <ExternalLink className="w-4 h-4 mr-1" />
-                                        Open
-                                    </a>
-                                </div>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
-                                <code className="text-sm text-gray-700 break-all font-mono">{jobDetails.joblink}</code>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case "description":
-                const emailMatch = jobDetails?.jobDescription
-                    ? jobDetails.jobDescription.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g)
-                    : null;
+      case "link":
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-gray-900">Job Application Link</h4>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => copyToClipboard(jobDetails.joblink)}
+                    className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
+                  </button>
+                  <a
+                    href={jobDetails.joblink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Open
+                  </a>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                <code className="text-sm text-gray-700 break-all font-mono">{jobDetails.joblink}</code>
+              </div>
+            </div>
+          </div>
+        );
+      case "description":
+  const emailMatch = jobDetails?.jobDescription
+    ? jobDetails.jobDescription.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g)
+    : null;
 
-                return (
-                    // <div className="space-y-4">
-                    //   <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    //     <h4 className="text-lg font-semibold text-gray-900 mb-4">Job Description</h4>
-                    //     <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                    //       {jobDetails?.jobDescription ? (
-                    //         <div
-                    //           className="text-sm text-gray-700 leading-relaxed job-description-html"
-                    //           dangerouslySetInnerHTML={{
-                    //             __html: jobDetails.jobDescription,
-                    //           }}
-                    //         ></div>
-                    //       ) : (
-                    //         <p className="text-gray-500 italic text-sm">
-                    //           No job description available.
-                    //         </p>
-                    //       )}
-                    //     </div>
+  return (
+    // <div className="space-y-4">
+    //   <div className="bg-white rounded-lg border border-gray-200 p-6">
+    //     <h4 className="text-lg font-semibold text-gray-900 mb-4">Job Description</h4>
+    //     <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+    //       {jobDetails?.jobDescription ? (
+    //         <div
+    //           className="text-sm text-gray-700 leading-relaxed job-description-html"
+    //           dangerouslySetInnerHTML={{
+    //             __html: jobDetails.jobDescription,
+    //           }}
+    //         ></div>
+    //       ) : (
+    //         <p className="text-gray-500 italic text-sm">
+    //           No job description available.
+    //         </p>
+    //       )}
+    //     </div>
 
-                    //     {/* ✅ Show extracted emails from job description */}
-                    //     {emailMatch && emailMatch.length > 0 && (
-                    //       <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    //         <h5 className="text-sm font-semibold text-yellow-800 mb-2">
-                    //           📧 Emails found in Job Description to reach out:
-                    //         </h5>
-                    //         <ul className="list-disc list-inside text-sm text-gray-700">
-                    //           {emailMatch.map((email: string, idx: number) => (
-                    //             <li key={idx} className="flex p-1 m-1"> <Mail className="size-3 m-1" /> {email}</li>
-                    //           ))}
-                    //         </ul>
-                    //       </div>
-                    //     )}
-                    //   </div>
-                    // </div>
-                    <div className="space-y-4">
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-lg font-semibold text-gray-900">Job Description</h4>
-                                <button
-                                    onClick={() => {
-                                        // Try to read from the rendered HTML first
-                                        const el = document.querySelector(".job-description-html") as HTMLElement | null;
-                                        let text = (el?.textContent || "").trim();
+    //     {/* ✅ Show extracted emails from job description */}
+    //     {emailMatch && emailMatch.length > 0 && (
+    //       <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+    //         <h5 className="text-sm font-semibold text-yellow-800 mb-2">
+    //           📧 Emails found in Job Description to reach out:
+    //         </h5>
+    //         <ul className="list-disc list-inside text-sm text-gray-700">
+    //           {emailMatch.map((email: string, idx: number) => (
+    //             <li key={idx} className="flex p-1 m-1"> <Mail className="size-3 m-1" /> {email}</li>
+    //           ))}
+    //         </ul>
+    //       </div>
+    //     )}
+    //   </div>
+    // </div>
+    <div className="space-y-4">
+  <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="flex items-center justify-between mb-4">
+    <h4 className="text-lg font-semibold text-gray-900">Job Description</h4>
+      <button
+          onClick={() => {
+            // Try to read from the rendered HTML first
+            const el = document.querySelector(".job-description-html") as HTMLElement | null;
+            let text = (el?.textContent || "").trim();
 
-                                        // Fallback: use cached or raw description, stripping HTML if present
-                                        if (!text) {
-                                            const raw = (getJobDescription(jobDetails?.jobID) || jobDetails?.jobDescription || "").toString();
-                                            // Strip HTML tags if any
-                                            text = raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-                                        }
+            // Fallback: use cached or raw description, stripping HTML if present
+            if (!text) {
+              const raw = (getJobDescription(jobDetails?.jobID) || jobDetails?.jobDescription || "").toString();
+              // Strip HTML tags if any
+              text = raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+            }
 
-                                        if (text) {
-                                            navigator.clipboard.writeText(text);
-                                        }
-                                    }}
-                                    className="text-sm px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                                    title="Copy job description (Ctrl + Shift + C)"
-                                >
-                                    Copy
-                                </button>
-                            </div>
+            if (text) {
+              navigator.clipboard.writeText(text);
+            }
+          }}
+          className="text-sm px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+          title="Copy job description (Ctrl + Shift + C)"
+        >
+          Copy
+        </button>
+    </div>
 
-                            <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                                {(() => {
-                                    const cachedDescription = getJobDescription(jobDetails?.jobID);
-                                    const description = cachedDescription || jobDetails?.jobDescription;
-                                    const isLoading = isJobDescriptionLoading(jobDetails?.jobID);
+    <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+      {(() => {
+        const cachedDescription = getJobDescription(jobDetails?.jobID);
+        const description = cachedDescription || jobDetails?.jobDescription;
+        const isLoading = isJobDescriptionLoading(jobDetails?.jobID);
+        
+        if (isLoading) {
+          return (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500 mr-2" />
+              <span className="text-gray-600">Loading job description...</span>
+            </div>
+          );
+        }
+        
+        return description ? (
+          <div
+            className="text-sm text-gray-700 leading-relaxed job-description-html"
+            dangerouslySetInnerHTML={{
+              __html: description,
+            }}
+          ></div>
+        ) : (
+          <p className="text-gray-500 italic text-sm">
+            No job description available.
+          </p>
+        );
+      })()}
+    </div>
 
-                                    if (isLoading) {
-                                        return (
-                                            <div className="flex items-center justify-center py-8">
-                                                <Loader2 className="w-6 h-6 animate-spin text-blue-500 mr-2" />
-                                                <span className="text-gray-600">Loading job description...</span>
-                                            </div>
-                                        );
-                                    }
+    {/* ✅ Show extracted emails from job description */}
+    {emailMatch && emailMatch.length > 0 && (
+      <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        <h5 className="text-sm font-semibold text-yellow-800 mb-2">
+          📧 Emails found in Job Description to reach out:
+        </h5>
+         <ul className="list-disc list-inside text-sm text-gray-700">
+           {emailMatch.map((email: string, idx: number) => (
+             <li key={idx} className="flex p-1 m-1">
+               <Mail className="size-3 m-1" /> {email}
+             </li>
+           ))}
+         </ul>
+      </div>
+    )}
+  </div>
+</div>
 
-                                    return description ? (
-                                        <div
-                                            className="text-sm text-gray-700 leading-relaxed job-description-html"
-                                            dangerouslySetInnerHTML={{
-                                                __html: description,
-                                            }}
-                                        ></div>
-                                    ) : (
-                                        <p className="text-gray-500 italic text-sm">
-                                            No job description available.
-                                        </p>
-                                    );
-                                })()}
-                            </div>
-
-                            {/* ✅ Show extracted emails from job description */}
-                            {emailMatch && emailMatch.length > 0 && (
-                                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                    <h5 className="text-sm font-semibold text-yellow-800 mb-2">
-                                        📧 Emails found in Job Description to reach out:
-                                    </h5>
-                                    <ul className="list-disc list-inside text-sm text-gray-700">
-                                        {emailMatch.map((email: string, idx: number) => (
-                                            <li key={idx} className="flex p-1 m-1">
-                                                <Mail className="size-3 m-1" /> {email}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                );
+  );
 
             case "attachments":
                 return (
@@ -1091,82 +1090,82 @@ export default function JobModal({
                                 )}
                             </div>
 
-                            {/* ---- Paste Images (Ctrl+V) ---- */}
-                            <div className="mb-6 rounded-lg border border-orange-200 p-4">
-                                <div className="flex items-center mb-3">
-                                    <UploadIcon className="w-4 h-4 text-orange-600 mr-2" />
-                                    <h4 className="text-sm font-semibold text-orange-700">
-                                        Paste Images (Ctrl+V) — PNG/JPG/WEBP
-                                    </h4>
-                                </div>
+              {/* ---- Paste Images (Ctrl+V) ---- */}
+              <div className="mb-6 rounded-lg border border-orange-200 p-4">
+                <div className="flex items-center mb-3">
+                  <UploadIcon className="w-4 h-4 text-orange-600 mr-2" />
+                  <h4 className="text-sm font-semibold text-orange-700">
+                    Paste Images (Ctrl+V) — PNG/JPG/WEBP
+                  </h4>
+                </div>
 
-                                <div
-                                    onPaste={handlePasteImages}
-                                    className="border-2 border-dashed border-orange-400/70 rounded-lg p-4 min-h-[96px] flex items-center justify-center bg-orange-50"
-                                >
-                                    {pastedPreviews.length ? (
-                                        <div className="w-full">
-                                            <div className="flex flex-wrap gap-2">
-                                                {pastedPreviews.map((src, idx) => (
-                                                    <img
-                                                        key={idx}
-                                                        src={src}
-                                                        alt={`pasted-${idx}`}
-                                                        className="w-20 h-20 object-cover rounded-md border cursor-zoom-in"
-                                                        onClick={() => {
-                                                            setSelectedImage(src);
-                                                            setAttachmentsModalActiveStatus(true);
-                                                        }}
-                                                    />
-                                                ))}
-                                            </div>
+                <div
+                  onPaste={handlePasteImages}
+                  className="border-2 border-dashed border-orange-400/70 rounded-lg p-4 min-h-[96px] flex items-center justify-center bg-orange-50"
+                >
+                  {pastedPreviews.length ? (
+                    <div className="w-full">
+                      <div className="flex flex-wrap gap-2">
+                        {pastedPreviews.map((src, idx) => (
+                          <img
+                            key={idx}
+                            src={src}
+                            alt={`pasted-${idx}`}
+                            className="w-20 h-20 object-cover rounded-md border cursor-zoom-in"
+                            onClick={() => {
+                              setSelectedImage(src);
+                              setAttachmentsModalActiveStatus(true);
+                            }}
+                          />
+                        ))}
+                      </div>
 
-                                            <div className="mt-3 flex gap-2">
-                                                <button
-                                                    onClick={uploadPastedImages}
-                                                    disabled={isUploadingPasted}
-                                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-600 text-white disabled:opacity-50"
-                                                >
-                                                    {isUploadingPasted ? (
-                                                        <Loader2 className="animate-spin w-4 h-4" />
-                                                    ) : (
-                                                        <UploadIcon className="w-4 h-4" />
-                                                    )}
-                                                    {isUploadingPasted ? "Uploading..." : "Upload pasted images"}
-                                                </button>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={uploadPastedImages}
+                          disabled={isUploadingPasted}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-600 text-white disabled:opacity-50"
+                        >
+                          {isUploadingPasted ? (
+                            <Loader2 className="animate-spin w-4 h-4" />
+                          ) : (
+                            <UploadIcon className="w-4 h-4" />
+                          )}
+                          {isUploadingPasted ? "Uploading..." : "Upload pasted images"}
+                        </button>
 
-                                                <button
-                                                    onClick={() => {
-                                                        pastedPreviews.forEach((u) => URL.revokeObjectURL(u));
-                                                        setPastedPreviews([]);
-                                                        setPastedImages([]);
-                                                    }}
-                                                    disabled={isUploadingPasted}
-                                                    className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
-                                                >
-                                                    Clear
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-600 text-sm flex items-center">
-                                            <Copy className="w-4 h-4 mr-2" /> Copy an image and press{" "}
-                                            <span className="mx-1 font-semibold">Ctrl+V</span> here
-                                        </p>
-                                    )}
-                                </div>
+                        <button
+                          onClick={() => {
+                            pastedPreviews.forEach((u) => URL.revokeObjectURL(u));
+                            setPastedPreviews([]);
+                            setPastedImages([]);
+                          }}
+                          disabled={isUploadingPasted}
+                          className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 text-sm flex items-center">
+                      <Copy className="w-4 h-4 mr-2" /> Copy an image and press{" "}
+                      <span className="mx-1 font-semibold">Ctrl+V</span> here
+                    </p>
+                  )}
+                </div>
 
-                                {pasteError && <p className="mt-2 text-sm text-red-600">{pasteError}</p>}
-                            </div>
+                {pasteError && <p className="mt-2 text-sm text-red-600">{pasteError}</p>}
+              </div>
 
-                            {/* Image Grid */}
-                          <div className="h-96 overflow-auto rounded-lg border p-3">
+              {/* Image Grid */}
+              <div className="h-96 overflow-auto rounded-lg border p-3">
                 {attachments.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1">
                     {attachments.map((url, idx) => (
                       <img
                         key={idx}
-                        src={url}
+                        src={optimizeImageUrl(url)}
                         alt={`Attachment-${idx}`}
                         className="w-full h-auto object-cover cursor-zoom-in"
                         draggable={false}
@@ -1292,20 +1291,20 @@ export default function JobModal({
                                         // Try _id first, then fall back to jobID
                                         const mongoId = jobDetails._id;
                                         const jobId = jobDetails.jobID;
-
+                                        
                                         // Prefer _id if available, otherwise use jobID
                                         const idToUse = mongoId || jobId;
-
+                                        
                                         if (!idToUse) {
                                             console.error('No ID found in job details:', jobDetails);
                                             toastUtils.error('Job ID not found. Please refresh the page and try again.');
                                             return;
                                         }
-
+                                        
                                         // Use appropriate query parameter
                                         const queryParam = mongoId ? 'id' : 'jobId';
                                         const optimizeUrl = `${window.location.origin}/optimize/${idToUse}?view=editor&${queryParam}=${idToUse}`;
-
+                                        
                                         // Copy URL to clipboard
                                         try {
                                             await navigator.clipboard.writeText(optimizeUrl);
@@ -1331,39 +1330,9 @@ export default function JobModal({
                 </div>
 
                 {/* Body */}
-                <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-
-                    {/* 🌐 Mobile Top Tabs (new) */}
-                    <div className="md:hidden bg-gray-50 border-b border-gray-200 px-2 py-2 sticky top-0 z-10 overflow-x-auto">
-                        <div className="flex gap-2 min-w-max">
-                            {[
-                                { id: "details", label: "Job Details", icon: FileText },
-                                { id: "link", label: "Job Link", icon: Link },
-                                { id: "description", label: "Job Description", icon: Briefcase },
-                                { id: "attachments", label: "Resume / Attachments", icon: User },
-                                { id: "timeline", label: "Application Timeline", icon: TimerIcon },
-                                { id: "changes", label: "Changes Made", icon: GitCommit },
-                            ].map((section) => {
-                                const Icon = section.icon;
-                                const isActive = activeSection === section.id;
-                                return (
-                                    <button
-                                        key={section.id}
-                                        onClick={() => setActiveSection(section.id)}
-                                        className={`flex items-center gap-1 flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 ${isActive
-                                                ? "bg-orange-600 text-white shadow-md"
-                                                : "bg-white text-gray-700 border border-gray-200"
-                                            }`}
-                                    >
-                                        <Icon className="w-4 h-4" />
-                                        {section.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                <div className="flex flex-1 overflow-hidden">
                     {/* Sidebar */}
-                    <div className="hidden md:block w-56 bg-gray-50 border-r border-gray-200 py-6 px-3">
+                    <div className="w-56 bg-gray-50 border-r border-gray-200 py-6 px-3">
                         <nav className="space-y-2">
                             {[
                                 {
@@ -1411,14 +1380,16 @@ export default function JobModal({
                                         onClick={() =>
                                             setActiveSection(section.id)
                                         }
-                                        className={`w-full flex items-center px-3 py-2 text-left rounded-lg transition-all duration-200 text-sm ${isActive
+                                        className={`w-full flex items-center px-3 py-2 text-left rounded-lg transition-all duration-200 text-sm ${
+                                            isActive
                                                 ? `${section.color} border shadow-sm`
                                                 : "text-gray-700 hover:bg-white hover:shadow-sm border border-transparent"
-                                            }`}
+                                        }`}
                                     >
                                         <Icon
-                                            className={`w-5 h-5 mr-2 ${isActive ? "" : "text-gray-500"
-                                                }`}
+                                            className={`w-5 h-5 mr-2 ${
+                                                isActive ? "" : "text-gray-500"
+                                            }`}
                                         />
                                         <span className="font-medium">
                                             {section.label}
@@ -1434,7 +1405,7 @@ export default function JobModal({
 
                     {/* Main Content */}
                     <div
-                        className="flex-1 overflow-y-auto p-3 sm:p-6"
+                        className="flex-1 overflow-y-auto p-6"
                         style={{ overscrollBehavior: "contain" }}
                     >
                         {renderContent()}
