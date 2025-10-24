@@ -31,6 +31,9 @@ import {
     getOptimizedResumeUrl,
     getOptimizedResumeTitle,
 } from "../utils/getOptimizedResumeUrl";
+import { ResumePreview } from "./AiOprimizer/components/ResumePreview";
+import { ResumePreview1 } from "./AiOprimizer/components/ResumePreview1";
+import { ResumePreviewMedical } from "./AiOprimizer/components/ResumePreviewMedical";
 
 /* ---------- ENV ---------- */
 import { uploadAttachment } from "../utils/uploadService";
@@ -217,6 +220,7 @@ type Sections =
     | "link"
     | "description"
     | "attachments"
+    | "resume"
     | "timeline"
     | "changes";
 
@@ -256,6 +260,9 @@ export default function JobModal({
     const [attachmentsModalActiveStatus, setAttachmentsModalActiveStatus] =
         useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [resumeData, setResumeData] = useState<any>(null);
+    const [resumeLoading, setResumeLoading] = useState(false);
+    const [resumeError, setResumeError] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<Sections>(
         initialSection ?? "details"
     );
@@ -316,6 +323,50 @@ export default function JobModal({
     useEffect(() => {
         if (initialSection) setActiveSection(initialSection);
     }, [initialSection]);
+
+    // Function to fetch resume data
+    const fetchResumeData = async (jobId: string) => {
+        setResumeLoading(true);
+        setResumeError(null);
+        
+        try {
+            // Check session storage first
+            const cacheKey = `resume_${jobId}`;
+            const cachedData = sessionStorage.getItem(cacheKey);
+            
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                const now = new Date().getTime();
+                const cacheTime = parsed.timestamp || 0;
+                const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
+                
+                if (hoursDiff < 24) {
+                    setResumeData(parsed.data);
+                    setResumeLoading(false);
+                    return;
+                }
+            }
+            
+            const response = await fetch(`${API_BASE}/getOptimizedResume/${jobId}`);
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                setResumeData(result.optimizedResume);
+                // Cache for 24 hours
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                    data: result.optimizedResume,
+                    timestamp: new Date().getTime()
+                }));
+            } else {
+                setResumeError(result.error || "No optimized resume found");
+            }
+        } catch (error) {
+            setResumeError("Failed to load resume data");
+            console.error("Error fetching resume data:", error);
+        } finally {
+            setResumeLoading(false);
+        }
+    };
     useEffect(() => {
         // Only when opened due to a drag-move (attachments tab)
         if (initialSection !== "attachments") return;
@@ -651,6 +702,12 @@ useEffect(() => {
             label: "Resume / Attachments",
             icon: User,
             color: "bg-orange-50 text-orange-700 border-orange-200",
+        },
+        {
+            id: "resume",
+            label: "Resume Preview",
+            icon: FileText,
+            color: "bg-blue-50 text-blue-700 border-blue-200",
         },
         {
             id: "timeline",
@@ -1186,6 +1243,97 @@ useEffect(() => {
           </div>
         );
 
+            case "resume":
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-white rounded-lg border border-gray-200 p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-lg font-semibold text-gray-900">
+                                    Optimized Resume Preview
+                                </h4>
+                                {!resumeData && !resumeLoading && (
+                                    <button
+                                        onClick={() => fetchResumeData(jobDetails.jobID)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                                    >
+                                        Load Resume
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {resumeLoading && (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                    <span className="ml-2 text-gray-600">Loading resume...</span>
+                                </div>
+                            )}
+                            
+                            {resumeError && (
+                                <div className="text-center py-8">
+                                    <p className="text-red-600 mb-4">{resumeError}</p>
+                                    <button
+                                        onClick={() => fetchResumeData(jobDetails.jobID)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        Try Again
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {resumeData && !resumeLoading && (
+                                <div className="resume-preview-container">
+                                    {resumeData.version === 0 && (
+                                        <ResumePreview
+                                            data={resumeData.resumeData}
+                                            showLeadership={resumeData.showLeadership}
+                                            showProjects={resumeData.showProjects}
+                                            showSummary={resumeData.showSummary}
+                                            showPublications={resumeData.showPublications}
+                                            showChanges={false}
+                                            changedFields={new Set()}
+                                            showPrintButtons={false}
+                                        />
+                                    )}
+                                    
+                                    {resumeData.version === 1 && (
+                                        <ResumePreview1
+                                            data={resumeData.resumeData}
+                                            showLeadership={resumeData.showLeadership}
+                                            showProjects={resumeData.showProjects}
+                                            showSummary={resumeData.showSummary}
+                                            showChanges={false}
+                                            changedFields={new Set()}
+                                            showPrintButtons={false}
+                                        />
+                                    )}
+                                    
+                                    {resumeData.version === 2 && (
+                                        <ResumePreviewMedical
+                                            data={resumeData.resumeData}
+                                            showLeadership={resumeData.showLeadership}
+                                            showProjects={resumeData.showProjects}
+                                            showSummary={resumeData.showSummary}
+                                            showPublications={resumeData.showPublications}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            
+                            {!resumeData && !resumeLoading && !resumeError && (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500 mb-4">No optimized resume found for this job</p>
+                                    <button
+                                        onClick={() => fetchResumeData(jobDetails.jobID)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        Check for Resume
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
             case "timeline":
                 return (
                     <div className="space-y-4">
@@ -1358,6 +1506,12 @@ useEffect(() => {
                                     label: "Resume / Attachments",
                                     icon: User,
                                     color: "bg-orange-50 text-orange-700 border-orange-200",
+                                },
+                                {
+                                    id: "resume",
+                                    label: "Resume Preview",
+                                    icon: FileText,
+                                    color: "bg-blue-50 text-blue-700 border-blue-200",
                                 },
                                 {
                                     id: "timeline",
