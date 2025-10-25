@@ -684,20 +684,32 @@
 //   );
 // }
 
-import { ArrowLeftCircle, Trash2, HardDriveDownload } from "lucide-react";
+import { ArrowLeftCircle } from "lucide-react";
 import React, { useEffect, useState, useContext } from "react";
 import { UserContext } from '../state_management/UserContext.js';
-
-type PendingType = "optimized" | "coverLetter" | null;
+import { ResumePreview } from './AiOprimizer/components/ResumePreview.tsx';
+import { ResumePreview1 } from './AiOprimizer/components/ResumePreview1.tsx';
+import { ResumePreviewMedical } from './AiOprimizer/components/ResumePreviewMedical.tsx';
 
 type Entry = {
   jobRole: string;
   companyName: string;
   jobLink?: string;
   url: string;
+  link?: string;
   createdAt?: string | Date;
   jobId?: string;
-  name: string
+  jobID?: string;
+  hasResume?: boolean;
+  isJobBased?: boolean;
+  name: string;
+  title?: string;
+  version?: number;
+  resumeData?: any;
+  showSummary?: boolean;
+  showProjects?: boolean;
+  showLeadership?: boolean;
+  showPublications?: boolean;
 };
 
 // Cloudinary sometimes serves PDFs under `image/upload`.
@@ -726,14 +738,14 @@ function toRawPdfUrl(
 }
 
 
-const fmtDate = (d?: string | Date) =>
-  d
-    ? new Date(d).toLocaleDateString(undefined, {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    })
-    : "—";
+// const fmtDate = (d?: string | Date) =>
+//   d
+//     ? new Date(d).toLocaleDateString(undefined, {
+//       month: "short",
+//       day: "2-digit",
+//       year: "numeric",
+//     })
+//     : "—";
 
 // Small download icon (no external deps)
 const DownloadIcon = () => (
@@ -745,12 +757,21 @@ const DownloadIcon = () => (
 
 export default function DocumentUpload() {
   const [activeTab, setActiveTab] = useState<"base" | "optimized" | "cover" | "transcript">("base");
-  const [fileNamePrompt, setFileNamePrompt] = useState<string>("");
+  // const [fileNamePrompt, setFileNamePrompt] = useState<string>("");
   const context = useContext(UserContext);
-  const [baseResume, setBaseResume] = useState([]);
+  const [baseResume, setBaseResume] = useState<any[]>([]);
   const [optimizedList, setOptimizedList] = useState<Entry[]>([]);
   const [coverList, setCoverList] = useState<Entry[]>([]);
-  const [transcriptList, setTranscriptList] = useState([]);
+  const [transcriptList, setTranscriptList] = useState<any[]>([]);
+  
+  // Job-based resume states
+  const [resumeData, setResumeData] = useState<any>(null);
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const [fetchingResumes, setFetchingResumes] = useState(false);
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredResumes, setFilteredResumes] = useState<Entry[]>([]);
 
   // const [showMetaModal, setShowMetaModal] = useState<PendingType>(null);
   // const [pendingUploadType, setPendingUploadType] = useState<PendingType>(null);
@@ -837,12 +858,211 @@ export default function DocumentUpload() {
       setBaseResume([]);
     }
 
-
-    setOptimizedList(Array.isArray(u.optimizedResumes) ? u.optimizedResumes : []);
+    // Don't set optimizedList here - let fetchAllOptimizedResumes handle it
+    // setOptimizedList(Array.isArray(u.optimizedResumes) ? u.optimizedResumes : []);
     setCoverList(Array.isArray(u.coverLetters) ? u.coverLetters : []);
     setTranscriptList(Array.isArray(u.transcript) ? u.transcript : []);
 
+    // Fetch job-based optimized resumes (this will include old Cloudinary resumes too)
+    fetchAllOptimizedResumes();
   }, []);
+
+  // Function to fetch all optimized resumes (both old and new)
+  const fetchAllOptimizedResumes = async () => {
+    setFetchingResumes(true);
+    try {
+      const auth = readAuth();
+      if (!auth || !auth.userDetails) {
+        console.error('No user authentication found');
+        return;
+      }
+
+      console.log('Fetching all optimized resumes for user:', auth.userDetails.email);
+
+      // Fetch job-based optimized resumes using the new endpoint
+      const jobResumesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/getOptimizedResumesForDocuments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          email: auth.userDetails.email,
+          userDetails: auth.userDetails
+        })
+      });
+
+      let allResumes: Entry[] = [];
+
+      if (jobResumesResponse.ok) {
+        const jobData = await jobResumesResponse.json();
+        console.log('Job-based resumes response:', jobData);
+        console.log('Number of job-based resumes found:', jobData.optimizedResumes?.length || 0);
+        
+        if (jobData.success && jobData.optimizedResumes) {
+          console.log('Mapping job resumes...');
+          const jobResumes = jobData.optimizedResumes.map((resume: any) => {
+            console.log('Processing resume:', {
+              jobID: resume.jobID,
+              title: resume.title,
+              hasResumeData: !!resume.resumeData,
+              version: resume.version
+            });
+            return {
+              id: resume.id,
+              jobID: resume.jobID,
+              name: resume.title,
+              jobRole: resume.jobRole,
+              companyName: resume.companyName,
+              jobLink: resume.jobLink,
+              createdAt: resume.createdAt,
+              category: resume.category,
+              version: resume.version,
+              hasResume: resume.hasResume,
+              url: `#${resume.jobID}`,
+              resumeUrl: `#${resume.jobID}`,
+              link: `#${resume.jobID}`,
+              isJobBased: true,
+              resumeData: resume.resumeData,
+              showSummary: resume.showSummary,
+              showProjects: resume.showProjects,
+              showLeadership: resume.showLeadership,
+              showPublications: resume.showPublications
+            };
+          });
+          allResumes = [...allResumes, ...jobResumes];
+          console.log('Job-based resumes added:', jobResumes.length);
+        } else {
+          console.log('No optimized resumes in response or success=false');
+        }
+      } else {
+        console.error('Failed to fetch job-based resumes:', jobResumesResponse.status);
+        const errorText = await jobResumesResponse.text();
+        console.error('Error response:', errorText);
+      }
+
+      // Also get old Cloudinary resumes from user profile
+      const oldResumes = Array.isArray(auth.userDetails.optimizedResumes) ? auth.userDetails.optimizedResumes : [];
+      const cloudinaryResumes = oldResumes.map((resume: any) => ({
+        id: resume.id || Math.random().toString(),
+        jobID: null,
+        name: resume.name || 'Untitled Resume',
+        jobRole: resume.jobRole || '',
+        companyName: resume.companyName || '',
+        jobLink: resume.jobLink || '',
+        createdAt: resume.createdAt || new Date().toISOString(),
+        category: 'Resume',
+        version: 0,
+        hasResume: true,
+        url: resume.url || resume.link,
+        resumeUrl: resume.url || resume.link,
+        link: resume.url || resume.link,
+        isJobBased: false
+      }));
+
+      allResumes = [...allResumes, ...cloudinaryResumes];
+
+      console.log('All optimized resumes:', allResumes);
+      
+      // Debug: Log all dates to see what we're working with
+      allResumes.forEach((resume, index) => {
+        console.log(`Resume ${index}:`, {
+          title: resume.title || resume.name,
+          createdAt: resume.createdAt,
+          parsedDate: new Date(resume.createdAt || 0),
+          isValid: !isNaN(new Date(resume.createdAt || 0).getTime())
+        });
+      });
+      
+      // Sort resumes by date (most recent first)
+      const sortedResumes = allResumes.sort((a, b) => {
+        console.log('Sorting dates:', { 
+          a: a.createdAt, 
+          b: b.createdAt,
+          aDate: new Date(a.createdAt || 0),
+          bDate: new Date(b.createdAt || 0)
+        });
+        
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        
+        // Handle invalid dates
+        if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+        if (isNaN(dateA.getTime())) return 1; // Put invalid dates at end
+        if (isNaN(dateB.getTime())) return -1; // Put invalid dates at end
+        
+        return dateB.getTime() - dateA.getTime(); // Most recent first
+      });
+      
+      setOptimizedList(sortedResumes);
+      setFilteredResumes(sortedResumes); // Initialize filtered list
+      
+    } catch (error) {
+      console.error('Error fetching all optimized resumes:', error);
+    } finally {
+      setFetchingResumes(false);
+    }
+  };
+
+  // Function to filter resumes based on search term
+  const filterResumes = (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setFilteredResumes(optimizedList);
+      return;
+    }
+
+    const filtered = optimizedList.filter(resume => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        resume.jobRole?.toLowerCase().includes(searchLower) ||
+        resume.companyName?.toLowerCase().includes(searchLower) ||
+        resume.name?.toLowerCase().includes(searchLower) ||
+        resume.title?.toLowerCase().includes(searchLower)
+      );
+    });
+
+    setFilteredResumes(filtered);
+  };
+
+  // Effect to filter resumes when search term changes
+  useEffect(() => {
+    filterResumes(searchTerm);
+  }, [searchTerm, optimizedList]);
+
+  // Function to fetch resume data from a job
+  const fetchResumeDataFromJob = async (jobId: string) => {
+    setResumeLoading(true);
+    try {
+      console.log('Fetching resume data for job ID:', jobId);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/getOptimizedResume/${jobId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      console.log('Fetch resume response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Resume data received:', data);
+        if (data.success && data.resumeData) {
+          setResumeData(data);
+          setPreviewMode(true);
+        } else {
+          console.error('Resume data not found in response');
+        }
+      } else {
+        console.error('Failed to fetch resume data, status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching resume data:', error);
+    } finally {
+      setResumeLoading(false);
+    }
+  };
 
   // Default preview per tab (only when in preview mode AND no preview selected yet)
   useEffect(() => {
@@ -859,8 +1079,9 @@ export default function DocumentUpload() {
     else if (activeTab === "cover") defaultUrl = coverList[0]?.url || null;
     else if (activeTab === "transcript") defaultUrl = transcriptList[0]?.url || null;
 
-
-    setActivePreviewUrl(toRawPdfUrl(defaultUrl));
+    if (defaultUrl) {
+      setActivePreviewUrl(toRawPdfUrl(defaultUrl));
+    }
   }, [
     activeTab,
     baseResume,
@@ -1094,51 +1315,51 @@ export default function DocumentUpload() {
 
 
 
-  const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover") => {
-    const DELETE_PASSCODE = import.meta.env.VITE_EDIT_PASSCODE; // simple hardcoded passcode for demo
-    const input = prompt("Enter passcode to delete:");
-    if (!input || input !== DELETE_PASSCODE) {
-      alert("❌ Wrong passcode. Deletion cancelled.");
-      return;
-    }
+  // const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover") => {
+  //   const DELETE_PASSCODE = import.meta.env.VITE_EDIT_PASSCODE; // simple hardcoded passcode for demo
+  //   const input = prompt("Enter passcode to delete:");
+  //   if (!input || input !== DELETE_PASSCODE) {
+  //     alert("❌ Wrong passcode. Deletion cancelled.");
+  //     return;
+  //   }
 
-    const parsed = readAuth();
-    if (!parsed) return;
+  //   const parsed = readAuth();
+  //   if (!parsed) return;
 
-    try {
-      const payload: any = {
-        token: parsed.token,
-        userDetails: parsed.userDetails,
-      };
+  //   try {
+  //     const payload: any = {
+  //       token: parsed.token,
+  //       userDetails: parsed.userDetails,
+  //     };
 
-      if (category === "base") {
-        payload.deleteBaseResume = item; // backend should know how to handle
-      } else if (category === "optimized") {
-        payload.deleteOptimizedResume = item;
-      } else if (category === "cover") {
-        payload.deleteCoverLetter = item;
-      }
-      else if (category === "transcript") {
-        payload.deleteTranscript = item;
-      }
+  //     if (category === "base") {
+  //       payload.deleteBaseResume = item; // backend should know how to handle
+  //     } else if (category === "optimized") {
+  //       payload.deleteOptimizedResume = item;
+  //     } else if (category === "cover") {
+  //       payload.deleteCoverLetter = item;
+  //     }
+  //     else if (category === "transcript") {
+  //       payload.deleteTranscript = item;
+  //     }
 
 
-      const backendData = await persistToBackend(payload);
-      const serverUser = backendData.userDetails || parsed.userDetails;
+  //     const backendData = await persistToBackend(payload);
+  //     const serverUser = backendData.userDetails || parsed.userDetails;
 
-      // Update local auth + state
-      writeAuth(serverUser, parsed.token);
-      setBaseResume(serverUser.resumeLink || []);
-      setOptimizedList(Array.isArray(serverUser.optimizedResumes) ? serverUser.optimizedResumes : []);
-      setCoverList(Array.isArray(serverUser.coverLetters) ? serverUser.coverLetters : []);
-      setTranscriptList(Array.isArray(serverUser.transcripts) ? serverUser.transcripts : []);
+  //     // Update local auth + state
+  //     writeAuth(serverUser, parsed.token);
+  //     setBaseResume(serverUser.resumeLink || []);
+  //     setOptimizedList(Array.isArray(serverUser.optimizedResumes) ? serverUser.optimizedResumes : []);
+  //     setCoverList(Array.isArray(serverUser.coverLetters) ? serverUser.coverLetters : []);
+  //     setTranscriptList(Array.isArray(serverUser.transcripts) ? serverUser.transcripts : []);
 
-      alert("✅ Document deleted successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to delete document.");
-    }
-  };
+  //     alert("✅ Document deleted successfully!");
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert("❌ Failed to delete document.");
+  //   }
+  // };
 
 
   // // Save with or without metadata
@@ -1314,7 +1535,7 @@ export default function DocumentUpload() {
         {items.length === 0 ? (
           <div className="px-4 py-6 text-sm text-gray-500">No documents yet.</div>
         ) : (
-          <ul className="divide-y flex flex-col flex-col-reverse">
+          <ul className="divide-y flex flex-col">
             {items.map((it, i) => (
               <li
                 key={i}
@@ -1334,11 +1555,24 @@ export default function DocumentUpload() {
                 {/* Created On */}
                 <div className="col-span-3 text-sm text-gray-600 whitespace-nowrap">
                   {it.createdAt
-                    ? new Date(it.createdAt).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })
+                    ? (() => {
+                        try {
+                          const date = new Date(it.createdAt);
+                          if (isNaN(date.getTime())) {
+                            // If date is invalid, try to parse it manually
+                            console.warn('Invalid date format:', it.createdAt);
+                            return String(it.createdAt || "—");
+                          }
+                          return date.toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          });
+                        } catch (error) {
+                          console.error('Error parsing date:', it.createdAt, error);
+                          return String(it.createdAt || "—");
+                        }
+                      })()
                     : "—"}
                 </div>
 
@@ -1374,15 +1608,17 @@ export default function DocumentUpload() {
 
                 {/* Actions */}
                 <div className="col-span-1 flex justify-end gap-2 whitespace-nowrap">
-                  <a
-                    href={toRawPdfUrl(it.link || it.url) || it.link || it.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    title="Download"
-                  >
-                    <DownloadIcon />
-                  </a>
+                  {!it.isJobBased && (
+                    <a
+                      href={toRawPdfUrl(it.link || it.url) || it.link || it.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Download"
+                    >
+                      <DownloadIcon />
+                    </a>
+                  )}
                 </div>
               </li>
             ))}
@@ -1494,7 +1730,7 @@ export default function DocumentUpload() {
 
             {baseResume && previewMode ? (
               <PreviewPanel
-                url={toRawPdfUrl(activePreviewUrl)}
+                url={toRawPdfUrl(activePreviewUrl || '') || ''}
                 onChange={() => setPreviewMode(true)}
               />
             ) : (
@@ -1545,67 +1781,264 @@ export default function DocumentUpload() {
                   {previewMode ? (
                     <button
                       onClick={() => setPreviewMode(false)}
-                      className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
+                      className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                     >
                       <ArrowLeftCircle className="w-4 h-4" /> View All Docs
                     </button>
                   ) : (
-                    <label className="inline-flex items-center gap-2 cursor-pointer">
-                      <span className="text-sm font-medium">Upload New</span>
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        multiple={tab === "optimized"}
-                        className="hidden"
-                        onChange={(e) =>
-                          handleFileUpload(
-                            e,
-                            tab === "optimized"
-                              ? "optimized"
-                              : tab === "cover"
-                              ? "coverLetter"
-                              : "transcript"
-                          )
-                        }
-                      />
-                      <span className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">
-                        Choose File
-                      </span>
-                    </label>
+                    <div className="flex flex-col gap-3">
+                      {/* Top Row: Action Buttons */}
+                      <div className="flex gap-3 items-center">
+                        {tab === "optimized" && (
+                          <button
+                            onClick={fetchAllOptimizedResumes}
+                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                          </button>
+                        )}
+                        {/* <button
+                          onClick={() => {
+                            const sorted = [...optimizedList].sort((a, b) => {
+                              const dateA = new Date(a.createdAt || 0);
+                              const dateB = new Date(b.createdAt || 0);
+                              if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                              if (isNaN(dateA.getTime())) return 1;
+                              if (isNaN(dateB.getTime())) return -1;
+                              return dateB.getTime() - dateA.getTime();
+                            });
+                            setOptimizedList(sorted);
+                            setFilteredResumes(sorted);
+                          }}
+                          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                          </svg>
+                          Sort by Date
+                        </button> */}
+                        <label className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <span className="text-sm font-medium">Upload New</span>
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            multiple={tab === "optimized"}
+                            className="hidden"
+                            onChange={(e) =>
+                              handleFileUpload(
+                                e,
+                                tab === "optimized"
+                                  ? "optimized"
+                                  : tab === "cover"
+                                  ? "coverLetter"
+                                  : "transcript"
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+
+                      {/* Bottom Row: Search Bar (only for optimized tab) */}
+                      {tab === "optimized" && (
+                        <div className="flex items-center gap-2 w-full max-w-md">
+                          <div className="relative flex-1">
+                            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                              type="text"
+                              placeholder="Search by role or company..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                            />
+                            {searchTerm && (
+                              <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                title="Clear search"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
                 {(() => {
-                  const list =
+                  // Get the list based on the active tab
+                  let list =
                     tab === "optimized"
-                      ? optimizedList
+                      ? filteredResumes
                       : tab === "cover"
                       ? coverList
                       : transcriptList;
 
-                  return list.length === 0 ? (
-                    <p className="text-sm text-gray-500">No documents yet.</p>
-                  ) : previewMode && activePreviewUrl ? (
-                    <PreviewPanel
-                      url={toRawPdfUrl(activePreviewUrl) as string}
-                      onChange={() => setPreviewMode(false)}
-                    />
-                  ) : (
-                    <DocsTable
-                      items={list}
-                      category={
-                        tab === "optimized"
-                          ? "Resume"
-                          : tab === "cover"
-                          ? "Cover Letter"
-                          : "Transcript"
-                      }
-                      onPick={(it) => {
-                        setActivePreviewUrl(toRawPdfUrl(it.url)!);
-                        setPreviewMode(true);
-                      }}
-                    />
-                  );
+                  // ALWAYS sort optimized resumes by date (newest first) at display time
+                  if (tab === "optimized") {
+                    list = [...list].sort((a, b) => {
+                      const dateA = new Date(a.createdAt || 0);
+                      const dateB = new Date(b.createdAt || 0);
+                      
+                      // Handle invalid dates
+                      if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                      if (isNaN(dateA.getTime())) return 1; // Invalid dates go to end
+                      if (isNaN(dateB.getTime())) return -1; // Invalid dates go to end
+                      
+                      // NEWEST FIRST: dateB - dateA (larger timestamp = more recent = comes first)
+                      return dateB.getTime() - dateA.getTime();
+                    });
+                  }
+
+                  if (tab === "optimized") {
+                    return fetchingResumes ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-gray-500">Loading optimized resumes...</div>
+                      </div>
+                    ) : list.length === 0 ? (
+                      <div className="text-center py-8">
+                        {searchTerm ? (
+                          <p className="text-sm text-gray-500">
+                            No resumes found matching "{searchTerm}". 
+                            <button 
+                              onClick={() => setSearchTerm('')} 
+                              className="text-blue-600 hover:underline ml-1"
+                            >
+                              Clear search
+                            </button>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-500">No optimized resumes yet.</p>
+                        )}
+                      </div>
+                    ) : previewMode && resumeData && !resumeLoading ? (
+                      <div className="resume-preview-container">
+                        {resumeData.version === 0 && (
+                          <ResumePreview
+                            data={resumeData.resumeData}
+                            showLeadership={resumeData.showLeadership}
+                            showProjects={resumeData.showProjects}
+                            showSummary={resumeData.showSummary}
+                            showPublications={resumeData.showPublications}
+                            showChanges={false}
+                            changedFields={new Set()}
+                            showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                          />
+                        )}
+                        {resumeData.version === 1 && (
+                          <ResumePreview1
+                            data={resumeData.resumeData}
+                            showLeadership={resumeData.showLeadership}
+                            showProjects={resumeData.showProjects}
+                            showSummary={resumeData.showSummary}
+                            showChanges={false}
+                            changedFields={new Set()}
+                            showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                          />
+                        )}
+                        {resumeData.version === 2 && (
+                          <ResumePreviewMedical
+                            data={resumeData.resumeData}
+                            showLeadership={resumeData.showLeadership}
+                            showProjects={resumeData.showProjects}
+                            showSummary={resumeData.showSummary}
+                            showPublications={resumeData.showPublications}
+                            showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                          />
+                        )}
+                        <div className="mt-4">
+                          <button
+                            onClick={() => {
+                              setPreviewMode(false);
+                              setResumeData(null);
+                            }}
+                            className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                          >
+                            View All Docs
+                          </button>
+                        </div>
+                      </div>
+                    ) : previewMode && activePreviewUrl ? (
+                      <PreviewPanel
+                        url={toRawPdfUrl(activePreviewUrl) as string}
+                        onChange={() => setPreviewMode(false)}
+                      />
+                    ) : resumeLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-gray-500">Loading resume...</div>
+                      </div>
+                    ) : (
+                      <div>
+                        {searchTerm && (
+                          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                            <p className="text-sm text-blue-700">
+                              Showing {list.length} of {optimizedList.length} resumes matching "{searchTerm}"
+                            </p>
+                          </div>
+                        )}
+                        <DocsTable
+                          items={list}
+                          category="Resume"
+                          onPick={(it) => {
+                          // For job-specific optimized resumes, show resume data directly
+                          if (it.isJobBased && it.resumeData) {
+                            // We already have the resume data, show it directly
+                            setResumeData({
+                              resumeData: it.resumeData,
+                              version: it.version,
+                              showSummary: it.showSummary,
+                              showProjects: it.showProjects,
+                              showLeadership: it.showLeadership,
+                              showPublications: it.showPublications
+                            });
+                            setPreviewMode(true);
+                          } else if (it.isJobBased && (it.jobID || it.jobId) && it.hasResume) {
+                            // Fetch resume data from job if not already available
+                            fetchResumeDataFromJob(it.jobID || it.jobId || '');
+                          } else {
+                            // Fallback to preview for legacy resumes (Cloudinary links)
+                            setActivePreviewUrl(toRawPdfUrl(it.url || it.link || '')!);
+                            setPreviewMode(true);
+                            setIframeError(null);
+                          }
+                        }}
+                        />
+                      </div>
+                    );
+                  } else {
+                    return list.length === 0 ? (
+                      <p className="text-sm text-gray-500">No documents yet.</p>
+                    ) : previewMode && activePreviewUrl ? (
+                      <PreviewPanel
+                        url={toRawPdfUrl(activePreviewUrl) || ''}
+                        onChange={() => setPreviewMode(false)}
+                      />
+                    ) : (
+                      <DocsTable
+                        items={list}
+                        category={
+                          tab === "cover"
+                            ? "Cover Letter"
+                            : "Transcript"
+                        }
+                        onPick={(it) => {
+                          setActivePreviewUrl(toRawPdfUrl(it.url)!);
+                          setPreviewMode(true);
+                        }}
+                      />
+                    );
+                  }
                 })()}
               </section>
             )

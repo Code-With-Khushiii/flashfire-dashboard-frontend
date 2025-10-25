@@ -367,6 +367,24 @@ export default function JobModal({
             setResumeLoading(false);
         }
     };
+
+    // Auto-load resume data when switching to resume tab
+    useEffect(() => {
+        if (activeSection === "resume" && jobDetails?.jobID) {
+            // First check if job has optimizedResume data directly
+            if (jobDetails.optimizedResume?.resumeData) {
+                console.log("Auto-loading resume from job data");
+                setResumeData(jobDetails.optimizedResume);
+                return;
+            }
+            
+            // If no resume data in job object, try to fetch from API
+            if (!resumeData && !resumeLoading) {
+                console.log("Auto-fetching resume from API");
+                fetchResumeData(jobDetails.jobID);
+            }
+        }
+    }, [activeSection, jobDetails?.jobID, jobDetails?.optimizedResume]);
     useEffect(() => {
         // Only when opened due to a drag-move (attachments tab)
         if (initialSection !== "attachments") return;
@@ -699,13 +717,13 @@ useEffect(() => {
         },
         {
             id: "attachments",
-            label: "Resume / Attachments",
+            label: "Attachments",
             icon: User,
             color: "bg-orange-50 text-orange-700 border-orange-200",
         },
         {
             id: "resume",
-            label: "Resume Preview",
+            label: "Resume",
             icon: FileText,
             color: "bg-blue-50 text-blue-700 border-blue-200",
         },
@@ -1028,123 +1046,8 @@ useEffect(() => {
                         <div className="bg-white rounded-lg border border-gray-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h4 className="text-lg font-semibold text-gray-900">
-                                    Resume / Attachments
+                                    Attachments
                                 </h4>
-                            </div>
-                            {/* Attachments → Optimized Resume uploader (moved here)  */}
-                            <div className="mb-6 bg-white rounded-lg border border-blue-200 p-4">
-                                <div className="flex items-center mb-3">
-                                    <UploadIcon className="w-4 h-4 text-blue-600 mr-2" />
-                                    <h4 className="text-sm font-semibold text-blue-700">
-                                        Add Optimized Resume (PDF/DOC/DOCX)
-                                    </h4>
-                                </div>
-
-                                {hasResumeForJob ? (
-                                    <div className="mt-1 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-sm text-green-700">
-                                                <Check className="w-4 h-4" />
-                                                <span>
-                                                    Resume already uploaded for
-                                                    this job
-                                                </span>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    const resumeUrl =
-                                                        getOptimizedResumeUrl(
-                                                            jobDetails?.jobID,
-                                                            jobDetails?.companyName
-                                                        );
-                                                    const resumeTitle =
-                                                        getOptimizedResumeTitle(
-                                                            jobDetails?.jobID,
-                                                            jobDetails?.companyName
-                                                        );
-                                                    if (resumeUrl) {
-                                                        window.open(
-                                                            resumeUrl,
-                                                            "_blank"
-                                                        );
-                                                        toastUtils.success(
-                                                            resumeTitle
-                                                                ? `Opening "${resumeTitle}" in new tab...`
-                                                                : "Opening resume in new tab..."
-                                                        );
-                                                    } else {
-                                                        toastUtils.error(
-                                                            "Resume URL not found"
-                                                        );
-                                                    }
-                                                }}
-                                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                                            >
-                                                <ExternalLink className="w-3 h-3" />
-                                                Visit Resume
-                                            </button>
-                                        </div>
-                                        {(() => {
-                                            const resumeTitle =
-                                                getOptimizedResumeTitle(
-                                                    jobDetails?.jobID,
-                                                    jobDetails?.companyName
-                                                );
-                                            return resumeTitle ? (
-                                                <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
-                                                    <strong>Resume:</strong>{" "}
-                                                    {resumeTitle}
-                                                </div>
-                                            ) : null;
-                                        })()}
-                                    </div>
-                                ) : (
-                                    <>
-                                        {/* hidden input (reuses existing ref + handler) */}
-                                        <input
-                                            ref={docInputRef}
-                                            type="file"
-                                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                            onChange={handleDocFileChange}
-                                            className="hidden"
-                                        />
-
-                                        <button
-                                            onClick={handleChooseDoc}
-                                            disabled={isUploadingDoc}
-                                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50"
-                                        >
-                                            {isUploadingDoc ? (
-                                                <Loader2 className="animate-spin w-4 h-4" />
-                                            ) : (
-                                                <UploadIcon className="w-4 h-4" />
-                                            )}
-                                            {isUploadingDoc
-                                                ? "Uploading..."
-                                                : "Add Optimized Resume"}
-                                        </button>
-
-                                        {recentDocUrl && (
-                                            <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
-                                                <Check className="w-4 h-4" />
-                                                <a
-                                                    href={recentDocUrl}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="underline"
-                                                >
-                                                    Document added —
-                                                    Open/Download
-                                                </a>
-                                            </div>
-                                        )}
-                                        {docError && (
-                                            <p className="mt-2 text-sm text-red-600">
-                                                {docError}
-                                            </p>
-                                        )}
-                                    </>
-                                )}
                             </div>
 
               {/* ---- Paste Images (Ctrl+V) ---- */}
@@ -1215,6 +1118,40 @@ useEffect(() => {
                 {pasteError && <p className="mt-2 text-sm text-red-600">{pasteError}</p>}
               </div>
 
+              {/* Optimized Resume Section */}
+              {/* {jobDetails?.optimizedResume?.hasResume && (
+                <div className="mb-6 rounded-lg border border-blue-200 p-4">
+                  <div className="flex items-center mb-3">
+                    <FileText className="w-4 h-4 text-blue-600 mr-2" />
+                    <h4 className="text-sm font-semibold text-blue-700">
+                      Optimized Resume
+                    </h4>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">
+                          {jobDetails.jobTitle} - Optimized Resume
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          Version {jobDetails.optimizedResume.version === 0 ? 'Standard' : 
+                                   jobDetails.optimizedResume.version === 1 ? 'Hybrid' : 'Medical'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setResumeData(jobDetails.optimizedResume);
+                          setActiveSection("resume");
+                        }}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        View Resumess
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )} */}
+
               {/* Image Grid */}
               <div className="h-96 overflow-auto rounded-lg border p-3">
                 {attachments.length > 0 ? (
@@ -1249,16 +1186,8 @@ useEffect(() => {
                         <div className="bg-white rounded-lg border border-gray-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h4 className="text-lg font-semibold text-gray-900">
-                                    Optimized Resume Preview
+                                    Resume
                                 </h4>
-                                {!resumeData && !resumeLoading && (
-                                    <button
-                                        onClick={() => fetchResumeData(jobDetails.jobID)}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-                                    >
-                                        Load Resume
-                                    </button>
-                                )}
                             </div>
                             
                             {resumeLoading && (
@@ -1268,7 +1197,7 @@ useEffect(() => {
                                 </div>
                             )}
                             
-                            {resumeError && (
+                            {/* {resumeError && (
                                 <div className="text-center py-8">
                                     <p className="text-red-600 mb-4">{resumeError}</p>
                                     <button
@@ -1278,7 +1207,7 @@ useEffect(() => {
                                         Try Again
                                     </button>
                                 </div>
-                            )}
+                            )} */}
                             
                             {resumeData && !resumeLoading && (
                                 <div className="resume-preview-container">
@@ -1291,7 +1220,7 @@ useEffect(() => {
                                             showPublications={resumeData.showPublications}
                                             showChanges={false}
                                             changedFields={new Set()}
-                                            showPrintButtons={false}
+                                            showPrintButtons={ctx?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
                                         />
                                     )}
                                     
@@ -1303,31 +1232,103 @@ useEffect(() => {
                                             showSummary={resumeData.showSummary}
                                             showChanges={false}
                                             changedFields={new Set()}
-                                            showPrintButtons={false}
+                                            showPrintButtons={ctx?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
                                         />
                                     )}
                                     
-                                    {resumeData.version === 2 && (
-                                        <ResumePreviewMedical
-                                            data={resumeData.resumeData}
-                                            showLeadership={resumeData.showLeadership}
-                                            showProjects={resumeData.showProjects}
-                                            showSummary={resumeData.showSummary}
-                                            showPublications={resumeData.showPublications}
-                                        />
-                                    )}
+                                            {resumeData.version === 2 && (
+                                                <ResumePreviewMedical
+                                                    data={resumeData.resumeData}
+                                                    showLeadership={resumeData.showLeadership}
+                                                    showProjects={resumeData.showProjects}
+                                                    showSummary={resumeData.showSummary}
+                                                    showPublications={resumeData.showPublications}
+                                                    showPrintButtons={ctx?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                                />
+                                            )}
                                 </div>
                             )}
                             
-                            {!resumeData && !resumeLoading && !resumeError && (
-                                <div className="text-center py-8">
-                                    <p className="text-gray-500 mb-4">No optimized resume found for this job</p>
-                                    <button
-                                        onClick={() => fetchResumeData(jobDetails.jobID)}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                    >
-                                        Check for Resume
-                                    </button>
+                            {!resumeData && !resumeLoading && (
+                                <div className="space-y-4">
+                                    {/* Check if job has optimizedResume data in the job object */}
+                                    {jobDetails?.optimizedResume?.resumeData ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-500 mb-4">Resume data found in job record</p>
+                                            <button
+                                                onClick={() => {
+                                                    setResumeData(jobDetails.optimizedResume);
+                                                }}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                            >
+                                                Load Resume from Job
+                                            </button>
+                                        </div>
+                                    ) : hasResumeForJob ? (
+                                        <div className="text-center py-8">
+                                            <div className="flex items-center justify-center gap-2 text-green-700 mb-4">
+                                                <Check className="w-5 h-5" />
+                                                <span>Resume already uploaded for this job</span>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const resumeUrl = getOptimizedResumeUrl(jobDetails?.jobID, jobDetails?.companyName);
+                                                    const resumeTitle = getOptimizedResumeTitle(jobDetails?.jobID, jobDetails?.companyName);
+                                                    if (resumeUrl) {
+                                                        window.open(resumeUrl, "_blank");
+                                                        toastUtils.success(resumeTitle ? `Opening "${resumeTitle}" in new tab...` : "Opening resume in new tab...");
+                                                    } else {
+                                                        toastUtils.error("Resume URL not found");
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                            >
+                                                View Resume
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-white rounded-lg border border-blue-200 p-4">
+                                            <div className="flex items-center mb-3">
+                                                <UploadIcon className="w-4 h-4 text-blue-600 mr-2" />
+                                                <h4 className="text-sm font-semibold text-blue-700">
+                                                    Add Optimized Resume (PDF/DOC/DOCX)
+                                                </h4>
+                                            </div>
+                                            
+                                            <input
+                                                ref={docInputRef}
+                                                type="file"
+                                                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                onChange={handleDocFileChange}
+                                                className="hidden"
+                                            />
+                                            
+                                            <button
+                                                onClick={handleChooseDoc}
+                                                disabled={isUploadingDoc}
+                                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50"
+                                            >
+                                                {isUploadingDoc ? (
+                                                    <Loader2 className="animate-spin w-4 h-4" />
+                                                ) : (
+                                                    <UploadIcon className="w-4 h-4" />
+                                                )}
+                                                {isUploadingDoc ? "Uploading..." : "Add Optimized Resume"}
+                                            </button>
+                                            
+                                            {recentDocUrl && (
+                                                <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
+                                                    <Check className="w-4 h-4" />
+                                                    <a href={recentDocUrl} target="_blank" rel="noreferrer" className="underline">
+                                                        Document added — Open/Download
+                                                    </a>
+                                                </div>
+                                            )}
+                                            {docError && (
+                                                <p className="mt-2 text-sm text-red-600">{docError}</p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1503,27 +1504,27 @@ useEffect(() => {
                                 },
                                 {
                                     id: "attachments",
-                                    label: "Resume / Attachments",
+                                    label: "Attachments",
                                     icon: User,
                                     color: "bg-orange-50 text-orange-700 border-orange-200",
                                 },
                                 {
                                     id: "resume",
-                                    label: "Resume Preview",
+                                    label: "Resume",
                                     icon: FileText,
                                     color: "bg-blue-50 text-blue-700 border-blue-200",
-                                },
-                                {
-                                    id: "timeline",
-                                    label: "Application Timeline",
-                                    icon: TimerIcon,
-                                    color: "bg-brown-800 text-orange-700 border-orange-200",
                                 },
                                 {
                                     id: "changes",
                                     label: "Changes Made",
                                     icon: GitCommit,
                                     color: "bg-brown-800 text-red-700 border-orange-300",
+                                },
+                                {
+                                    id: "timeline",
+                                    label: "Application Timeline",
+                                    icon: TimerIcon,
+                                    color: "bg-brown-800 text-orange-700 border-orange-200",
                                 },
                             ].map((section: any) => {
                                 const Icon = section.icon;

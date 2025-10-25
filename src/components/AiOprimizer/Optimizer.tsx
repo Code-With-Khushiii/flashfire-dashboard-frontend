@@ -1536,6 +1536,7 @@ function App() {
                     finalChanges: finalChanges,
                     optimizedResume: {
                         resumeData: optimizedData,
+                        hasResume: true,
                         showSummary: showSummary,
                         showProjects: showProjects,
                         showLeadership: showLeadership,
