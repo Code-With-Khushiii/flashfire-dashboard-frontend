@@ -1220,7 +1220,7 @@ useEffect(() => {
                                             showPublications={resumeData.showPublications}
                                             showChanges={false}
                                             changedFields={new Set()}
-                                            showPrintButtons={ctx?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                            showPrintButtons={role === "operations"}
                                         />
                                     )}
                                     
@@ -1232,7 +1232,7 @@ useEffect(() => {
                                             showSummary={resumeData.showSummary}
                                             showChanges={false}
                                             changedFields={new Set()}
-                                            showPrintButtons={ctx?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                            showPrintButtons={role === "operations"}
                                         />
                                     )}
                                     
@@ -1243,7 +1243,7 @@ useEffect(() => {
                                                     showProjects={resumeData.showProjects}
                                                     showSummary={resumeData.showSummary}
                                                     showPublications={resumeData.showPublications}
-                                                    showPrintButtons={ctx?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                                    showPrintButtons={role === "operations"}
                                                 />
                                             )}
                                 </div>
@@ -1265,26 +1265,37 @@ useEffect(() => {
                                             </button>
                                         </div>
                                     ) : hasResumeForJob ? (
-                                        <div className="text-center py-8">
-                                            <div className="flex items-center justify-center gap-2 text-green-700 mb-4">
-                                                <Check className="w-5 h-5" />
-                                                <span>Resume already uploaded for this job</span>
+                                        <div className="space-y-4">
+                                            {/* <div className="text-center">
+                                                <div className="flex items-center justify-center gap-2 text-green-700 mb-4">
+                                                    <Check className="w-5 h-5" />
+                                                    <span>Resume already uploaded for this job</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        const resumeUrl = getOptimizedResumeUrl(jobDetails?.jobID, jobDetails?.companyName);
+                                                        const resumeTitle = getOptimizedResumeTitle(jobDetails?.jobID, jobDetails?.companyName);
+                                                        if (resumeUrl) {
+                                                            window.open(resumeUrl, "_blank");
+                                                            toastUtils.success(resumeTitle ? `Opening "${resumeTitle}" in new tab...` : "Opening resume in new tab...");
+                                                        } else {
+                                                            toastUtils.error("Resume URL not found");
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors mb-4"
+                                                >
+                                                    Open Resume in New Tab
+                                                </button>
+                                            </div> */}
+                                            
+                                            {/* PDF Preview */}
+                                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                                <iframe
+                                                    src={`${getOptimizedResumeUrl(jobDetails?.jobID, jobDetails?.companyName)}#toolbar=1&navpanes=0&scrollbar=1`}
+                                                    className="w-full h-[600px]"
+                                                    title="Resume Preview"
+                                                />
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    const resumeUrl = getOptimizedResumeUrl(jobDetails?.jobID, jobDetails?.companyName);
-                                                    const resumeTitle = getOptimizedResumeTitle(jobDetails?.jobID, jobDetails?.companyName);
-                                                    if (resumeUrl) {
-                                                        window.open(resumeUrl, "_blank");
-                                                        toastUtils.success(resumeTitle ? `Opening "${resumeTitle}" in new tab...` : "Opening resume in new tab...");
-                                                    } else {
-                                                        toastUtils.error("Resume URL not found");
-                                                    }
-                                                }}
-                                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                                            >
-                                                View Resume
-                                            </button>
                                         </div>
                                     ) : (
                                         <div className="bg-white rounded-lg border border-blue-200 p-4">

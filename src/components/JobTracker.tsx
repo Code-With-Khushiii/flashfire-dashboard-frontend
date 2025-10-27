@@ -841,13 +841,13 @@ const handleDragEnd = (e: React.DragEvent) => {
                 </Suspense>
             )}
             
-            {/* TESTING: Temporary button to test the modal */}
+            {/* TESTING: Temporary button to test the modal
             <button
                 onClick={() => setShowRemovalLimitModal(true)}
                 className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-600 transition-colors z-50"
             >
                 Test Removal Limit Modal
-            </button>
+            </button> */}
         </div>
     );
 };
