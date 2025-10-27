@@ -2339,7 +2339,6 @@ function App() {
                                     )}
                                 </div>
                             </div>
-                            </div>
 
                             {/* Right Side - Live Preview */}
                             <div className="lg:sticky lg:top-6 h-fit no-print">
