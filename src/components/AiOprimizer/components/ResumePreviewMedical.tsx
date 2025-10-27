@@ -148,40 +148,66 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
             const originalTitle = document.title;
             document.title = filename.replace(".pdf", "");
 
-            // Add afterPrint event listener for guidance
-            const afterPrint = () => {
-                setTimeout(() => {
-                    const resumePreviewElement = document.querySelector(
-                        "[data-resume-preview]"
-                    ) as HTMLElement;
-                    if (resumePreviewElement) {
-                        const resumeHeight = resumePreviewElement.scrollHeight;
-                        const pageHeight = 1056; // Standard letter page height in pixels
-                        const maxSinglePageHeight = pageHeight - 50; // Buffer for margins
+            // Create a print style block (keeps your existing print rules but scoped)
+            const printStyle = document.createElement("style");
+            printStyle.id = "resume-medical-temp-print-style";
+            printStyle.innerHTML = `
+                @media print {
+                    @page { size: letter; margin: 0 0.2in 0.2in 0.2in; }
+                    html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+                    
+                    body.printing-resume > :not(#temp-resume-print-wrapper) { display: none !important; }
+                    #temp-resume-print-wrapper { display: block !important; width: 100% !important; }
+                    #temp-resume-print-wrapper #resume-print-only { display: block !important; visibility: visible !important; }
+                }
+                /* also hide non-print content while we call window.print on screen to avoid layout jumps */
+                body.printing-resume > :not(#temp-resume-print-wrapper) { display: none !important; }
+                #temp-resume-print-wrapper { display: block !important; width: 100%; background: white; }
+            `;
 
-                        if (resumeHeight > maxSinglePageHeight) {
-                            alert(
-                                `📄 PRINT COMPLETED\n\n` +
-                                    `If you got a 2-page PDF instead of 1-page:\n\n` +
-                                    `Next time, in the print dialog:\n` +
-                                    `1. Click on "Pages" dropdown\n` +
-                                    `2. Select "Current" or enter "1"\n` +
-                                    `3. This ensures you get only the first page\n\n` +
-                                    `This helps avoid accidentally downloading multi-page resumes for job applications.`
-                            );
-                        }
-                    }
-                }, 500);
-            };
+            document.head.appendChild(printStyle);
 
-            window.addEventListener("afterprint", afterPrint);
-            window.print();
-
-            // Cleanup
-            setTimeout(() => {
+            // Find the print-only element in the component
+            const originalPrintElem = document.getElementById("resume-print-only");
+            if (!originalPrintElem) {
+                // Fallback to calling normal print
+                window.print();
                 document.title = originalTitle;
-                window.removeEventListener("afterprint", afterPrint);
-            }, 1000);
+                if (document.head.contains(printStyle)) document.head.removeChild(printStyle);
+                return;
+            }
+
+            // Create a temporary wrapper and append a deep clone of the print-only element
+            const wrapper = document.createElement("div");
+            wrapper.id = "temp-resume-print-wrapper";
+            // Add the same parent class so CSS rules that look for .resume-medical-print apply
+            wrapper.className = "resume-medical-print";
+            // Clone deeply so event handlers etc. are not needed
+            const clone = originalPrintElem.cloneNode(true) as HTMLElement;
+            wrapper.appendChild(clone);
+            document.body.appendChild(wrapper);
+
+            // Add marker class to body so our print style hides everything else
+            document.body.classList.add("printing-resume");
+
+            // Small timeout to let DOM and style apply, then print
+            setTimeout(() => {
+                try {
+                    window.print();
+                } finally {
+                    // Cleanup immediately after printing (give a small delay to avoid cutting off the print job)
+                    setTimeout(() => {
+                        // Restore title and remove temporary DOM + style + class
+                        document.title = originalTitle;
+                        document.body.classList.remove("printing-resume");
+                        if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+                        const tmpStyle = document.getElementById("resume-medical-temp-print-style");
+                        if (tmpStyle && tmpStyle.parentNode) tmpStyle.parentNode.removeChild(tmpStyle);
+                        // Remove our printStyle if still present
+                        if (document.head.contains(printStyle)) document.head.removeChild(printStyle);
+                    }, 700);
+                }
+            }, 120);
         }
     };
 

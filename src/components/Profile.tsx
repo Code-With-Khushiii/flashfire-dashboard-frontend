@@ -129,6 +129,57 @@ function FileUploadRow({
     isEditing?: boolean;
     onFileChange?: (file: string) => void;
 }) {
+    const [uploading, setUploading] = useState(false);
+
+    const handleFileUpload = async (file: File) => {
+        try {
+            setUploading(true);
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+            
+            // Get token and email from localStorage
+            const userAuth = JSON.parse(localStorage.getItem('userAuth') || '{}');
+            const token = userAuth.token;
+            const email = userAuth.userDetails?.email;
+
+            if (!token || !email) {
+                throw new Error("Authentication required");
+            }
+
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('email', email);
+
+            const response = await fetch(`${API_BASE_URL}/upload-profile-file`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Upload failed');
+            }
+
+            const data = await response.json();
+            const fileUrl = data.secure_url || data.url;
+            
+            if (fileUrl) {
+                onFileChange(fileUrl);
+                toastUtils.success(`${title} uploaded successfully!`);
+            } else {
+                throw new Error("No URL returned from upload");
+            }
+        } catch (error: any) {
+            console.error("Upload error:", error);
+            toastUtils.error(error.message || "Upload failed");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     return (
         <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
             <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 pt-1 mb-1 md:mb-0">
@@ -136,19 +187,27 @@ function FileUploadRow({
             </div>
             <div className="w-full md:w-2/3 flex items-center flex-wrap">
                 {isEditing ? (
-                    <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) onFileChange(file.name);
-                        }}
-                        className="block w-full text-sm text-gray-500"
-                    />
+                    <div className="w-full">
+                        <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            disabled={uploading}
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    handleFileUpload(file);
+                                }
+                            }}
+                            className="block w-full text-sm text-gray-500"
+                        />
+                        {uploading && (
+                            <span className="text-xs text-orange-600 mt-1">Uploading...</span>
+                        )}
+                    </div>
                 ) : currentFile ? (
                     <>
                         <a
-                            className="text-blue-600 underline text-sm break-words"
+                            className="text-blue-600 underline text-sm break-words hover:text-blue-800"
                             href={currentFile}
                             target="_blank"
                             rel="noreferrer"
