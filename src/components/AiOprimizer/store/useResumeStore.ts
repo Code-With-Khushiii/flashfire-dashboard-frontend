@@ -19,6 +19,9 @@ interface ResumeStore {
      changedFields: Set<string>;
      showPublications: boolean;
 
+     // Section ordering for drag and drop
+     sectionOrder: string[];
+
      // Persistent resume selection
      lastSelectedResume: ResumeDataType | null;
      lastSelectedResumeId: string | null;
@@ -43,6 +46,7 @@ interface ResumeStore {
      setCurrentView: (view: "editor" | "optimized" | "changes") => void;
      setShowChanges: (value: boolean) => void;
      setChangedFields: (fields: Set<string>) => void;
+     setSectionOrder: (order: string[]) => void;
      resetStore: () => void;
 
      // Persistent resume selection actions
@@ -74,6 +78,18 @@ export const useResumeStore = create<ResumeStore>()(
                     changedFields: new Set(),
                     showPublications: false,
 
+                    // Section ordering for drag and drop
+                    sectionOrder: [
+                        "personalInfo",
+                        "summary", 
+                        "workExperience",
+                        "projects",
+                        "leadership",
+                        "skills",
+                        "education",
+                        "publications"
+                    ],
+
                     // Persistent resume selection
                     lastSelectedResume: null,
                     lastSelectedResumeId: null,
@@ -97,6 +113,7 @@ export const useResumeStore = create<ResumeStore>()(
                     setCurrentView: (view) => set({ currentView: view }),
                     setShowChanges: (value) => set({ showChanges: value }),
                     setChangedFields: (fields) => set({ changedFields: fields }),
+                    setSectionOrder: (order) => set({ sectionOrder: order }),
 
                     resetStore: () => {
                          const initialResumeData = getInitialData();
@@ -114,6 +131,16 @@ export const useResumeStore = create<ResumeStore>()(
                               currentView: "editor",
                               showChanges: false,
                               changedFields: new Set(),
+                              sectionOrder: [
+                                  "personalInfo",
+                                  "summary", 
+                                  "workExperience",
+                                  "projects",
+                                  "leadership",
+                                  "skills",
+                                  "education",
+                                  "publications"
+                              ],
                               // Note: We intentionally don't reset lastSelectedResume and lastSelectedResumeId
                               // to maintain persistence across sessions
                          });
@@ -290,6 +317,7 @@ export const useResumeStore = create<ResumeStore>()(
                          showChanges: state.showChanges,
                          changedFields: Array.from(state.changedFields),
                          showPublications: state.showPublications,
+                         sectionOrder: state.sectionOrder,
                          // Persist the last selected resume data
                          lastSelectedResume: state.lastSelectedResume,
                          lastSelectedResumeId: state.lastSelectedResumeId,
@@ -320,6 +348,20 @@ export const useResumeStore = create<ResumeStore>()(
                          }
                          if (typeof state.showSummary !== 'boolean') {
                               state.showSummary = false;
+                         }
+
+                         // Ensure sectionOrder is properly set
+                         if (!state.sectionOrder || !Array.isArray(state.sectionOrder)) {
+                              state.sectionOrder = [
+                                   "personalInfo",
+                                   "summary", 
+                                   "workExperience",
+                                   "projects",
+                                   "leadership",
+                                   "skills",
+                                   "education",
+                                   "publications"
+                              ];
                          }
 
                          // If we have stored resume data, load it immediately
