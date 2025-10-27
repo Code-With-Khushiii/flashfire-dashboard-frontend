@@ -2246,6 +2246,7 @@ function App() {
                                         resume template
                                     </p>
                                 </div>
+                                </DndContext>
                                 </LockedSection>
 
                                 {/* Job Description Input - This stays UNLOCKED */}
@@ -2338,6 +2339,7 @@ function App() {
                                         </div>
                                     )}
                                 </div>
+                            </div>
                             </div>
 
                             {/* Right Side - Live Preview */}
