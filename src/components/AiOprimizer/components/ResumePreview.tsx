@@ -66,6 +66,7 @@ interface ResumePreviewProps {
     showChanges?: boolean;
     changedFields?: Set<string>;
     onDownloadClick?: () => void; // Add this prop to handle download clicks
+    showPrintButtons?: boolean; // Add this prop to control print buttons visibility
 }
 
 export const ResumePreview: React.FC<ResumePreviewProps> = ({
@@ -77,6 +78,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
     showChanges = false,
     changedFields = new Set(),
     onDownloadClick,
+    showPrintButtons = true,
 }) => {
     const [scalingFactor, setScalingFactor] = useState(1);
     const [showWarningModal, setShowWarningModal] = useState(false);
@@ -1437,38 +1439,40 @@ The resume will print across multiple pages if needed, ensuring no content is cu
             )}
 
             {/* Print Control Buttons - Add these to your UI */}
-            <div
-                className="no-print"
-                style={{ marginBottom: "1rem", textAlign: "center" }}
-            >
-                <button
-                    onClick={handlePrint}
-                    style={{
-                        backgroundColor: "#3b82f6",
-                        color: "white",
-                        padding: "8px 16px",
-                        border: "none",
-                        borderRadius: "4px",
-                        marginRight: "8px",
-                        cursor: "pointer",
-                    }}
+            {showPrintButtons && (
+                <div
+                    className="no-print"
+                    style={{ marginBottom: "1rem", textAlign: "center" }}
                 >
-                    Download PDF
-                </button>
-                <button
-                    onClick={showPrintInstructions}
-                    style={{
-                        backgroundColor: "#6b7280",
-                        color: "white",
-                        padding: "8px 16px",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                    }}
-                >
-                    Print Instructions
-                </button>
-            </div>
+                    <button
+                        onClick={handlePrint}
+                        style={{
+                            backgroundColor: "#3b82f6",
+                            color: "white",
+                            padding: "8px 16px",
+                            border: "none",
+                            borderRadius: "4px",
+                            marginRight: "8px",
+                            cursor: "pointer",
+                        }}
+                    >
+                        Download PDF
+                    </button>
+                    <button
+                        onClick={showPrintInstructions}
+                        style={{
+                            backgroundColor: "#6b7280",
+                            color: "white",
+                            padding: "8px 16px",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                        }}
+                    >
+                        Print Instructions
+                    </button>
+                </div>
+            )}
 
             {/* Screen Preview */}
             <div

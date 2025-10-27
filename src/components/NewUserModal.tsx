@@ -149,42 +149,54 @@ function FieldLabel({ children, required = true }: { children: React.ReactNode; 
   );
 }
 
-function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }) {
+  const { hasError, ...inputProps } = props;
   return (
     <input
-      {...props}
+      {...inputProps}
+      data-error={hasError}
       className={[
-        "w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-500",
-        "focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200",
-        "hover:border-gray-400",
+        "w-full rounded-lg border px-4 py-3 text-base text-gray-900 placeholder:text-gray-500",
+        "focus:outline-none focus:ring-2 transition-all duration-200",
+        hasError 
+          ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500/20" 
+          : "border-gray-300 bg-white focus:border-orange-500 focus:ring-orange-500/20 hover:border-gray-400",
         props.className ?? "",
       ].join(" ")}
     />
   );
 }
 
-function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { hasError?: boolean }) {
+  const { hasError, ...textareaProps } = props;
   return (
     <textarea
-      {...props}
+      {...textareaProps}
+      data-error={hasError}
       className={[
-        "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500",
-        "focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200",
-        "hover:border-gray-400 resize-none",
+        "w-full rounded-lg border px-3 py-2 text-gray-900 placeholder:text-gray-500",
+        "focus:outline-none focus:ring-2 transition-all duration-200 resize-none",
+        hasError 
+          ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500/20" 
+          : "border-gray-300 bg-white focus:border-orange-500 focus:ring-orange-500/20 hover:border-gray-400",
         props.className ?? "",
       ].join(" ")}
     />
   );
 }
 
-function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+function Select(props: React.SelectHTMLAttributes<HTMLSelectElement> & { hasError?: boolean }) {
+  const { hasError, ...selectProps } = props;
   return (
     <select
-      {...props}
+      {...selectProps}
+      data-error={hasError}
       className={[
-        "w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900",
-        "focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200",
-        "hover:border-gray-400 cursor-pointer",
+        "w-full rounded-lg border px-4 py-3 text-gray-900",
+        "focus:outline-none focus:ring-2 transition-all duration-200 cursor-pointer",
+        hasError 
+          ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500/20" 
+          : "border-gray-300 bg-white focus:border-orange-500 focus:ring-orange-500/20 hover:border-gray-400",
         props.className ?? "",
       ].join(" ")}
     />
@@ -209,15 +221,16 @@ async function uploadFileLocally(file: File, fileType: 'resume' | 'coverLetter' 
     throw new Error("Authentication required");
   }
 
-  // Create FormData for file upload (use Cloudinary endpoint)
+  // Create FormData for file upload
   const formData = new FormData();
   formData.append('file', file);
   formData.append('email', email);
   formData.append('token', token);
   formData.append('userDetails', JSON.stringify(userAuth.userDetails));
-  console.log('Uploading file to Cloudinary:', token);
+  console.log('Uploading file:', token);
 
   const response = await fetch(`${API_BASE_URL}/upload-profile-file`, {
+    
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -251,12 +264,14 @@ function FileInput({
   file,
   onFileChange,
   onUploaded, // returns the secure_url
+  hasError,
 }: {
   label: string;
   required?: boolean;
   file: File | null | undefined;
   onFileChange: (f: File | null) => void;
   onUploaded: (url: string) => void;
+  hasError?: boolean;
 }) {
   const [error, setError] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -267,7 +282,13 @@ function FileInput({
       <div className="relative">
         <input
           type="file"
-          className="block w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-gradient-to-r file:from-orange-500 file:to-rose-600 file:px-4 file:py-2 file:text-white hover:file:opacity-90 transition-all duration-200 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+          data-error={hasError}
+          className={[
+            "block w-full cursor-pointer rounded-lg border-2 border-dashed p-6 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-gradient-to-r file:from-orange-500 file:to-rose-600 file:px-4 file:py-2 file:text-white hover:file:opacity-90 transition-all duration-200 focus:outline-none focus:ring-2",
+            hasError 
+              ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500/20" 
+              : "border-gray-300 bg-gray-50 hover:border-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+          ].join(" ")}
           accept=".pdf,.doc,.docx,.txt"
           onChange={async (e) => {
             const f = e.currentTarget.files?.[0] ?? null;
@@ -470,49 +491,168 @@ useEffect(() => {
 
   const validateStep = (index: number) => {
     const e: Record<string, string> = {};
+    
     if (index === 0) {
-      // Require full name field (we'll split to first/last on submit)
-      if (!data.name.trim()) e.name = "Required";
+      // Personal Information Validation
+      if (!data.name.trim()) {
+        e.name = "Full name is required";
+      } else if (data.name.trim().split(/\s+/).length < 2) {
+        e.name = "Please enter your first and last name";
+      }
+      
+      // Contact Number Validation
       const phone = digitsOnly(data.contactNumber);
-      if (!phone) e.contactNumber = "Required";
-      else if (phone.length < 10) e.contactNumber = "Enter a valid number";
-      if (!data.dob) e.dob = "Required";
-      if (!data.bachelorsUniDegree.trim()) e.bachelorsUniDegree = "Required";
-      if (!data.bachelorsGradMonthYear) e.bachelorsGradMonthYear = "Required";
-      if (!data.mastersUniDegree.trim()) e.mastersUniDegree = "Required";
-      if (!data.mastersGradMonthYear) e.mastersGradMonthYear = "Required";
-      if (!data.visaStatus) e.visaStatus = "Required";
-      if (!data.visaStatus) e.visaStatus = "Required";
-if (data.visaStatus === "Other" && !data?.otherVisaType?.trim()) {
-  e.otherVisaType = "Please specify your visa type";
-}
-
-      if (!data.address.trim()) e.address = "Required";
+      if (!phone) {
+        e.contactNumber = "Phone number is required";
+      } else if (phone.length < 10) {
+        e.contactNumber = "Please enter a valid 10-digit phone number";
+      } else if (phone.length > 15) {
+        e.contactNumber = "Phone number is too long";
+      }
+      
+      // Date of Birth Validation
+      if (!data.dob) {
+        e.dob = "Date of birth is required";
+      } else {
+        const dobDate = new Date(data.dob);
+        const today = new Date();
+        const age = today.getFullYear() - dobDate.getFullYear();
+        if (age < 16) {
+          e.dob = "You must be at least 16 years old";
+        } else if (age > 100) {
+          e.dob = "Please enter a valid date of birth";
+        }
+      }
+      
+      // Education Validation
+      if (!data.bachelorsUniDegree.trim()) {
+        e.bachelorsUniDegree = "Bachelor's degree information is required";
+      } else if (data.bachelorsUniDegree.trim().length < 10) {
+        e.bachelorsUniDegree = "Please provide complete degree information";
+      }
+      
+      if (!data.bachelorsGradMonthYear) {
+        e.bachelorsGradMonthYear = "Bachelor's graduation date is required";
+      } else {
+        const gradDate = new Date(data.bachelorsGradMonthYear);
+        const today = new Date();
+        if (gradDate > today) {
+          e.bachelorsGradMonthYear = "Graduation date cannot be in the future";
+        }
+      }
+      
+      if (!data.mastersUniDegree.trim()) {
+        e.mastersUniDegree = "Master's degree information is required";
+      } else if (data.mastersUniDegree.trim().length < 10) {
+        e.mastersUniDegree = "Please provide complete degree information";
+      }
+      
+      if (!data.mastersGradMonthYear) {
+        e.mastersGradMonthYear = "Master's graduation date is required";
+      } else {
+        const gradDate = new Date(data.mastersGradMonthYear);
+        const today = new Date();
+        if (gradDate > today) {
+          e.mastersGradMonthYear = "Graduation date cannot be in the future";
+        }
+        // Check if master's graduation is after bachelor's
+        if (data.bachelorsGradMonthYear) {
+          const bachelorsGrad = new Date(data.bachelorsGradMonthYear);
+          if (gradDate < bachelorsGrad) {
+            e.mastersGradMonthYear = "Master's graduation must be after bachelor's graduation";
+          }
+        }
+      }
+      
+      // GPA Validation (optional but if provided, must be valid)
+      if (data.bachelorsGPA && data.bachelorsGPA.trim()) {
+        const gpa = parseFloat(data.bachelorsGPA);
+        if (isNaN(gpa) || gpa < 0 || gpa > 4) {
+          e.bachelorsGPA = "GPA must be between 0.0 and 4.0";
+        }
+      }
+      
+      if (data.mastersGPA && data.mastersGPA.trim()) {
+        const gpa = parseFloat(data.mastersGPA);
+        if (isNaN(gpa) || gpa < 0 || gpa > 4) {
+          e.mastersGPA = "GPA must be between 0.0 and 4.0";
+        }
+      }
+      
+      // Visa Status Validation
+      if (!data.visaStatus) {
+        e.visaStatus = "Visa status is required";
+      }
+      
+      // Check if "Other" is selected and otherVisaType is provided
+      if (data.visaStatus === "Other" && !data?.otherVisaType?.trim()) {
+        e.otherVisaType = "Please specify your visa type";
+      }
+      
+      // Address Validation
+      if (!data.address.trim()) {
+        e.address = "Complete address is required";
+      } else if (data.address.trim().length < 20) {
+        e.address = "Please provide a complete address with street, city, state, and ZIP";
+      }
     } else if (index === 1) {
-      if (!data.preferredRoles.trim()) e.preferredRoles = "Required";
-      if (!data.experienceLevel) e.experienceLevel = "Required";
-      if (!data.expectedSalaryRange) e.expectedSalaryRange = "Required";
-      if (!data.preferredLocations.trim()) e.preferredLocations = "Required";
-      if (!data.targetCompanies.trim()) e.targetCompanies = "Required";
+      // Job Preferences Validation
+      if (!data.preferredRoles.trim()) {
+        e.preferredRoles = "Preferred job roles are required";
+      } else if (data.preferredRoles.trim().length < 5) {
+        e.preferredRoles = "Please provide more specific job roles";
+      }
+      
+      if (!data.experienceLevel) {
+        e.experienceLevel = "Experience level is required";
+      }
+      
+      if (!data.expectedSalaryRange) {
+        e.expectedSalaryRange = "Expected salary range is required";
+      }
+      
+      if (!data.preferredLocations.trim()) {
+        e.preferredLocations = "Preferred locations are required";
+      } else if (data.preferredLocations.trim().length < 3) {
+        e.preferredLocations = "Please specify at least one location";
+      }
+      
+      if (!data.targetCompanies.trim()) {
+        e.targetCompanies = "Target companies are required";
+      } else if (data.targetCompanies.trim().length < 3) {
+        e.targetCompanies = "Please specify at least one company";
+      }
       
       // SSN validation - optional but must be empty or exactly 3 digits
       if (data.ssnNumber && data.ssnNumber.length > 0 && data.ssnNumber.length !== 3) {
         e.ssnNumber = "SSN must be last 3 digits or left empty";
       }
+      
+      // Join time validation
+      if (!data.joinTime) {
+        e.joinTime = "Please select when you can join";
+      }
+      
     } else if (index === 2) {
       // LinkedIn URL - required and must be valid URL
-      if (!data.linkedinUrl.trim() || !validateUrl(data.linkedinUrl)) {
-        e.linkedinUrl = "Valid LinkedIn URL required";
+      if (!data.linkedinUrl.trim()) {
+        e.linkedinUrl = "LinkedIn URL is required";
+      } else if (!validateUrl(data.linkedinUrl)) {
+        e.linkedinUrl = "Please enter a valid LinkedIn URL";
+      } else if (!data.linkedinUrl.includes('linkedin.com')) {
+        e.linkedinUrl = "Please enter a valid LinkedIn profile URL";
       }
       
       // GitHub URL - optional but must be valid URL if provided
       if (data.githubUrl.trim() && !validateUrl(data.githubUrl)) {
-        e.githubUrl = "Valid GitHub URL required";
+        e.githubUrl = "Please enter a valid GitHub URL";
+      } else if (data.githubUrl.trim() && !data.githubUrl.includes('github.com')) {
+        e.githubUrl = "Please enter a valid GitHub profile URL";
       }
       
       // Portfolio URL - optional but must be valid URL if provided
       if (data.portfolioUrl.trim() && !validateUrl(data.portfolioUrl)) {
-        e.portfolioUrl = "Valid portfolio URL required";
+        e.portfolioUrl = "Please enter a valid portfolio URL";
       }
 
       // Resume - required
@@ -520,17 +660,30 @@ if (data.visaStatus === "Other" && !data?.otherVisaType?.trim()) {
         e.resumeUrl = "Resume upload is required";
       }
 
-      if (!data.confirmAccuracy) e.confirmAccuracy = "You must confirm accuracy";
-      if (!data.agreeTos) e.agreeTos = "You must agree to the Terms";
+      // Consent validation
+      if (!data.confirmAccuracy) {
+        e.confirmAccuracy = "You must confirm the accuracy of your information";
+      }
+      
+      if (!data.agreeTos) {
+        e.agreeTos = "You must agree to the Terms of Service to continue";
+      }
     }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const next = () => {
-    // TEMP: Bypass validation for testing
-    if (!validateStep(stepIndex)) return;
-    // console.log('Next button clicked');
+    if (!validateStep(stepIndex)) {
+      // Scroll to first error field
+      const firstErrorField = document.querySelector('[data-error="true"]') as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+      if (firstErrorField && typeof firstErrorField.focus === 'function') {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorField.focus();
+      }
+      return;
+    }
     setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
   };
   const back = () => setStepIndex((i) => Math.max(i - 1, 0));
@@ -646,17 +799,49 @@ const handleSubmit = () => {
               <div className="space-y-6">
                 <div>
                   <FieldLabel>Name</FieldLabel>
-                  <TextInput value={data.name} onChange={(e) => set({ name: e.target.value })} placeholder="Full name" />
+                  <TextInput 
+                    hasError={!!errors.name}
+                    value={data.name} 
+                    onChange={(e) => {
+                      set({ name: e.target.value });
+                      if (errors.name) {
+                        setErrors(prev => ({ ...prev, name: '' }));
+                      }
+                    }} 
+                    placeholder="Full name" 
+                  />
                   <ErrorText>{errors.name}</ErrorText>
                 </div>
                 <div>
                   <FieldLabel>Contact Number</FieldLabel>
-                  <TextInput inputMode="tel" placeholder="Phone number" value={data.contactNumber} onChange={(e) => set({ contactNumber: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.contactNumber}
+                    inputMode="tel" 
+                    placeholder="Phone number" 
+                    value={data.contactNumber} 
+                    onChange={(e) => {
+                      set({ contactNumber: e.target.value });
+                      if (errors.contactNumber) {
+                        setErrors(prev => ({ ...prev, contactNumber: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.contactNumber}</ErrorText>
                 </div>
                 <div>
                   <FieldLabel>Date of Birth</FieldLabel>
-                  <TextInput type="date" placeholder="Date of birth" value={data.dob} onChange={(e) => set({ dob: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.dob}
+                    type="date" 
+                    placeholder="Date of birth" 
+                    value={data.dob} 
+                    onChange={(e) => {
+                      set({ dob: e.target.value });
+                      if (errors.dob) {
+                        setErrors(prev => ({ ...prev, dob: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.dob}</ErrorText>
                 </div>
               </div>
@@ -668,44 +853,98 @@ const handleSubmit = () => {
               <div className="space-y-6">
                 <div>
                   <FieldLabel>Bachelor's University Name & Degree (with Duration)</FieldLabel>
-                  <TextInput placeholder="Bachelor's degree details" value={data.bachelorsUniDegree} onChange={(e) => set({ bachelorsUniDegree: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.bachelorsUniDegree}
+                    placeholder="Bachelor's degree details" 
+                    value={data.bachelorsUniDegree} 
+                    onChange={(e) => {
+                      set({ bachelorsUniDegree: e.target.value });
+                      if (errors.bachelorsUniDegree) {
+                        setErrors(prev => ({ ...prev, bachelorsUniDegree: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.bachelorsUniDegree}</ErrorText>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <FieldLabel>Graduation Month & Year</FieldLabel>
-                    <TextInput type="month" placeholder="Graduation month & year" value={data.bachelorsGradMonthYear} onChange={(e) => set({ bachelorsGradMonthYear: e.target.value })} />
+                    <TextInput 
+                      hasError={!!errors.bachelorsGradMonthYear}
+                      type="month" 
+                      placeholder="Graduation month & year" 
+                      value={data.bachelorsGradMonthYear} 
+                      onChange={(e) => {
+                        set({ bachelorsGradMonthYear: e.target.value });
+                        if (errors.bachelorsGradMonthYear) {
+                          setErrors(prev => ({ ...prev, bachelorsGradMonthYear: '' }));
+                        }
+                      }} 
+                    />
                     <ErrorText>{errors.bachelorsGradMonthYear}</ErrorText>
                   </div>
                   <div className="flex-1">
                     <FieldLabel>GPA</FieldLabel>
                     <TextInput 
+                      hasError={!!errors.bachelorsGPA}
                       type="text" 
                       placeholder="Bachelor's GPA (e.g., 3.8)" 
                       value={data.bachelorsGPA} 
-                      onChange={(e) => set({ bachelorsGPA: e.target.value })} 
+                      onChange={(e) => {
+                        set({ bachelorsGPA: e.target.value });
+                        if (errors.bachelorsGPA) {
+                          setErrors(prev => ({ ...prev, bachelorsGPA: '' }));
+                        }
+                      }} 
                     />
                     <ErrorText>{errors.bachelorsGPA}</ErrorText>
                   </div>
                 </div>
                 <div>
                   <FieldLabel>Master's University Name & Degree (with Duration)</FieldLabel>
-                  <TextInput placeholder="Master's degree details" value={data.mastersUniDegree} onChange={(e) => set({ mastersUniDegree: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.mastersUniDegree}
+                    placeholder="Master's degree details" 
+                    value={data.mastersUniDegree} 
+                    onChange={(e) => {
+                      set({ mastersUniDegree: e.target.value });
+                      if (errors.mastersUniDegree) {
+                        setErrors(prev => ({ ...prev, mastersUniDegree: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.mastersUniDegree}</ErrorText>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <FieldLabel>Graduation Month & Year</FieldLabel>
-                    <TextInput type="month" placeholder="Master's graduation month & year" value={data.mastersGradMonthYear} onChange={(e) => set({ mastersGradMonthYear: e.target.value })} />
+                    <TextInput 
+                      hasError={!!errors.mastersGradMonthYear}
+                      type="month" 
+                      placeholder="Master's graduation month & year" 
+                      value={data.mastersGradMonthYear} 
+                      onChange={(e) => {
+                        set({ mastersGradMonthYear: e.target.value });
+                        if (errors.mastersGradMonthYear) {
+                          setErrors(prev => ({ ...prev, mastersGradMonthYear: '' }));
+                        }
+                      }} 
+                    />
                     <ErrorText>{errors.mastersGradMonthYear}</ErrorText>
                   </div>
                   <div className="flex-1">
                     <FieldLabel>GPA</FieldLabel>
                     <TextInput 
+                      hasError={!!errors.mastersGPA}
                       type="text" 
                       placeholder="Master's GPA (e.g., 3.9)" 
                       value={data.mastersGPA} 
-                      onChange={(e) => set({ mastersGPA: e.target.value })} 
+                      onChange={(e) => {
+                        set({ mastersGPA: e.target.value });
+                        if (errors.mastersGPA) {
+                          setErrors(prev => ({ ...prev, mastersGPA: '' }));
+                        }
+                      }} 
                     />
                     <ErrorText>{errors.mastersGPA}</ErrorText>
                   </div>
@@ -718,37 +957,59 @@ const handleSubmit = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b border-gray-200">Immigration & Address</h3>
               <div className="space-y-6">
                 <div>
-  <FieldLabel>Visa Status</FieldLabel>
-  <Select
-    value={data.visaStatus}
-    onChange={(e) => set({ visaStatus: e.target.value, otherVisaType: "" })}
-  >
-    <option value="">Select visa status</option>
-    {VISA_OPTIONS.map((v) => (
-      <option key={v} value={v}>
-        {v}
-      </option>
-    ))}
-  </Select>
-  <ErrorText>{errors.visaStatus}</ErrorText>
+                  <FieldLabel>Current Visa Status</FieldLabel>
+                  <Select 
+                    hasError={!!errors.visaStatus}
+                    value={data.visaStatus} 
+                    onChange={(e) => {
+                      set({ visaStatus: e.target.value, otherVisaType: e.target.value !== "Other" ? "" : data.otherVisaType });
+                      if (errors.visaStatus) {
+                        setErrors(prev => ({ ...prev, visaStatus: '' }));
+                      }
+                    }}
+                  >
+                    <option value="">Select status…</option>
+                    {VISA_OPTIONS.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </Select>
+                  <ErrorText>{errors.visaStatus}</ErrorText>
 
-  {/* 👇 Conditionally show text input when "Other" is selected */}
-  {data.visaStatus === "Other" && (
-    <div className="mt-4">
-      <FieldLabel>Specify Visa Type</FieldLabel>
-      <TextInput
-        placeholder="Enter your visa type"
-        value={data.otherVisaType}
-        onChange={(e) => set({ otherVisaType: e.target.value })}
-      />
-      <ErrorText>{errors.otherVisaType}</ErrorText>
-    </div>
-  )}
-</div>
-
+                  {/* Conditionally show text input when "Other" is selected */}
+                  {data.visaStatus === "Other" && (
+                    <div className="mt-4">
+                      <FieldLabel>Specify Visa Type</FieldLabel>
+                      <TextInput
+                        hasError={!!errors.otherVisaType}
+                        placeholder="Enter your visa type"
+                        value={data.otherVisaType || ""}
+                        onChange={(e) => {
+                          set({ otherVisaType: e.target.value });
+                          if (errors.otherVisaType) {
+                            setErrors(prev => ({ ...prev, otherVisaType: '' }));
+                          }
+                        }}
+                      />
+                      <ErrorText>{errors.otherVisaType}</ErrorText>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <FieldLabel>Complete Current Address (Street, City, State, ZIP Code)</FieldLabel>
-                  <TextArea rows={3} placeholder="Complete address (Street, City, State, ZIP)" value={data.address} onChange={(e) => set({ address: e.target.value })} />
+                  <TextArea 
+                    hasError={!!errors.address}
+                    rows={3} 
+                    placeholder="Complete address (Street, City, State, ZIP)" 
+                    value={data.address} 
+                    onChange={(e) => {
+                      set({ address: e.target.value });
+                      if (errors.address) {
+                        setErrors(prev => ({ ...prev, address: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.address}</ErrorText>
                 </div>
               </div>
@@ -764,13 +1025,32 @@ const handleSubmit = () => {
               <div className="space-y-6">
                 <div>
                   <FieldLabel>Preferred Job Roles</FieldLabel>
-                  <TextInput placeholder="Preferred job roles (e.g., Software Engineer)" value={data.preferredRoles} onChange={(e) => set({ preferredRoles: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.preferredRoles}
+                    placeholder="Preferred job roles (e.g., Software Engineer)" 
+                    value={data.preferredRoles} 
+                    onChange={(e) => {
+                      set({ preferredRoles: e.target.value });
+                      if (errors.preferredRoles) {
+                        setErrors(prev => ({ ...prev, preferredRoles: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.preferredRoles}</ErrorText>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <FieldLabel>Experience Level</FieldLabel>
-                    <Select value={data.experienceLevel} onChange={(e) => set({ experienceLevel: e.target.value })}>
+                    <Select 
+                      hasError={!!errors.experienceLevel}
+                      value={data.experienceLevel} 
+                      onChange={(e) => {
+                        set({ experienceLevel: e.target.value });
+                        if (errors.experienceLevel) {
+                          setErrors(prev => ({ ...prev, experienceLevel: '' }));
+                        }
+                      }}
+                    >
                       <option value="">Select experience level…</option>
                       <option value="Entry Level">Entry Level</option>
                       <option value="Mid Level">Mid Level</option>
@@ -781,7 +1061,16 @@ const handleSubmit = () => {
                   </div>
                   <div>
                     <FieldLabel>Expected Base Salary</FieldLabel>
-                    <Select value={data.expectedSalaryRange} onChange={(e) => set({ expectedSalaryRange: e.target.value })}>
+                    <Select 
+                      hasError={!!errors.expectedSalaryRange}
+                      value={data.expectedSalaryRange} 
+                      onChange={(e) => {
+                        set({ expectedSalaryRange: e.target.value });
+                        if (errors.expectedSalaryRange) {
+                          setErrors(prev => ({ ...prev, expectedSalaryRange: '' }));
+                        }
+                      }}
+                    >
                       <option value="">Select salary range…</option>
                       {SALARY_OPTIONS.map((option) => (
                         <option key={option} value={option}>
@@ -801,12 +1090,32 @@ const handleSubmit = () => {
               <div className="space-y-6">
                 <div>
                   <FieldLabel>Preferred Job Locations</FieldLabel>
-                  <TextInput placeholder="Preferred locations (e.g., New York, SF)" value={data.preferredLocations} onChange={(e) => set({ preferredLocations: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.preferredLocations}
+                    placeholder="Preferred locations (e.g., New York, SF)" 
+                    value={data.preferredLocations} 
+                    onChange={(e) => {
+                      set({ preferredLocations: e.target.value });
+                      if (errors.preferredLocations) {
+                        setErrors(prev => ({ ...prev, preferredLocations: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.preferredLocations}</ErrorText>
                 </div>
                 <div>
                   <FieldLabel>Companies Targeting</FieldLabel>
-                  <TextInput placeholder="Target companies (e.g., Google, Amazon)" value={data.targetCompanies} onChange={(e) => set({ targetCompanies: e.target.value })} />
+                  <TextInput 
+                    hasError={!!errors.targetCompanies}
+                    placeholder="Target companies (e.g., Google, Amazon)" 
+                    value={data.targetCompanies} 
+                    onChange={(e) => {
+                      set({ targetCompanies: e.target.value });
+                      if (errors.targetCompanies) {
+                        setErrors(prev => ({ ...prev, targetCompanies: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.targetCompanies}</ErrorText>
                 </div>
               </div>
@@ -819,6 +1128,7 @@ const handleSubmit = () => {
                 <div>
                   <FieldLabel required={false}>SSN Number (Optional - must be last 3 digits)</FieldLabel>
                   <TextInput
+                    hasError={!!errors.ssnNumber}
                     inputMode="numeric"
                     maxLength={3}
                     placeholder="Last 3 SSN digits or leave empty"
@@ -826,6 +1136,9 @@ const handleSubmit = () => {
                     onChange={(e) => {
                       const digits = digitsOnly(e.target.value).slice(0, 3);
                       set({ ssnNumber: digits });
+                      if (errors.ssnNumber) {
+                        setErrors(prev => ({ ...prev, ssnNumber: '' }));
+                      }
                     }}
                   />
                   {data.ssnNumber && data.ssnNumber.length > 0 && data.ssnNumber.length !== 3 && (
@@ -835,12 +1148,32 @@ const handleSubmit = () => {
                 </div>
                 <div>
                   <FieldLabel required={false}>Reason for Leaving Your Previous Role (Optional)</FieldLabel>
-                  <TextArea rows={3} placeholder="Reason for leaving previous role" value={data.reasonForLeaving} onChange={(e) => set({ reasonForLeaving: e.target.value })} />
+                  <TextArea 
+                    hasError={!!errors.reasonForLeaving}
+                    rows={3} 
+                    placeholder="Reason for leaving previous role" 
+                    value={data.reasonForLeaving} 
+                    onChange={(e) => {
+                      set({ reasonForLeaving: e.target.value });
+                      if (errors.reasonForLeaving) {
+                        setErrors(prev => ({ ...prev, reasonForLeaving: '' }));
+                      }
+                    }} 
+                  />
                   <ErrorText>{errors.reasonForLeaving}</ErrorText>
                 </div>
                 <div>
                   <FieldLabel>How soon can you join the company?</FieldLabel>
-                  <Select value={data.joinTime} onChange={(e) => set({ joinTime: e.target.value })}>
+                  <Select 
+                    hasError={!!errors.joinTime}
+                    value={data.joinTime} 
+                    onChange={(e) => {
+                      set({ joinTime: e.target.value });
+                      if (errors.joinTime) {
+                        setErrors(prev => ({ ...prev, joinTime: '' }));
+                      }
+                    }}
+                  >
                     <option value="">Select timeline…</option>
                     <option value="Immediately">Immediately</option>
                     <option value="2 weeks">2 weeks</option>
@@ -872,6 +1205,7 @@ const handleSubmit = () => {
                 <div>
                   <FieldLabel>LinkedIn URL</FieldLabel>
                   <TextInput 
+                    hasError={!!errors.linkedinUrl}
                     placeholder="LinkedIn profile URL" 
                     value={data.linkedinUrl} 
                     onChange={(e) => {
@@ -884,7 +1218,6 @@ const handleSubmit = () => {
                         setErrors(prev => ({ ...prev, linkedinUrl: "" }));
                       }
                     }}
-                    className={data.linkedinUrl && !isValidUrlFormat(data.linkedinUrl) ? "border-red-500" : ""}
                   />
                   <ErrorText>{errors.linkedinUrl}</ErrorText>
                   {data.linkedinUrl && !isValidUrlFormat(data.linkedinUrl) && (
@@ -894,6 +1227,7 @@ const handleSubmit = () => {
                 <div>
                   <FieldLabel required={false}>GitHub URL (Optional)</FieldLabel>
                   <TextInput 
+                    hasError={!!errors.githubUrl}
                     placeholder="GitHub profile URL" 
                     value={data.githubUrl} 
                     onChange={(e) => {
@@ -906,7 +1240,6 @@ const handleSubmit = () => {
                         setErrors(prev => ({ ...prev, githubUrl: "" }));
                       }
                     }}
-                    className={data.githubUrl && !isValidUrlFormat(data.githubUrl) ? "border-red-500" : ""}
                   />
                   <ErrorText>{errors.githubUrl}</ErrorText>
                   {data.githubUrl && !isValidUrlFormat(data.githubUrl) && (
@@ -916,6 +1249,7 @@ const handleSubmit = () => {
                 <div>
                   <FieldLabel required={false}>Portfolio Link (Optional)</FieldLabel>
                   <TextInput 
+                    hasError={!!errors.portfolioUrl}
                     placeholder="Portfolio website URL" 
                     value={data.portfolioUrl} 
                     onChange={(e) => {
@@ -928,7 +1262,6 @@ const handleSubmit = () => {
                         setErrors(prev => ({ ...prev, portfolioUrl: "" }));
                       }
                     }}
-                    className={data.portfolioUrl && !isValidUrlFormat(data.portfolioUrl) ? "border-red-500" : ""}
                   />
                   <ErrorText>{errors.portfolioUrl}</ErrorText>
                   {data.portfolioUrl && !isValidUrlFormat(data.portfolioUrl) && (
@@ -946,9 +1279,15 @@ const handleSubmit = () => {
                   <FileInput
                     label="Cover Letter (Optional)"
                     required={false}
+                    hasError={!!errors.coverLetterUrl}
                     file={data.coverLetterFile ?? null}
                     onFileChange={(f) => set({ coverLetterFile: f })}
-                    onUploaded={(url) => set({ coverLetterUrl: url })}
+                    onUploaded={(url) => {
+                      set({ coverLetterUrl: url });
+                      if (errors.coverLetterUrl) {
+                        setErrors(prev => ({ ...prev, coverLetterUrl: '' }));
+                      }
+                    }}
                   />
                   <ErrorText>{errors.coverLetterUrl}</ErrorText>
                 </div>
@@ -956,9 +1295,15 @@ const handleSubmit = () => {
                   <FileInput
                     label="Resume"
                     required={true}
+                    hasError={!!errors.resumeUrl}
                     file={data.resumeFile ?? null}
                     onFileChange={(f) => set({ resumeFile: f })}
-                    onUploaded={(url) => set({ resumeUrl: url })}
+                    onUploaded={(url) => {
+                      set({ resumeUrl: url });
+                      if (errors.resumeUrl) {
+                        setErrors(prev => ({ ...prev, resumeUrl: '' }));
+                      }
+                    }}
                   />
                   <ErrorText>{errors.resumeUrl}</ErrorText>
                 </div>
@@ -966,9 +1311,15 @@ const handleSubmit = () => {
                   <FileInput
                     label="Transcript (Optional)"
                     required={false}
+                    hasError={!!errors.transcriptUrl}
                     file={data.transcriptFile ?? null}
                     onFileChange={(f) => set({ transcriptFile: f })}
-                    onUploaded={(url) => set({ transcriptUrl: url })}
+                    onUploaded={(url) => {
+                      set({ transcriptUrl: url });
+                      if (errors.transcriptUrl) {
+                        setErrors(prev => ({ ...prev, transcriptUrl: '' }));
+                      }
+                    }}
                   />
                   <ErrorText>{errors.transcriptUrl}</ErrorText>
                 </div>
@@ -978,14 +1329,19 @@ const handleSubmit = () => {
             {/* Consent Section */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b border-gray-200">Consent & Agreement</h3>
-              <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-6">
+              <div className={`space-y-4 rounded-xl border p-6 ${errors.confirmAccuracy || errors.agreeTos ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
                 <div className="flex items-start gap-4">
                   <input
                     id="confirm"
                     type="checkbox"
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                    className={`mt-1 h-5 w-5 rounded focus:ring-2 ${errors.confirmAccuracy ? 'border-red-500 text-red-600 focus:ring-red-500' : 'border-gray-300 text-orange-600 focus:ring-orange-500'}`}
                     checked={data.confirmAccuracy}
-                    onChange={(e) => set({ confirmAccuracy: e.target.checked })}
+                    onChange={(e) => {
+                      set({ confirmAccuracy: e.target.checked });
+                      if (errors.confirmAccuracy) {
+                        setErrors(prev => ({ ...prev, confirmAccuracy: '' }));
+                      }
+                    }}
                   />
                   <label htmlFor="confirm" className="text-sm text-gray-800 leading-relaxed">
                     I confirm that the information provided is accurate and can be used for job applications on my behalf.
@@ -998,9 +1354,14 @@ const handleSubmit = () => {
                   <input
                     id="tos"
                     type="checkbox"
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                    className={`mt-1 h-5 w-5 rounded focus:ring-2 ${errors.agreeTos ? 'border-red-500 text-red-600 focus:ring-red-500' : 'border-gray-300 text-orange-600 focus:ring-orange-500'}`}
                     checked={data.agreeTos}
-                    onChange={(e) => set({ agreeTos: e.target.checked })}
+                    onChange={(e) => {
+                      set({ agreeTos: e.target.checked });
+                      if (errors.agreeTos) {
+                        setErrors(prev => ({ ...prev, agreeTos: '' }));
+                      }
+                    }}
                   />
                   <label htmlFor="tos" className="text-sm text-gray-800 leading-relaxed">
                     I agree to the Terms of Service and Privacy Policy of FlashFire, and the conditions listed at

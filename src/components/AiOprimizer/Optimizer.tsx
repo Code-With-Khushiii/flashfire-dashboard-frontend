@@ -200,6 +200,9 @@ function App() {
     const [searchParams] = useSearchParams();
     const { jobId } = useParams<{ jobId: string }>();
     const startWithEditor = searchParams.get("view") === "editor";
+    
+    // Check if we're in the optimize route to show print buttons
+    const isOptimizeRoute = window.location.pathname.includes('/optimize/');
 
     // Authentication state
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1531,6 +1534,15 @@ function App() {
                     id: jobId,
                     startingContent: startingContent,
                     finalChanges: finalChanges,
+                    optimizedResume: {
+                        resumeData: optimizedData,
+                        hasResume: true,
+                        showSummary: showSummary,
+                        showProjects: showProjects,
+                        showLeadership: showLeadership,
+                        showPublications: showPublications,
+                        version: versionV
+                    }
                 }),
             });
 
@@ -2235,6 +2247,7 @@ function App() {
                                                     ? new Set()
                                                     : changedFields
                                             }
+                                            showPrintButtons={isOptimizeRoute}
                                         />
                                     ) : null}
 
@@ -2250,6 +2263,7 @@ function App() {
                                                     ? new Set()
                                                     : changedFields
                                             }
+                                            showPrintButtons={isOptimizeRoute}
                                         />
                                     ) : null}
 
@@ -2545,6 +2559,7 @@ function App() {
                                                             changedFields={
                                                                 new Set()
                                                             }
+                                                            showPrintButtons={isOptimizeRoute}
                                                         />
                                                     )}
 
@@ -2564,6 +2579,7 @@ function App() {
                                                             changedFields={
                                                                 new Set()
                                                             }
+                                                            showPrintButtons={isOptimizeRoute}
                                                         />
                                                     )}
 
