@@ -23,46 +23,7 @@ import { PreviewStore } from "./store/PreviewStore";
 import { Publications } from "./components/Publications";
 import { ResumePreviewMedical } from "./components/ResumePreviewMedical";
 import { useJobsSessionStore } from "../../state_management/JobsSessionStore";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
 import "./index.css"; //
-
-// Simple DraggableSection component
-const DraggableSection = ({ id, children }: { id: string; children: React.ReactNode }) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} className="relative group">
-            <div
-                {...attributes}
-                {...listeners}
-                className="absolute -left-8 top-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded z-10"
-                title="Drag to reorder"
-            >
-                <GripVertical className="h-4 w-4 text-gray-400" />
-            </div>
-            <div className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
-                {children}
-            </div>
-        </div>
-    );
-};
 
 // Type definitions remain the same
 interface WorkExperienceItem {
@@ -287,27 +248,7 @@ function App() {
         // setUserId,
         showPublications,
         setShowPublications,
-        sectionOrder,
-        setSectionOrder,
     } = useResumeStore();
-
-    // Drag and drop setup
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (active.id !== over?.id) {
-            const oldIndex = sectionOrder.indexOf(active.id as string);
-            const newIndex = sectionOrder.indexOf(over?.id as string);
-            const newOrder = arrayMove(sectionOrder, oldIndex, newIndex);
-            setSectionOrder(newOrder);
-        }
-    };
 
     const {
         isPersonalInfoEditable,
@@ -1940,192 +1881,187 @@ function App() {
                         /* Normal Edit View */
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Left Side - Edit Sections */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 h-fit max-h-[800px] overflow-y-auto no-print">
+                            <div className="space-y-6 bg-white rounded-lg shadow-sm p-6 h-fit max-h-[800px] overflow-y-auto no-print">
+                                {/* Personal Information Section */}
                                 <LockedSection
                                     isLocked={!isPersonalInfoEditable}
                                     sectionName="Resume is locked"
                                 >
-                                    <div className="text-sm text-gray-500 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span className="font-medium text-blue-800">Tip:</span>
+                                    <PersonalInfo
+                                        data={resumeData.personalInfo}
+                                        onChange={updatePersonalInfo}
+                                    />
+
+                                    {/* Summary Toggle and Section */}
+                                    <>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="showSummary"
+                                                    checked={showSummary}
+                                                    onChange={(e) => {
+                                                        console.log(
+                                                            "Summary checkbox manually changed to:",
+                                                            e.target.checked
+                                                        );
+                                                        setShowSummary(
+                                                            e.target.checked
+                                                        );
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                />
+                                                <label
+                                                    htmlFor="showSummary"
+                                                    className="text-sm font-medium text-gray-700"
+                                                >
+                                                    Include Summary section
+                                                </label>
+                                            </div>
+
+                                            {showSummary && (
+                                                <Summary
+                                                    data={resumeData.summary}
+                                                    onChange={updateSummary}
+                                                />
+                                            )}
                                         </div>
-                                        <p className="mt-1 text-blue-700">
-                                            Hover over any section to see the drag handle. You can reorder sections by dragging them up or down.
-                                        </p>
-                                    </div>
-                                    
-                                    <DndContext
-                                    sensors={sensors}
-                                    collisionDetection={closestCenter}
-                                    onDragEnd={handleDragEnd}
-                                >
-                                    <SortableContext 
-                                        items={sectionOrder} 
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        <div className="space-y-6">
-                                            {sectionOrder.map((sectionId) => {
-                                                switch (sectionId) {
-                                                    case 'personalInfo':
-                                                        return (
-                                                            <DraggableSection id="personalInfo">
-                                                                <LockedSection
-                                                                    isLocked={!isPersonalInfoEditable}
-                                                                    sectionName="Resume is locked"
-                                                                >
-                                                                    <PersonalInfo
-                                                                        data={resumeData.personalInfo}
-                                                                        onChange={updatePersonalInfo}
-                                                                    />
-                                                                </LockedSection>
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'summary':
-                                                        return (
-                                                            <DraggableSection id="summary">
-                                                                <div className="space-y-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            id="showSummary"
-                                                                            checked={showSummary}
-                                                                            onChange={(e) => {
-                                                                                console.log("Summary checkbox manually changed to:", e.target.checked);
-                                                                                setShowSummary(e.target.checked);
-                                                                            }}
-                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                                        />
-                                                                        <label htmlFor="showSummary" className="text-sm font-medium text-gray-700">
-                                                                            Include Summary section
-                                                                        </label>
-                                                                    </div>
-                                                                    {showSummary && (
-                                                                        <Summary
-                                                                            data={resumeData.summary}
-                                                                            onChange={updateSummary}
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'workExperience':
-                                                        return (
-                                                            <DraggableSection id="workExperience">
-                                                                <WorkExperience
-                                                                    data={resumeData.workExperience}
-                                                                    onChange={updateWorkExperience}
-                                                                />
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'projects':
-                                                        return (
-                                                            <DraggableSection id="projects">
-                                                                <div className="space-y-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            id="showProjects"
-                                                                            checked={showProjects}
-                                                                            onChange={(e) => setShowProjects(e.target.checked)}
-                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                                            disabled={!isProjectsEditable}
-                                                                        />
-                                                                        <label htmlFor="showProjects" className="text-sm font-medium text-gray-700">
-                                                                            Include Projects section
-                                                                        </label>
-                                                                    </div>
-                                                                    {showProjects && (
-                                                                        <Projects
-                                                                            data={resumeData.projects}
-                                                                            onChange={updateProjects}
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'leadership':
-                                                        return (
-                                                            <DraggableSection id="leadership">
-                                                                <div className="space-y-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            id="showLeadership"
-                                                                            checked={showLeadership}
-                                                                            onChange={(e) => setShowLeadership(e.target.checked)}
-                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                                            disabled={!isLeadershipEditable}
-                                                                        />
-                                                                        <label htmlFor="showLeadership" className="text-sm font-medium text-gray-700">
-                                                                            Include Leadership & Volunteering section
-                                                                        </label>
-                                                                    </div>
-                                                                    {showLeadership && (
-                                                                        <Leadership
-                                                                            data={resumeData.leadership}
-                                                                            onChange={updateLeadership}
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'skills':
-                                                        return (
-                                                            <DraggableSection id="skills">
-                                                                <Skills
-                                                                    data={resumeData.skills}
-                                                                    onChange={updateSkills}
-                                                                />
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'education':
-                                                        return (
-                                                            <DraggableSection id="education">
-                                                                <Education
-                                                                    data={resumeData.education}
-                                                                    onChange={updateEducation}
-                                                                />
-                                                            </DraggableSection>
-                                                        );
-                                                    case 'publications':
-                                                        if (versionV === 2) {
-                                                            return (
-                                                                <DraggableSection id="publications">
-                                                                    <div className="space-y-4">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                id="showPublications"
-                                                                                checked={showPublications}
-                                                                                onChange={(e) => setShowPublications(e.target.checked)}
-                                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                                            />
-                                                                            <label htmlFor="showPublications" className="text-sm font-medium text-gray-700">
-                                                                                Include Publications section
-                                                                            </label>
-                                                                        </div>
-                                                                        {showPublications && (
-                                                                            <Publications
-                                                                                data={resumeData.publications}
-                                                                                onChange={updatePublications}
-                                                                            />
-                                                                        )}
-                                                                    </div>
-                                                                </DraggableSection>
-                                                            );
+                                    </>
+
+                                    {/* Work Experience Section */}
+                                    <>
+                                        <WorkExperience
+                                            data={resumeData.workExperience}
+                                            onChange={updateWorkExperience}
+                                        />
+                                    </>
+
+                                    {/* Projects Toggle and Section */}
+                                    <>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="showProjects"
+                                                    checked={showProjects}
+                                                    onChange={(e) =>
+                                                        setShowProjects(
+                                                            e.target.checked
+                                                        )
+                                                    }
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                    disabled={
+                                                        !isProjectsEditable
+                                                    }
+                                                />
+                                                <label
+                                                    htmlFor="showProjects"
+                                                    className="text-sm font-medium text-gray-700"
+                                                >
+                                                    Include Projects section
+                                                </label>
+                                            </div>
+
+                                            {showProjects && (
+                                                <Projects
+                                                    data={resumeData.projects}
+                                                    onChange={updateProjects}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Leadership & Volunteering Toggle and Section */}
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="showLeadership"
+                                                    checked={showLeadership}
+                                                    onChange={(e) =>
+                                                        setShowLeadership(
+                                                            e.target.checked
+                                                        )
+                                                    }
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                    disabled={
+                                                        !isLeadershipEditable
+                                                    }
+                                                />
+                                                <label
+                                                    htmlFor="showLeadership"
+                                                    className="text-sm font-medium text-gray-700"
+                                                >
+                                                    Include Leadership &
+                                                    Volunteering section
+                                                </label>
+                                            </div>
+
+                                            {showLeadership && (
+                                                <Leadership
+                                                    data={resumeData.leadership}
+                                                    onChange={updateLeadership}
+                                                />
+                                            )}
+                                        </div>
+                                    </>
+
+                                    {/* Skills Section */}
+                                    <>
+                                        <Skills
+                                            data={resumeData.skills}
+                                            onChange={updateSkills}
+                                        />
+                                    </>
+
+                                    {/* Education Section */}
+                                    <>
+                                        <Education
+                                            data={resumeData.education}
+                                            onChange={updateEducation}
+                                        />
+                                    </>
+                                    <>
+                                        {versionV == 2 ? (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="showPublications"
+                                                        checked={
+                                                            showPublications
                                                         }
-                                                        return null;
-                                                    default:
-                                                        return null;
-                                                }
-                                            })}
-                                        </div>
-                                    </SortableContext>
-                                </DndContext>
-                                </LockedSection>
+                                                        onChange={(e) =>
+                                                            setShowPublications(
+                                                                e.target.checked
+                                                            )
+                                                        }
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                    />
+                                                    <label
+                                                        htmlFor="showPublications"
+                                                        className="text-sm font-medium text-gray-700"
+                                                    >
+                                                        Include Publications
+                                                        section
+                                                    </label>
+                                                </div>
+
+                                                {showPublications && (
+                                                    <Publications
+                                                        data={
+                                                            resumeData.publications
+                                                        }
+                                                        onChange={
+                                                            updatePublications
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        ) : null}
+                                    </>
+
+                                    {/* Save Button - Also lock this */}
 
                                     <button
                                         onClick={handleSave}
@@ -2185,68 +2121,7 @@ function App() {
                                         saves a new resume of this resume to V1
                                         resume template
                                     </p>
-                                </div>
-
-                                {/* Save Button and other controls */}
-                                <div className="mt-6 space-y-4">
-                                    <button
-                                        onClick={handleSave}
-                                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md transition-colors font-medium ${
-                                            isSaved
-                                                ? "bg-green-600 text-white"
-                                                : "bg-blue-600 text-white hover:bg-blue-700"
-                                        }`}
-                                    >
-                                        {isSaved ? (
-                                            <Check size={18} />
-                                        ) : (
-                                            <Save size={18} />
-                                        )}
-                                        {isSaved ? "Saved!" : "Save Resume"}
-                                    </button>
-                                    {!isSaved && (
-                                        <p className="text-xs text-gray-500 text-center">
-                                            Save your progress to keep data
-                                            after refresh
-                                        </p>
-                                    )}
-
-                                    {/* Admin-only Unlock Key Editor */}
-                                    <AccessKeyEditor />
-
-                                    {/* Start Over Button */}
-                                    <button
-                                        onClick={handleStartOver}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium mt-2"
-                                    >
-                                        <RotateCcw size={18} />
-                                        Start Over
-                                    </button>
-                                    <p className="text-xs text-gray-500 mt-2 text-center">
-                                        This will clear all your data and start
-                                        fresh
-                                    </p>
-                                    <div className="flex gap-4">
-                                        <button
-                                            onClick={handleV1Resume}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium mt-2"
-                                        >
-                                            <LucideSaveAll size={18} />
-                                            Save to V1 Resume
-                                        </button>
-                                        <button
-                                            onClick={handleV2Resume}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium mt-2"
-                                        >
-                                            <LucideSaveAll size={18} />
-                                            Save to Medical Resume
-                                        </button>
-                                    </div>
-                                    <p>
-                                        saves a new resume of this resume to V1
-                                        resume template
-                                    </p>
-                                </div>
+                                </LockedSection>
 
                                 {/* Job Description Input - This stays UNLOCKED */}
                                 <div className="space-y-4 border-t border-gray-200 pt-6">
@@ -2935,8 +2810,7 @@ function App() {
                                     showProjects={showProjects}
                                     showSummary={showSummary}
                                     showPublications={showPublications}
-                                    showChanges={false}
-                                    changedFields={new Set()}
+                                    showPrintButtons={!isOptimizeRoute}
                                 />
                             ) : null}
                         </>
