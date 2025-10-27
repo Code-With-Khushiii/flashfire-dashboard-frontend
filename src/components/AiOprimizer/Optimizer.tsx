@@ -2810,8 +2810,7 @@ function App() {
                                     showProjects={showProjects}
                                     showSummary={showSummary}
                                     showPublications={showPublications}
-                                    showChanges={false}
-                                    changedFields={new Set()}
+                                    showPrintButtons={!isOptimizeRoute}
                                 />
                             ) : null}
                         </>

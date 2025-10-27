@@ -14,7 +14,7 @@
   }
 
   @page {
-    size: A4 portrait;
+    size: letter portrait;
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -56,6 +56,8 @@
     visibility: visible !important;
     opacity: 1 !important;
     color: inherit !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
   }
 
   /* Keep links blue in print for medical resume */
@@ -64,16 +66,9 @@
     text-decoration: none !important;
   }
 
-  /* Make sections fill available space for medical resume */
+  /* Section spacing for medical resume */
   .resume-medical-print #resume-print-only > div {
-    margin-bottom: 60px !important;
-    page-break-inside: auto !important;
-    break-inside: auto !important;
-  }
-
-  /* Allow natural page breaks within sections for medical resume */
-  .resume-medical-print #resume-print-only,
-  .resume-medical-print #resume-print-only * {
+    margin-bottom: 12px !important;
     page-break-inside: auto !important;
     break-inside: auto !important;
   }
@@ -84,22 +79,8 @@
     break-after: avoid !important;
   }
 
-  /* Section spacing for medical resume */
-  .resume-medical-print #resume-print-only > div {
-    margin-bottom: 12px !important;
-    page-break-inside: auto !important;
-    break-inside: auto !important;
-  }
-
-  /* Prevent orphaned headers */
-  .resume-medical-print #resume-print-only > div > div:first-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-  }
-
   /* Let the last section flex if needed */
   .resume-medical-print #resume-print-only > div:last-child {
-    flex: 1 !important;
     margin-bottom: 0 !important;
   }
 
@@ -327,8 +308,8 @@
     display: none !important;
   }
   
-  /* Make sure links print black, not blue */
-  a {
+  /* Make sure links print black, not blue - but ONLY for single-page resumes */
+  .resume-single-page a {
     color: black !important;
     text-decoration: none !important;
   }
