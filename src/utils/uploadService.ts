@@ -29,17 +29,37 @@ function getAuthToken(): string | null {
 }
 
 /**
+ * Helper function to get user email from localStorage
+ */
+function getUserEmail(): string | null {
+  try {
+    const userAuth = JSON.parse(localStorage.getItem('userAuth') || '{}');
+    return userAuth.userDetails?.email || null;
+  } catch (error) {
+    console.error('Error getting user email:', error);
+    return null;
+  }
+}
+
+/**
  * Upload file using FormData (multipart/form-data)
  * @param file - File to upload
  * @param folder - Optional folder path
+ * @param email - Optional email for user-specific folder organization (if not provided, will try to get from localStorage)
  * @returns Upload result with URL
  */
-export async function uploadFile(file: File, folder?: string): Promise<UploadResult> {
+export async function uploadFile(file: File, folder?: string, email?: string): Promise<UploadResult> {
   try {
     const formData = new FormData();
     formData.append('file', file);
     if (folder) {
       formData.append('folder', folder);
+    }
+    
+    // Use provided email or try to get from localStorage
+    const userEmail = email || getUserEmail();
+    if (userEmail) {
+      formData.append('email', userEmail);
     }
 
     // Optional: Send token if available (but not required)
@@ -155,10 +175,11 @@ export async function uploadProfileFile(
  * Upload image or attachment
  * @param file - File to upload
  * @param folder - Optional folder path
+ * @param email - Optional email for user-specific folder organization
  * @returns URL of uploaded file
  */
-export async function uploadAttachment(file: File, folder = 'flashfire-attachments'): Promise<string> {
-  const result = await uploadFile(file, folder);
+export async function uploadAttachment(file: File, folder = 'flashfirejobs', email?: string): Promise<string> {
+  const result = await uploadFile(file, folder, email);
   
   if (!result.success || !result.url) {
     throw new Error(result.error || 'Upload failed');
