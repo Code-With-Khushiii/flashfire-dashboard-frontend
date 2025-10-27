@@ -1,17 +1,31 @@
-import { ArrowLeftCircle, Trash2 , HardDriveDownload  } from "lucide-react";
+import { ArrowLeftCircle, Trash2 } from "lucide-react";
 import React, { useEffect, useState, useContext } from "react";
 import { UserContext } from '../state_management/UserContext.js';
+import { ResumePreview } from './AiOprimizer/components/ResumePreview.tsx';
+import { ResumePreview1 } from './AiOprimizer/components/ResumePreview1.tsx';
+import { ResumePreviewMedical } from './AiOprimizer/components/ResumePreviewMedical.tsx';
 
-type PendingType = "optimized" | "coverLetter" | null;
+// type PendingType = "optimized" | "coverLetter" | null;
 
 type Entry = {
   jobRole: string;
   companyName: string;
   jobLink?: string;
   url: string;
+  link?: string;
   createdAt?: string | Date;
   jobId?: string;
-  name : string
+  jobID?: string;
+  hasResume?: boolean;
+  isJobBased?: boolean;
+  name: string;
+  title?: string;
+  version?: number;
+  resumeData?: any;
+  showSummary?: boolean;
+  showProjects?: boolean;
+  showLeadership?: boolean;
+  showPublications?: boolean;
 };
 
 // Cloudinary sometimes serves PDFs under `image/upload`.
@@ -40,14 +54,14 @@ function toRawPdfUrl(
 }
 
 
-const fmtDate = (d?: string | Date) =>
-    d
-        ? new Date(d).toLocaleDateString(undefined, {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-          })
-        : "—";
+// const fmtDate = (d?: string | Date) =>
+//     d
+//         ? new Date(d).toLocaleDateString(undefined, {
+//               month: "short",
+//               day: "2-digit",
+//               year: "numeric",
+//           })
+//         : "—";
 
 // Small download icon (no external deps)
 const DownloadIcon = () => (
@@ -58,13 +72,13 @@ const DownloadIcon = () => (
 );
 
 export default function DocumentUpload() {
-  const [activeTab, setActiveTab] = useState<"base" | "optimized" | "cover">("base");
-  const [fileNamePrompt, setFileNamePrompt] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"base" | "optimized" | "cover" | "transcript">("base");
+  // const [fileNamePrompt, setFileNamePrompt] = useState<string>("");
     const context = useContext(UserContext);
-  const [baseResume, setBaseResume] = useState([]);
+  const [baseResume, setBaseResume] = useState<any[]>([]);
   const [optimizedList, setOptimizedList] = useState<Entry[]>([]);
   const [coverList, setCoverList] = useState<Entry[]>([]);
-  const [transcriptList, setTranscriptList] = useState([]);
+  const [transcriptList, setTranscriptList] = useState<any[]>([]);
 
     // const [showMetaModal, setShowMetaModal] = useState<PendingType>(null);
     // const [pendingUploadType, setPendingUploadType] = useState<PendingType>(null);
@@ -78,6 +92,15 @@ export default function DocumentUpload() {
         null
     );
     const [iframeError, setIframeError] = useState<string | null>(null);
+
+    // Job-based resume state
+    const [resumeData, setResumeData] = useState<any>(null);
+    const [resumeLoading, setResumeLoading] = useState(false);
+    const [fetchingResumes, setFetchingResumes] = useState(false);
+    
+    // Search and filter states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filteredResumes, setFilteredResumes] = useState<Entry[]>([]);
 
     // ---- helpers ----
     const readAuth = () => {
@@ -110,34 +133,15 @@ export default function DocumentUpload() {
     };
 
     const uploadToCloudinary = async (file: File) => {
-        const isPdf = file.type === "application/pdf";
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append(
-            "upload_preset",
-            import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET_PDF
-        );
-
-        // Use the correct endpoint for PDFs so we get a clean PDF URL
-        const resource = isPdf ? "raw" : "auto";
-        const res = await fetch(
-            `https://api.cloudinary.com/v1_1/${
-                import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-            }/${resource}/upload`,
-            { method: "POST", body: formData }
-        );
-        if (!res.ok) throw new Error("Cloudinary upload failed");
-        const data = await res.json();
-        if (!data?.secure_url) throw new Error("No secure_url returned");
-
-        const url: string = isPdf
-            ? (data.secure_url as string).replace(
-                  "/image/upload/",
-                  "/raw/upload/"
-              )
-            : (data.secure_url as string);
-
-        return url;
+        try {
+            // Use the new unified upload service
+            const { uploadProfileFile } = await import('../utils/uploadService');
+            const url = await uploadProfileFile(file, 'resume');
+            return url;
+        } catch (error) {
+            console.error("Upload failed:", error);
+            throw new Error("Upload failed");
+        }
     };
 
   const persistToBackend = async (payload: any) => {
@@ -171,11 +175,209 @@ export default function DocumentUpload() {
 }
 
 
-  setOptimizedList(Array.isArray(u.optimizedResumes) ? u.optimizedResumes : []);
+  // Don't set optimizedList here - let fetchAllOptimizedResumes handle it
+  // setOptimizedList(Array.isArray(u.optimizedResumes) ? u.optimizedResumes : []);
   setCoverList(Array.isArray(u.coverLetters) ? u.coverLetters : []);
   setTranscriptList(Array.isArray(u.transcripts) ? u.transcripts : []);
 
+  // Fetch all optimized resumes (both old and new - this will include Cloudinary resumes too)
+  console.log('ResumeOptimizer component mounted, fetching all optimized resumes...');
+  fetchAllOptimizedResumes();
+
 }, []);
+
+// Function to fetch all optimized resumes (both old and new)
+const fetchAllOptimizedResumes = async () => {
+  setFetchingResumes(true);
+  try {
+    const auth = readAuth();
+    if (!auth || !auth.userDetails) {
+      console.error('No user authentication found');
+      return;
+    }
+
+    console.log('Fetching all optimized resumes for user:', auth.userDetails.email);
+
+    // Fetch job-based optimized resumes using the new endpoint
+    const jobResumesResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/getOptimizedResumesForDocuments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        email: auth.userDetails.email,
+        userDetails: auth.userDetails
+      })
+    });
+
+    let allResumes: any[] = [];
+
+    if (jobResumesResponse.ok) {
+      const jobData = await jobResumesResponse.json();
+      console.log('Job-based resumes response:', jobData);
+      console.log('Number of job-based resumes found:', jobData.optimizedResumes?.length || 0);
+      
+      if (jobData.success && jobData.optimizedResumes) {
+        console.log('Mapping job resumes...');
+        const jobResumes = jobData.optimizedResumes.map((resume: any) => {
+          console.log('Processing resume:', {
+            jobID: resume.jobID,
+            title: resume.title,
+            hasResumeData: !!resume.resumeData,
+            version: resume.version
+          });
+          return {
+            id: resume.id,
+            jobID: resume.jobID,
+            name: resume.title,
+            jobRole: resume.jobRole,
+            companyName: resume.companyName,
+            jobLink: resume.jobLink,
+            createdAt: resume.createdAt,
+            category: resume.category,
+            version: resume.version,
+            hasResume: resume.hasResume,
+            url: `#${resume.jobID}`,
+            resumeUrl: `#${resume.jobID}`,
+            link: `#${resume.jobID}`,
+            isJobBased: true,
+            resumeData: resume.resumeData,
+            showSummary: resume.showSummary,
+            showProjects: resume.showProjects,
+            showLeadership: resume.showLeadership,
+            showPublications: resume.showPublications
+          };
+        });
+        allResumes = [...allResumes, ...jobResumes];
+        console.log('Job-based resumes added:', jobResumes.length);
+      } else {
+        console.log('No optimized resumes in response or success=false');
+      }
+    } else {
+      console.error('Failed to fetch job-based resumes:', jobResumesResponse.status);
+      const errorText = await jobResumesResponse.text();
+      console.error('Error response:', errorText);
+    }
+
+    // Also get old Cloudinary resumes from user profile
+    const oldResumes = Array.isArray(auth.userDetails.optimizedResumes) ? auth.userDetails.optimizedResumes : [];
+    const cloudinaryResumes = oldResumes.map((resume: any) => ({
+      id: resume.id || Math.random().toString(),
+      jobID: null,
+      name: resume.name || 'Untitled Resume',
+      jobRole: resume.jobRole || '',
+      companyName: resume.companyName || '',
+      jobLink: resume.jobLink || '',
+      createdAt: resume.createdAt || new Date().toISOString(),
+      category: 'Resume',
+      version: 0,
+      hasResume: true,
+      url: resume.url || resume.link,
+      resumeUrl: resume.url || resume.link,
+      link: resume.url || resume.link,
+      isJobBased: false
+    }));
+
+    allResumes = [...allResumes, ...cloudinaryResumes];
+
+    console.log('All optimized resumes:', allResumes);
+    
+    // Sort resumes by date (most recent first)
+    const sortedResumes = allResumes.sort((a, b) => {
+      console.log('Sorting dates:', { 
+        a: a.createdAt, 
+        b: b.createdAt,
+        aDate: new Date(a.createdAt || 0),
+        bDate: new Date(b.createdAt || 0)
+      });
+      
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      
+      // Handle invalid dates
+      if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+      if (isNaN(dateA.getTime())) return 1; // Put invalid dates at end
+      if (isNaN(dateB.getTime())) return -1; // Put invalid dates at end
+      
+      return dateB.getTime() - dateA.getTime(); // Most recent first
+    });
+    
+    setOptimizedList(sortedResumes);
+    setFilteredResumes(sortedResumes); // Initialize filtered list
+    
+  } catch (error) {
+    console.error('Error fetching all optimized resumes:', error);
+  } finally {
+    setFetchingResumes(false);
+  }
+};
+
+// Function to filter resumes based on search term
+const filterResumes = (searchTerm: string) => {
+  if (!searchTerm.trim()) {
+    setFilteredResumes(optimizedList);
+    return;
+  }
+
+  const filtered = optimizedList.filter(resume => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      resume.jobRole?.toLowerCase().includes(searchLower) ||
+      resume.companyName?.toLowerCase().includes(searchLower) ||
+      resume.name?.toLowerCase().includes(searchLower) ||
+      resume.title?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  setFilteredResumes(filtered);
+};
+
+// Effect to filter resumes when search term changes
+useEffect(() => {
+  filterResumes(searchTerm);
+}, [searchTerm, optimizedList]);
+
+// Function to fetch resume data from a job
+const fetchResumeDataFromJob = async (jobId: string) => {
+  setResumeLoading(true);
+  try {
+    console.log('Fetching resume data for job ID:', jobId);
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/getOptimizedResume/${jobId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    console.log('Fetch resume response status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Resume data received:', data);
+      if (data.success && data.resumeData) {
+        setResumeData(data);
+        setPreviewMode(true);
+        console.log('Fetched resume data from job:', data);
+      } else {
+        console.error('No resume data found for job:', jobId);
+        alert('No resume data found for this job');
+      }
+    } else {
+      console.error('Failed to fetch resume data, status:', response.status);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      alert('Failed to fetch resume data');
+    }
+  } catch (error) {
+    console.error('Error fetching resume data:', error);
+    alert('Error fetching resume data');
+  } finally {
+    setResumeLoading(false);
+  }
+};
+
 
     // Default preview per tab (only when in preview mode AND no preview selected yet)
     useEffect(() => {
@@ -190,7 +392,7 @@ if (activeTab === "base") defaultUrl = baseResume[0]?.link || null;
     else if (activeTab === "transcript") defaultUrl = transcriptList[0]?.url || null;
 
 
-        setActivePreviewUrl(toRawPdfUrl(defaultUrl));
+        setActivePreviewUrl(defaultUrl ? toRawPdfUrl(defaultUrl) : null);
     }, [
         activeTab,
         baseResume,
@@ -203,7 +405,7 @@ if (activeTab === "base") defaultUrl = baseResume[0]?.link || null;
     // ---- handlers ----
     const handleFileUpload = async (
         e: React.ChangeEvent<HTMLInputElement>,
-        type: "base" | "optimized" | "coverLetter"
+        type: "base" | "optimized" | "coverLetter" | "transcript"
     ) => {
         const files = Array.from(e.target.files || []);
         e.currentTarget.value = ""; // allow reselecting same file
@@ -214,32 +416,26 @@ if (activeTab === "base") defaultUrl = baseResume[0]?.link || null;
             return;
         }
 
+        for (const file of files) {
+            if (type === "base" || type === "coverLetter" || type === "optimized" || type === "transcript") {
+                const name = prompt("Enter a name for this file:");
+                if (!name) return;
 
-    for (const file of files) {
-     if (type === "base" || type === "coverLetter" || type === "optimized") {
-  const name = prompt("Enter a name for this file:");
-  if (!name) return;
-  setSelectedFile(file);
-  setFileNamePrompt(name);
-  setPendingUploadType(type);
+                if (type === "base") {
+                    await uploadBaseResume(file, name);
+                    setPreviewMode(false);
+                } else if (type === "coverLetter") {
+                    await uploadCoverLetter(file, name);
+                } else if (type === "optimized") {
+                    await uploadOptimizedResume(file, name);
+                } else if (type === "transcript") {
+                    await uploadTranscript(file, name);
+                }
 
-  if (type === "base") {
-    await uploadBaseResume(file, name);
-    setPreviewMode(false);
-  } else if (type === "coverLetter") {
-    await uploadCoverLetter(file, name);
-  } else if (type === "optimized") {
-    await uploadOptimizedResume(file, name);
-  }
-  else if (type === "transcript") {
-  await uploadTranscript(file, name);
-}
-
-  return;
-}
-
+                return;
+            }
+        }
     };
-  }
 
 const uploadBaseResume = async (file: File, name: string) => {
   const uploadedURL = await uploadToCloudinary(file);
@@ -536,7 +732,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
         onPick,
     }: {
         items: Entry[];
-        category: "Resume" | "Cover Letter" | "Base";
+        category: "Resume" | "Cover Letter" | "Base" | "Transcript";
         onPick: (item: Entry) => void;
     }) => (
       <div className="border rounded-lg overflow-hidden">
@@ -552,7 +748,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
         {items.length === 0 ? (
           <div className="px-4 py-6 text-sm text-gray-500">No documents yet.</div>
         ) : (
-          <ul className="divide-y flex flex-col flex-col-reverse">
+          <ul className="divide-y flex flex-col">
             {items.map((it, i) => (
               <li
                 key={i}
@@ -563,9 +759,30 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                 <div className="col-span-6 min-w-0">
   <p className="truncate">
     {category === "Base"|| category == "Cover Letter"
-      ? (`${it.name} -- Added on :  ${it.createdAt.slice(0,10)}` || "Unnamed Resume")   // ✅ show stored name
-      : `${it.jobRole || "—"} At ${it.companyName || "—"}`}
+      ? (`${it.name} -- Added on :  ${it.createdAt ? (typeof it.createdAt === 'string' ? it.createdAt.slice(0,10) : it.createdAt.toISOString().slice(0,10)) : 'Unknown'}` || "Unnamed Resume")   // ✅ show stored name
+      : `${it.jobRole || "—"} at ${it.companyName || "—"}`}
   </p>
+  {category === "Resume" && it.createdAt && (
+    <p className="text-xs text-gray-500 mt-1">
+      Created: {(() => {
+        try {
+          const date = new Date(it.createdAt);
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date format:', it.createdAt);
+            return String(it.createdAt || "Unknown");
+          }
+          return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+        } catch (error) {
+          console.error('Error parsing date:', it.createdAt, error);
+          return String(it.createdAt || "Unknown");
+        }
+      })()}
+    </p>
+  )}
 </div>
                 <div className="col-span-2">{category}</div>
                 <div className="col-span-1">
@@ -583,16 +800,19 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                   )}
                 </div>
                 <div className="col-span-1 flex justify-end">
-                  <a
-                    href={toRawPdfUrl(it?.url) || it.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-gray-700 hover:text-blue-600 p-2"
-                    onClick={(e) => e.stopPropagation()}
-                    title="Download"
-                  >
-                    <DownloadIcon className="text-gray-700 hover:text-blue-600 m-2 "  />
-                  </a>
+                  {/* Only show download for non-job-based resumes */}
+                  {!it.isJobBased && (
+                    <a
+                      href={toRawPdfUrl(it?.url) || it.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-gray-700 hover:text-blue-600 p-2"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Download"
+                    >
+                      <DownloadIcon />
+                    </a>
+                  )}
 
                   <button
   onClick={(e) => {
@@ -758,7 +978,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
 
                                 {baseResume && previewMode ? (
                                    <PreviewPanel
-  url={toRawPdfUrl(activePreviewUrl)} // 👈 no download flag, pure preview
+  url={toRawPdfUrl(activePreviewUrl || '')} // 👈 no download flag, pure preview
   onChange={() => setPreviewMode(true)}
 />
                                 ) : (
@@ -821,43 +1041,94 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                         //   <button type="button" className="p-2 m-2 rounded bg-blue-400 hover:bg-blue-700 flex"><a href=""><DownloadCloud /> Download  </a></button>
                                         <button
                                             className="p-2 m-2 rounded bg-blue-500 hover:bg-blue-700 text-white text-sm"
-                                            onClick={() =>
-                                                setPreviewMode(false)
-                                            }
+                                            onClick={() => {
+                                                setPreviewMode(false);
+                                                setResumeData(null);
+                                                setActivePreviewUrl(null);
+                                            }}
                                         >
                                             <ArrowLeftCircle />
                                             View All Docs
                                         </button>
                                     ) : (
-                                        // </div>
-                                        <label className="inline-flex items-center gap-2 cursor-pointer">
-                                            <span className="text-sm font-medium">
-                                                Upload New
-                                            </span>
-                                            <input
-                                                type="file"
-                                                className="hidden"
-                                                accept="application/pdf,.pdf"
-                                                multiple
-                                                onChange={(e) =>
-                                                    handleFileUpload(
-                                                        e,
-                                                        "optimized"
-                                                    )
-                                                }
-                                                disabled={isUploading}
-                                            />
-                                            <span className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">
-                                                Choose File
-                                            </span>
-                                        </label>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={fetchAllOptimizedResumes}
+                                                className="px-3 py-1.5 rounded bg-green-600 hover:bg-green-700 text-white text-sm"
+                                            >
+                                                Refresh
+                                            </button>
+                                            <label className="inline-flex items-center gap-2 cursor-pointer">
+                                                <span className="text-sm font-medium">
+                                                    Upload New
+                                                </span>
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="application/pdf,.pdf"
+                                                    multiple
+                                                    onChange={(e) =>
+                                                        handleFileUpload(
+                                                            e,
+                                                            "optimized"
+                                                        )
+                                                    }
+                                                    disabled={isUploading}
+                                                />
+                                                <span className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">
+                                                    Choose File
+                                                </span>
+                                            </label>
+                                        </div>
                                     )}
                                 </div>
 
-                                {optimizedList.length === 0 ? (
+                                {fetchingResumes ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="text-sm text-gray-500">Loading optimized resumes...</div>
+                                    </div>
+                                ) : optimizedList.length === 0 ? (
                                     <p className="text-sm text-gray-500">
                                         No optimized resumes yet.
                                     </p>
+                                ) : previewMode && resumeData && !resumeLoading ? (
+                                    <div className="resume-preview-container">
+                                        {resumeData.version === 0 && (
+                                            <ResumePreview
+                                                data={resumeData.resumeData}
+                                                showLeadership={resumeData.showLeadership}
+                                                showProjects={resumeData.showProjects}
+                                                showSummary={resumeData.showSummary}
+                                                showPublications={resumeData.showPublications}
+                                                showChanges={false}
+                                                changedFields={new Set()}
+                                                showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                            />
+                                        )}
+                                        
+                                        {resumeData.version === 1 && (
+                                            <ResumePreview1
+                                                data={resumeData.resumeData}
+                                                showLeadership={resumeData.showLeadership}
+                                                showProjects={resumeData.showProjects}
+                                                showSummary={resumeData.showSummary}
+                                                showChanges={false}
+                                                changedFields={new Set()}
+                                                showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                            />
+                                        )}
+                                        
+                                        {resumeData.version === 2 && (
+                                            <ResumePreviewMedical
+                                                data={resumeData.resumeData}
+                                                showLeadership={resumeData.showLeadership}
+                                                showProjects={resumeData.showProjects}
+                                                showSummary={resumeData.showSummary}
+                                                showPublications={resumeData.showPublications}
+                                                showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                                            />
+                                        )}
+                                    </div>
                                 ) : previewMode && activePreviewUrl ? (
                                     <PreviewPanel
                                         url={
@@ -867,16 +1138,50 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                         }
                                         onChange={() => setPreviewMode(false)}
                                     />
+                                ) : resumeLoading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="text-sm text-gray-500">Loading resume...</div>
+                                    </div>
                                 ) : (
                                     <DocsTable
-                                        items={optimizedList}
+                                        items={[...optimizedList].sort((a, b) => {
+                                            // ALWAYS sort by date at display time (newest first)
+                                            const dateA = new Date(a.createdAt || 0);
+                                            const dateB = new Date(b.createdAt || 0);
+                                            
+                                            // Handle invalid dates
+                                            if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                                            if (isNaN(dateA.getTime())) return 1; // Invalid dates go to end
+                                            if (isNaN(dateB.getTime())) return -1; // Invalid dates go to end
+                                            
+                                            // NEWEST FIRST: dateB - dateA
+                                            return dateB.getTime() - dateA.getTime();
+                                        })}
                                         category="Resume"
                                         onPick={(it) => {
-                                            setActivePreviewUrl(
-                                                toRawPdfUrl(it.url)!
-                                            );
-                                            setPreviewMode(true);
-                                            setIframeError(null);
+                                            // For job-specific optimized resumes, show resume data directly
+                                            if (it.isJobBased && it.resumeData) {
+                                                // We already have the resume data, show it directly
+                                                setResumeData({
+                                                    resumeData: it.resumeData,
+                                                    version: it.version,
+                                                    showSummary: it.showSummary,
+                                                    showProjects: it.showProjects,
+                                                    showLeadership: it.showLeadership,
+                                                    showPublications: it.showPublications
+                                                });
+                                                setPreviewMode(true);
+                                            } else if (it.isJobBased && (it.jobID || it.jobId) && it.hasResume) {
+                                                // Fetch resume data from job if not already available
+                                                fetchResumeDataFromJob(it.jobID || it.jobId || '');
+                                            } else {
+                                                // Fallback to preview for legacy resumes (Cloudinary links)
+                                                setActivePreviewUrl(
+                                                    toRawPdfUrl(it.url || it.link || '')!
+                                                );
+                                                setPreviewMode(true);
+                                                setIframeError(null);
+                                            }
                                         }}
                                     />
                                 )}
@@ -953,180 +1258,59 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                             </section>
                         )}
                         {activeTab === "transcript" && (
-  <section>
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-lg font-semibold">Transcripts</h3>
-      {previewMode ? (
-        <button
-          className="px-3 py-1.5 rounded bg-blue-500 hover:bg-blue-700 text-white text-sm"
-          onClick={() => setPreviewMode(false)}
-        >
-          <ArrowLeftCircle />
-          View All Docs
-        </button>
-      ) : (
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="text-sm font-medium">Upload New</span>
-          <input
-            type="file"
-            className="hidden"
-            accept="application/pdf,.pdf"
-            onChange={(e) => handleFileUpload(e, "transcript")}
-            disabled={isUploading}
-          />
-          <span className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">
-            Choose File
-          </span>
-        </label>
-      )}
-    </div>
+                            <section>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-lg font-semibold">Transcripts</h3>
+                                    {previewMode ? (
+                                        <button
+                                            className="px-3 py-1.5 rounded bg-blue-500 hover:bg-blue-700 text-white text-sm"
+                                            onClick={() => setPreviewMode(false)}
+                                        >
+                                            <ArrowLeftCircle />
+                                            View All Docs
+                                        </button>
+                                    ) : (
+                                        <label className="inline-flex items-center gap-2 cursor-pointer">
+                                            <span className="text-sm font-medium">Upload New</span>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="application/pdf,.pdf"
+                                                onChange={(e) => handleFileUpload(e, "transcript")}
+                                                disabled={isUploading}
+                                            />
+                                            <span className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">
+                                                Choose File
+                                            </span>
+                                        </label>
+                                    )}
+                                </div>
 
-    {transcriptList.length === 0 ? (
-      <p className="text-sm text-gray-500">No transcripts yet.</p>
-    ) : previewMode && activePreviewUrl ? (
-      <PreviewPanel
-        url={toRawPdfUrl(activePreviewUrl) as string}
-        onChange={() => setPreviewMode(false)}
-      />
-    ) : (
-      <DocsTable
-        items={transcriptList}
-        category="Transcript"
-        onPick={(it) => {
-          setActivePreviewUrl(toRawPdfUrl(it.url)!);
-          setPreviewMode(true);
-          setIframeError(null);
-        }}
-      />
-    )}
-  </section>
-)}
+                                {transcriptList.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No transcripts yet.</p>
+                                ) : previewMode && activePreviewUrl ? (
+                                    <PreviewPanel
+                                        url={toRawPdfUrl(activePreviewUrl || '') as string}
+                                        onChange={() => setPreviewMode(false)}
+                                    />
+                                ) : (
+                                    <DocsTable
+                                        items={transcriptList}
+                                        category="Transcript"
+                                        onPick={(it) => {
+                                            setActivePreviewUrl(toRawPdfUrl(it.url || it.link || '')!);
+                                            setPreviewMode(true);
+                                            setIframeError(null);
+                                        }}
+                                    />
+                                )}
+                            </section>
+                        )}
 
                     </div>
                 </main>
             </div>
 
-            {/* Metadata modal */}
-            {/* {showMetaModal && (
-              <div
-                  className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
-                  role="dialog"
-                  aria-modal="true"
-              >
-                  <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                          <h2 className="text-lg font-semibold">
-                              {showMetaModal === "optimized"
-                                  ? "Optimized Resume Details"
-                                  : "Cover Letter Details"}
-                          </h2>
-                          <button
-                              type="button"
-                              className="text-gray-500 hover:text-gray-800"
-                              onClick={() => {
-                                  if (!isUploading) {
-                                      setShowMetaModal(null);
-                                      setPendingUploadType(null);
-                                      setSelectedFile(null);
-                                      setMetadata({
-                                          jobRole: "",
-                                          companyName: "",
-                                          jobLink: "",
-                                      });
-                                  }
-                              }}
-                              aria-label="Close"
-                          >
-                              ✕
-                          </button>
-                      </div>
-
-                      <form
-                          onSubmit={(e) => handleMetadataSubmit(e, false)}
-                          className="space-y-3"
-                      >
-                          <div>
-                              <label className="block text-sm font-medium">
-                                  Job Role
-                              </label>
-                              <input
-                                  type="text"
-                                  value={metadata.jobRole}
-                                  onChange={(e) =>
-                                      setMetadata((prev) => ({
-                                          ...prev,
-                                          jobRole: e.target.value,
-                                      }))
-                                  }
-                                  className="w-full border p-2 rounded"
-                                  disabled={isUploading}
-                                  placeholder="e.g., Data Analyst"
-                              />
-                          </div>
-                          <div>
-                              <label className="block text-sm font-medium">
-                                  Company Name
-                              </label>
-                              <input
-                                  type="text"
-                                  value={metadata.companyName}
-                                  onChange={(e) =>
-                                      setMetadata((prev) => ({
-                                          ...prev,
-                                          companyName: e.target.value,
-                                      }))
-                                  }
-                                  className="w-full border p-2 rounded"
-                                  disabled={isUploading}
-                                  placeholder="e.g., Acme Corp"
-                              />
-                          </div>
-                          <div>
-                              <label className="block text-sm font-medium">
-                                  Job Link
-                              </label>
-                              <input
-                                  type="url"
-                                  value={metadata.jobLink}
-                                  onChange={(e) =>
-                                      setMetadata((prev) => ({
-                                          ...prev,
-                                          jobLink: e.target.value,
-                                      }))
-                                  }
-                                  className="w-full border p-2 rounded"
-                                  disabled={isUploading}
-                                  placeholder="https://careers.example.com/job/123"
-                              />
-                          </div>
-
-                            <div className="flex gap-2 pt-1">
-                                <button
-                                    type="submit"
-                                    disabled={isUploading}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded w-1/2"
-                                >
-                                    {isUploading
-                                        ? "Uploading..."
-                                        : "Save & Upload"}
-                                </button>
-                                {/* <button
-                                    type="button"
-                                    disabled={isUploading}
-                                    onClick={() =>
-                                        handleMetadataSubmit(undefined, true)
-                                    }
-                                    className="bg-gray-600 text-white px-4 py-2 rounded w-1/2"
-                                >
-                                    {isUploading
-                                        ? "Uploading..."
-                                        : "Skip Metadata"}
-                                </button> */}
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
   }

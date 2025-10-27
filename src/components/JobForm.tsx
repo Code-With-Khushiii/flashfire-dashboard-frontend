@@ -174,30 +174,18 @@ const JobForm: React.FC<JobFormProps> = ({ job, onCancel, onSuccess, setUserJobs
 
   const uploadImagesToCloudinary = async (): Promise<string[]> => {
     const urls: string[] = [];
-    const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const UPLOAD_PRESET =
-      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
-      import.meta.env.VITE_CLOUDINARY_CLOUD_PRESET;
-
-    if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      console.error("Missing Cloudinary envs");
-      return urls;
-    }
+    
+    // Use the new unified upload service
+    const { uploadAttachment } = await import('../utils/uploadService');
 
     for (const file of images) {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("upload_preset", UPLOAD_PRESET);
-      fd.append("folder", "flashfirejobs/attachments");
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-        { method: "POST", body: fd }
-      );
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      if (data.secure_url) urls.push(data.secure_url);
+      try {
+        const url = await uploadAttachment(file, 'flashfirejobs/attachments');
+        if (url) urls.push(url);
+      } catch (error) {
+        console.error('Upload error:', error);
+        // Continue with other files even if one fails
+      }
     }
     return urls;
   };

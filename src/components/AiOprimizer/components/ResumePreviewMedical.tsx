@@ -63,6 +63,7 @@ interface ResumePreviewProps {
     showProjects?: boolean;
     showSummary?: boolean;
     showPublications?: boolean;
+    showPrintButtons?: boolean;
 }
 
 export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
@@ -71,6 +72,7 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
     showProjects = false,
     showPublications = false,
     showSummary = true,
+    showPrintButtons = true,
 }) => {
     const formatLinkedIn = (linkedin: string) => {
         if (!linkedin) return "";
@@ -118,6 +120,73 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
             return github;
         }
         return `https://github.com/${github}`;
+    };
+
+    
+    const generateFilename = (resumeData: ResumeData) => {
+        const name = resumeData.personalInfo.name || "Resume";
+        const cleanName = name.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "-");
+        return `${cleanName}-Medical-Resume.pdf`;
+    };
+
+    const handlePrint = () => {
+        const filename = generateFilename(data);
+
+        // Simple print with instructions
+        const shouldPrint = window.confirm(
+            `📄 PRINT SETTINGS:\n\n` +
+                `• Filename: ${filename}\n` +
+                `• Set Margins to "None"\n` +
+                `• Disable "Headers and footers"\n` +
+                `• Set Scale to 100%\n` +
+                `• Use "Save as PDF" for best quality\n\n` +
+                `Click OK to print your resume.`
+        );
+
+        if (shouldPrint) {
+            // Set the document title to the filename for better PDF naming
+            const originalTitle = document.title;
+            document.title = filename.replace(".pdf", "");
+
+            // Add afterPrint event listener for guidance
+            const afterPrint = () => {
+                setTimeout(() => {
+                    const resumePreviewElement = document.querySelector(
+                        "[data-resume-preview]"
+                    ) as HTMLElement;
+                    if (resumePreviewElement) {
+                        const resumeHeight = resumePreviewElement.scrollHeight;
+                        const pageHeight = 1056; // Standard letter page height in pixels
+                        const maxSinglePageHeight = pageHeight - 50; // Buffer for margins
+
+                        if (resumeHeight > maxSinglePageHeight) {
+                            alert(
+                                `📄 PRINT COMPLETED\n\n` +
+                                    `If you got a 2-page PDF instead of 1-page:\n\n` +
+                                    `Next time, in the print dialog:\n` +
+                                    `1. Click on "Pages" dropdown\n` +
+                                    `2. Select "Current" or enter "1"\n` +
+                                    `3. This ensures you get only the first page\n\n` +
+                                    `This helps avoid accidentally downloading multi-page resumes for job applications.`
+                            );
+                        }
+                    }
+                }, 500);
+            };
+
+            window.addEventListener("afterprint", afterPrint);
+            window.print();
+
+            // Cleanup
+            setTimeout(() => {
+                document.title = originalTitle;
+                window.removeEventListener("afterprint", afterPrint);
+            }, 1000);
+        }
+    };
+
+    const handleDownloadPDF = () => {
+        handlePrint();
     };
 
     const resumeContent = (
@@ -692,6 +761,24 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
 
     return (
         <div className="resume-medical-print">
+            {/* Print Control Buttons */}
+            {showPrintButtons && (
+                <div className="flex gap-3 mb-4 no-print">
+                    <button
+                        onClick={handleDownloadPDF}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                    >
+                        Download PDF
+                    </button>
+                    <button
+                        onClick={handlePrint}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm"
+                    >
+                        Print Instructions
+                    </button>
+                </div>
+            )}
+
             {/* Screen Preview */}
             <div
                 className="bg-white shadow-lg border border-gray-200 rounded-lg overflow-hidden no-print"
@@ -719,6 +806,7 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
             {/* Print-Only Version - Hidden on screen, visible only when printing */}
             <div
                 id="resume-print-only"
+                data-resume-preview
                 style={{
                     display: "none", // Hidden on screen
                     fontFamily: '"Times New Roman", Times, serif',

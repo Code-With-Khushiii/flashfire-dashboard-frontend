@@ -10,6 +10,7 @@ import { useOperationsStore } from "../state_management/Operations.ts";
 import { toastUtils, toastMessages } from "../utils/toast";
 import { useJobsSessionStore } from "../state_management/JobsSessionStore";
 const JobModal = lazy(() => import("./JobModal.tsx"));
+const RemovalLimitModal = lazy(() => import("./RemovalLimitModal.tsx"));
 
 const JOBS_PER_PAGE = 30;
 
@@ -19,10 +20,31 @@ const JobTracker = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showJobModal, setShowJobModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showRemovalLimitModal, setShowRemovalLimitModal] = useState(false);
   const { userJobs, setUserJobs } = useUserJobs();
   const { userDetails, token } = useContext(UserContext) || {};
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const { clearPendingUpdate } = useJobsSessionStore();
+
+  // Handle URL parameters for opening job modal with specific section
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const jobId = urlParams.get('jobId');
+    const section = urlParams.get('section');
+    
+    if (jobId && userJobs.length > 0) {
+      const job = userJobs.find(j => j.jobID === jobId || j._id === jobId);
+      if (job) {
+        setSelectedJob(job);
+        setShowJobModal(true);
+        
+        // If section is specified, we'll pass it to JobModal
+        if (section === 'resume') {
+          // The JobModal will handle the initialSection prop
+        }
+      }
+    }
+  }, [userJobs]);
 
   // near other useState hooks
 const [pendingMove, setPendingMove] = useState<{ jobID: string; status: JobStatus } | null>(null);
@@ -394,6 +416,16 @@ const handleDragEnd = (e: React.DragEvent) => {
                 clearPendingUpdate(jobID);
                 toastUtils.success("Job status updated successfully!");
                 console.log("Job status updated:", resFromServer?.updatedJobs);
+            } else if (resFromServer.message === "Removal limit exceeded") {
+                // Handle removal limit exceeded
+                setUserJobs((prevJobs) =>
+                    prevJobs.map((j) =>
+                        j.jobID === jobID ? { ...j, currentStatus: originalStatus } : j
+                    )
+                );
+                clearPendingUpdate(jobID);
+                setShowRemovalLimitModal(true);
+                console.log("Removal limit exceeded for user");
             } else {
                 // Server failed - revert to original state
                 setUserJobs((prevJobs) =>
@@ -746,6 +778,8 @@ const handleDragEnd = (e: React.DragEvent) => {
                             selectedJob &&
                             pendingMove.jobID === selectedJob.jobID
                                 ? "attachments"
+                                : new URLSearchParams(window.location.search).get('section') === 'resume'
+                                ? "resume"
                                 : undefined
                         }
                         onAutoCheckDone={(exists) => {
@@ -798,6 +832,22 @@ const handleDragEnd = (e: React.DragEvent) => {
                     </div>
                 </div>
             )}
+            {showRemovalLimitModal && (
+                <Suspense fallback={<LoadingScreen />}>
+                    <RemovalLimitModal
+                        isOpen={showRemovalLimitModal}
+                        onClose={() => setShowRemovalLimitModal(false)}
+                    />
+                </Suspense>
+            )}
+            
+            {/* TESTING: Temporary button to test the modal
+            <button
+                onClick={() => setShowRemovalLimitModal(true)}
+                className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-600 transition-colors z-50"
+            >
+                Test Removal Limit Modal
+            </button> */}
         </div>
     );
 };
