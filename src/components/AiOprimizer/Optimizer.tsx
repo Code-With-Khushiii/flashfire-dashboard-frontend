@@ -2125,6 +2125,7 @@ function App() {
                                         </div>
                                     </SortableContext>
                                 </DndContext>
+                                </LockedSection>
 
                                     <button
                                         onClick={handleSave}
@@ -2246,8 +2247,6 @@ function App() {
                                         resume template
                                     </p>
                                 </div>
-                                </DndContext>
-                                </LockedSection>
 
                                 {/* Job Description Input - This stays UNLOCKED */}
                                 <div className="space-y-4 border-t border-gray-200 pt-6">
