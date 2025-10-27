@@ -690,6 +690,7 @@ import { UserContext } from '../state_management/UserContext.js';
 import { ResumePreview } from './AiOprimizer/components/ResumePreview.tsx';
 import { ResumePreview1 } from './AiOprimizer/components/ResumePreview1.tsx';
 import { ResumePreviewMedical } from './AiOprimizer/components/ResumePreviewMedical.tsx';
+import { useOperationsStore } from "../state_management/Operations.ts";
 
 type Entry = {
   jobRole: string;
@@ -768,6 +769,7 @@ export default function DocumentUpload() {
   const [resumeData, setResumeData] = useState<any>(null);
   const [resumeLoading, setResumeLoading] = useState(false);
   const [fetchingResumes, setFetchingResumes] = useState(false);
+  const { role} = useOperationsStore();
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -1933,7 +1935,7 @@ export default function DocumentUpload() {
                             showPublications={resumeData.showPublications}
                             showChanges={false}
                             changedFields={new Set()}
-                            showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                            showPrintButtons={role === "operations"}
                           />
                         )}
                         {resumeData.version === 1 && (
@@ -1944,7 +1946,7 @@ export default function DocumentUpload() {
                             showSummary={resumeData.showSummary}
                             showChanges={false}
                             changedFields={new Set()}
-                            showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                            showPrintButtons={role === "operations"}
                           />
                         )}
                         {resumeData.version === 2 && (
@@ -1954,7 +1956,7 @@ export default function DocumentUpload() {
                             showProjects={resumeData.showProjects}
                             showSummary={resumeData.showSummary}
                             showPublications={resumeData.showPublications}
-                            showPrintButtons={context?.userDetails?.role !== "user" && localStorage.getItem("role") !== "user"}
+                            showPrintButtons={role === "operations"}
                           />
                         )}
                         <div className="mt-4">
