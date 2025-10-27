@@ -2185,7 +2185,7 @@ function App() {
                                         saves a new resume of this resume to V1
                                         resume template
                                     </p>
-                                </DndContext>
+                                </div>
 
                                 {/* Save Button and other controls */}
                                 <div className="mt-6 space-y-4">
