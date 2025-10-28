@@ -1539,6 +1539,23 @@ function App() {
 
             const { startingContent, finalChanges } = getChangedFieldsOnly();
 
+            if (!showSummary) {
+                delete (startingContent as any).summary;
+                delete (finalChanges as any).summary;
+            }
+            if (!showProjects) {
+                delete (startingContent as any).projects;
+                delete (finalChanges as any).projects;
+            }
+            if (!showLeadership) {
+                delete (startingContent as any).leadership;
+                delete (finalChanges as any).leadership;
+            }
+            if (!showPublications) {
+                delete (startingContent as any).publications;
+                delete (finalChanges as any).publications;
+            }
+
             console.log("Auto-saving changes for job ID:", jobId);
 
             const response = await fetch(`${apiUrl}/saveChangedSession`, {
@@ -1602,13 +1619,21 @@ function App() {
             const apiUrl =
                 import.meta.env.VITE_API_URL || "https://resume-maker-backend-lf5z.onrender.com";
 
+            const filteredResumeForOptimization: typeof resumeData = {
+                ...resumeData,
+                summary: showSummary ? resumeData.summary : "",
+                projects: showProjects ? resumeData.projects : [],
+                leadership: showLeadership ? resumeData.leadership : [],
+                publications: showPublications ? (resumeData as any).publications : [],
+            } as typeof resumeData;
+
             const response = await fetch(`${apiUrl}/api/optimize-with-gemini`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    resume_data: resumeData,
+                    resume_data: filteredResumeForOptimization,
                     job_description: prompt + jobDescription,
                 }),
             });
@@ -1627,15 +1652,25 @@ function App() {
                 // Store optimized data temporarily and show comparison view
                 const newOptimizedData = {
                     ...resumeData,
-                    summary: optimizedDataResult.summary || resumeData.summary,
+                    
+                    summary: showSummary
+                        ? optimizedDataResult.summary || resumeData.summary
+                        : resumeData.summary,
                     workExperience:
                         optimizedDataResult.workExperience ||
                         resumeData.workExperience,
                     skills: optimizedDataResult.skills || resumeData.skills,
                     education: optimizedDataResult.education || resumeData.education,
-                    publications:
-                        optimizedDataResult.publications || resumeData.publications,
-                };
+                    projects: showProjects
+                        ? optimizedDataResult.projects || resumeData.projects
+                        : resumeData.projects,
+                    leadership: showLeadership
+                        ? optimizedDataResult.leadership || resumeData.leadership
+                        : resumeData.leadership,
+                    publications: showPublications
+                        ? optimizedDataResult.publications || (resumeData as any).publications
+                        : (resumeData as any).publications,
+                } as typeof resumeData;
 
                 setOptimizedData(newOptimizedData);
                 setCurrentResumeView("optimized"); // Automatically switch to optimized view
