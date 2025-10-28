@@ -580,6 +580,20 @@ useEffect(() => {
             setIsUploadingImg(false);
         }
     };
+    const sanitizeCompanyDomain = (name) => {
+  if (!name) return "example.com";
+
+  // Clean spaces and invalid characters
+  let domain = name
+    .toLowerCase()
+    .replace(/\s+/g, "")       // remove spaces
+    .replace(/[^a-z0-9.-]/g, ""); // remove invalid chars
+
+  // Avoid double .com
+  if (!domain.includes(".")) domain += ".com";
+
+  return domain;
+};
 
     const handleChooseDoc = () => docInputRef.current?.click();
 
@@ -753,15 +767,23 @@ useEffect(() => {
                             </div>
                             <div className="flex items-center gap-3">
                                 <img
-                                    src={`https://www.google.com/s2/favicons?domain=${getCompanyDomain(
-                                        jobDetails.companyName
-                                    )}.com&sz=64`}
-                                    alt="Company Logo"
-                                    className="w-[40px] h-[40px]"
-                                    onError={(e) => {
-                                        e.currentTarget.style.display = "none";
-                                    }}
-                                />
+              src={`https://www.google.com/s2/favicons?domain=${sanitizeCompanyDomain(jobDetails.companyName)}&sz=64`}
+              alt="Company Logo"
+              className="w-[35px] h-[35px] m-2"
+              style={{ display: 'none' }} // Start hidden until load check
+              onError={(e) => {
+                e.currentTarget.style.display = "none"; // Hide broken image
+              }}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                // Default globe is always 16x16; custom ones resize to 64x64
+                if (img.naturalHeight === 16 && img.naturalWidth === 16) {
+                  img.style.display = "none"; // Hide default
+                } else {
+                  img.style.display = "block"; // Show custom
+                }
+              }}
+            />
                                 <p className="text-lg font-semibold text-gray-900">
                                     {jobDetails.companyName}
                                 </p>
@@ -1593,4 +1615,5 @@ useEffect(() => {
         </div>
     );
 }
+
 
