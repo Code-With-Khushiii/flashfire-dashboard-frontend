@@ -1243,6 +1243,7 @@ useEffect(() => {
                                             showChanges={false}
                                             changedFields={new Set()}
                                             showPrintButtons={role === "operations"}
+                                            sectionOrder={resumeData.sectionOrder}
                                         />
                                     )}
                                     
@@ -1255,6 +1256,7 @@ useEffect(() => {
                                             showChanges={false}
                                             changedFields={new Set()}
                                             showPrintButtons={role === "operations"}
+                                            sectionOrder={resumeData.sectionOrder}
                                         />
                                     )}
                                     
@@ -1266,6 +1268,7 @@ useEffect(() => {
                                                     showSummary={resumeData.showSummary}
                                                     showPublications={resumeData.showPublications}
                                                     showPrintButtons={role === "operations"}
+                                                    sectionOrder={resumeData.sectionOrder}
                                                 />
                                             )}
                                 </div>
