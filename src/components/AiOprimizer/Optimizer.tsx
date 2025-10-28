@@ -7,6 +7,7 @@ import { Skills } from "./components/Skills";
 import { Education } from "./components/Education";
 import { ResumePreview } from "./components/ResumePreview";
 import { ChangesComparison } from "./components/ChangesComparison";
+import { DraggableSections } from "./components/DraggableSections";
 import { RotateCcw, Save, Check, LucideSaveAll } from "lucide-react";
 import { useResumeStore } from "./store/useResumeStore";
 import { useResumeUnlockStore } from "./store/resumeStore";
@@ -248,6 +249,8 @@ function App() {
         // setUserId,
         showPublications,
         setShowPublications,
+        sectionOrder,
+        setSectionOrder,
     } = useResumeStore();
 
     const {
@@ -406,7 +409,7 @@ function App() {
 
     // Function to check loaded resume data and set checkboxes accordingly
     const checkLoadedResumeData = (
-        resumeData: ResumeDataType & { checkboxStates?: any }
+        resumeData: ResumeDataType & { checkboxStates?: any; sectionOrder?: string[] }
     ) => {
         console.log("Checking loaded resume data for sections...");
 
@@ -448,6 +451,13 @@ function App() {
                 "Leadership:",
                 resumeData.checkboxStates.showLeadership
             );
+            
+            // Handle sectionOrder if it exists
+            if (resumeData.sectionOrder && Array.isArray(resumeData.sectionOrder)) {
+                console.log("Found saved sectionOrder:", resumeData.sectionOrder);
+                setSectionOrder(resumeData.sectionOrder);
+            }
+            
             return;
         }
 
@@ -1032,6 +1042,7 @@ function App() {
                     showLeadership,
                     showPublications,
                 },
+                sectionOrder: sectionOrder,
                 createdBy: userRole === "admin" ? "admin" : "user",
             };
             console.log("Saving resume with data:", saveData);
@@ -1892,174 +1903,106 @@ function App() {
                                         onChange={updatePersonalInfo}
                                     />
 
-                                    {/* Summary Toggle and Section */}
-                                    <>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    id="showSummary"
-                                                    checked={showSummary}
-                                                    onChange={(e) => {
-                                                        console.log(
-                                                            "Summary checkbox manually changed to:",
-                                                            e.target.checked
-                                                        );
-                                                        setShowSummary(
-                                                            e.target.checked
-                                                        );
-                                                    }}
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                />
-                                                <label
-                                                    htmlFor="showSummary"
-                                                    className="text-sm font-medium text-gray-700"
-                                                >
-                                                    Include Summary section
-                                                </label>
-                                            </div>
-
-                                            {showSummary && (
-                                                <Summary
-                                                    data={resumeData.summary}
-                                                    onChange={updateSummary}
-                                                />
-                                            )}
-                                        </div>
-                                    </>
-
-                                    {/* Work Experience Section */}
-                                    <>
-                                        <WorkExperience
-                                            data={resumeData.workExperience}
-                                            onChange={updateWorkExperience}
-                                        />
-                                    </>
-
-                                    {/* Projects Toggle and Section */}
-                                    <>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    id="showProjects"
-                                                    checked={showProjects}
-                                                    onChange={(e) =>
-                                                        setShowProjects(
-                                                            e.target.checked
-                                                        )
-                                                    }
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                    disabled={
-                                                        !isProjectsEditable
-                                                    }
-                                                />
-                                                <label
-                                                    htmlFor="showProjects"
-                                                    className="text-sm font-medium text-gray-700"
-                                                >
-                                                    Include Projects section
-                                                </label>
-                                            </div>
-
-                                            {showProjects && (
-                                                <Projects
-                                                    data={resumeData.projects}
-                                                    onChange={updateProjects}
-                                                />
-                                            )}
-                                        </div>
-
-                                        {/* Leadership & Volunteering Toggle and Section */}
-
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    id="showLeadership"
-                                                    checked={showLeadership}
-                                                    onChange={(e) =>
-                                                        setShowLeadership(
-                                                            e.target.checked
-                                                        )
-                                                    }
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                    disabled={
-                                                        !isLeadershipEditable
-                                                    }
-                                                />
-                                                <label
-                                                    htmlFor="showLeadership"
-                                                    className="text-sm font-medium text-gray-700"
-                                                >
-                                                    Include Leadership &
-                                                    Volunteering section
-                                                </label>
-                                            </div>
-
-                                            {showLeadership && (
-                                                <Leadership
-                                                    data={resumeData.leadership}
-                                                    onChange={updateLeadership}
-                                                />
-                                            )}
-                                        </div>
-                                    </>
-
-                                    {/* Skills Section */}
-                                    <>
-                                        <Skills
-                                            data={resumeData.skills}
-                                            onChange={updateSkills}
-                                        />
-                                    </>
-
-                                    {/* Education Section */}
-                                    <>
-                                        <Education
-                                            data={resumeData.education}
-                                            onChange={updateEducation}
-                                        />
-                                    </>
-                                    <>
-                                        {versionV == 2 ? (
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        id="showPublications"
-                                                        checked={
-                                                            showPublications
-                                                        }
-                                                        onChange={(e) =>
-                                                            setShowPublications(
-                                                                e.target.checked
-                                                            )
-                                                        }
-                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                    {/* Draggable Sections */}
+                                    <DraggableSections
+                                        sections={[
+                                            {
+                                                id: "summary",
+                                                title: "Summary",
+                                                component: showSummary ? (
+                                                    <Summary
+                                                        data={resumeData.summary}
+                                                        onChange={updateSummary}
                                                     />
-                                                    <label
-                                                        htmlFor="showPublications"
-                                                        className="text-sm font-medium text-gray-700"
-                                                    >
-                                                        Include Publications
-                                                        section
-                                                    </label>
-                                                </div>
-
-                                                {showPublications && (
+                                                ) : <div className="text-gray-500 italic">Summary section is disabled</div>,
+                                                isEnabled: showSummary,
+                                                onToggle: (enabled) => {
+                                                    console.log(
+                                                        "Summary checkbox manually changed to:",
+                                                        enabled
+                                                    );
+                                                    setShowSummary(enabled);
+                                                },
+                                                showToggle: true,
+                                            },
+                                            {
+                                                id: "workExperience",
+                                                title: "Work Experience",
+                                                component: (
+                                                    <WorkExperience
+                                                        data={resumeData.workExperience}
+                                                        onChange={updateWorkExperience}
+                                                    />
+                                                ),
+                                                isEnabled: true,
+                                                showToggle: false,
+                                            },
+                                            {
+                                                id: "projects",
+                                                title: "Projects",
+                                                component: showProjects ? (
+                                                    <Projects
+                                                        data={resumeData.projects}
+                                                        onChange={updateProjects}
+                                                    />
+                                                ) : <div className="text-gray-500 italic">Projects section is disabled</div>,
+                                                isEnabled: showProjects,
+                                                onToggle: (enabled) => setShowProjects(enabled),
+                                                showToggle: true,
+                                            },
+                                            {
+                                                id: "leadership",
+                                                title: "Leadership & Volunteering",
+                                                component: showLeadership ? (
+                                                    <Leadership
+                                                        data={resumeData.leadership}
+                                                        onChange={updateLeadership}
+                                                    />
+                                                ) : <div className="text-gray-500 italic">Leadership section is disabled</div>,
+                                                isEnabled: showLeadership,
+                                                onToggle: (enabled) => setShowLeadership(enabled),
+                                                showToggle: true,
+                                            },
+                                            {
+                                                id: "skills",
+                                                title: "Skills",
+                                                component: (
+                                                    <Skills
+                                                        data={resumeData.skills}
+                                                        onChange={updateSkills}
+                                                    />
+                                                ),
+                                                isEnabled: true,
+                                                showToggle: false,
+                                            },
+                                            {
+                                                id: "education",
+                                                title: "Education",
+                                                component: (
+                                                    <Education
+                                                        data={resumeData.education}
+                                                        onChange={updateEducation}
+                                                    />
+                                                ),
+                                                isEnabled: true,
+                                                showToggle: false,
+                                            },
+                                            ...(versionV == 2 ? [{
+                                                id: "publications",
+                                                title: "Publications",
+                                                component: showPublications ? (
                                                     <Publications
-                                                        data={
-                                                            resumeData.publications
-                                                        }
-                                                        onChange={
-                                                            updatePublications
-                                                        }
+                                                        data={resumeData.publications}
+                                                        onChange={updatePublications}
                                                     />
-                                                )}
-                                            </div>
-                                        ) : null}
-                                    </>
+                                                ) : <div className="text-gray-500 italic">Publications section is disabled</div>,
+                                                isEnabled: showPublications,
+                                                onToggle: (enabled) => setShowPublications(enabled),
+                                                showToggle: true,
+                                            }] : []),
+                                        ]}
+                                        onSectionOrderChange={setSectionOrder}
+                                    />
 
                                     {/* Save Button - Also lock this */}
 
@@ -2248,6 +2191,7 @@ function App() {
                                                     : changedFields
                                             }
                                             showPrintButtons={isOptimizeRoute}
+                                            sectionOrder={sectionOrder}
                                         />
                                     ) : null}
 
@@ -2264,6 +2208,7 @@ function App() {
                                                     : changedFields
                                             }
                                             showPrintButtons={isOptimizeRoute}
+                                            sectionOrder={sectionOrder}
                                         />
                                     ) : null}
 
@@ -2280,6 +2225,7 @@ function App() {
                                                     ? new Set()
                                                     : changedFields
                                             }
+                                            sectionOrder={sectionOrder}
                                         />
                                     ) : null}
                                     {/* <ResumePreview
@@ -2560,6 +2506,7 @@ function App() {
                                                                 new Set()
                                                             }
                                                             showPrintButtons={isOptimizeRoute}
+                                                            sectionOrder={sectionOrder}
                                                         />
                                                     )}
 
@@ -2580,6 +2527,7 @@ function App() {
                                                                 new Set()
                                                             }
                                                             showPrintButtons={isOptimizeRoute}
+                                                            sectionOrder={sectionOrder}
                                                         />
                                                     )}
 
@@ -2602,6 +2550,7 @@ function App() {
                                                             changedFields={
                                                                 new Set()
                                                             }
+                                                            sectionOrder={sectionOrder}
                                                         />
                                                     )}
                                                 </>
@@ -2653,6 +2602,7 @@ function App() {
                                                 // }
                                                 showChanges={false}
                                                 changedFields={new Set()}
+                                                sectionOrder={sectionOrder}
                                             />
                                         ) : null}
                                         {versionV == 1 ? (
@@ -2662,6 +2612,7 @@ function App() {
                                                 showProjects={showProjects}
                                                 showChanges={false}
                                                 changedFields={new Set()}
+                                                sectionOrder={sectionOrder}
                                             />
                                         ) : null}
                                         {versionV == 2 ? (
@@ -2671,6 +2622,7 @@ function App() {
                                                 showProjects={showProjects}
                                                 showChanges={false}
                                                 changedFields={new Set()}
+                                                sectionOrder={sectionOrder}
                                             />
                                         ) : null}
                                     </div>
@@ -2691,6 +2643,7 @@ function App() {
                                                 // }
                                                 showChanges={true}
                                                 changedFields={changedFields}
+                                                sectionOrder={sectionOrder}
                                             />
                                         ) : null}
                                         {versionV == 1 ? (
@@ -2700,6 +2653,7 @@ function App() {
                                                 showProjects={showProjects}
                                                 showChanges={false}
                                                 changedFields={changedFields}
+                                                sectionOrder={sectionOrder}
                                             />
                                         ) : null}
                                         {versionV == 2 ? (
@@ -2709,6 +2663,7 @@ function App() {
                                                 showProjects={showProjects}
                                                 showChanges={false}
                                                 changedFields={changedFields}
+                                                sectionOrder={sectionOrder}
                                             />
                                         ) : null}
                                     </div>
@@ -2752,6 +2707,7 @@ function App() {
                                     // showPublications={showPublications}
                                     showChanges={false}
                                     changedFields={new Set()}
+                                    sectionOrder={sectionOrder}
                                 />
                             ) : null}
 
@@ -2763,6 +2719,7 @@ function App() {
                                     showSummary={showSummary}
                                     showChanges={false}
                                     changedFields={new Set()}
+                                    sectionOrder={sectionOrder}
                                 />
                             ) : null}
 
@@ -2775,6 +2732,7 @@ function App() {
                                     showPublications={showPublications}
                                     showChanges={false}
                                     changedFields={new Set()}
+                                    sectionOrder={sectionOrder}
                                 />
                             ) : null}
                         </>
@@ -2789,6 +2747,7 @@ function App() {
                                     // showPublications={showPublications}
                                     showChanges={false}
                                     changedFields={new Set()}
+                                    sectionOrder={sectionOrder}
                                 />
                             ) : null}
 
@@ -2800,6 +2759,7 @@ function App() {
                                     showSummary={showSummary}
                                     showChanges={false}
                                     changedFields={new Set()}
+                                    sectionOrder={sectionOrder}
                                 />
                             ) : null}
 
@@ -2811,6 +2771,7 @@ function App() {
                                     showSummary={showSummary}
                                     showPublications={showPublications}
                                     showPrintButtons={!isOptimizeRoute}
+                                    sectionOrder={sectionOrder}
                                 />
                             ) : null}
                         </>

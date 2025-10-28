@@ -62,6 +62,7 @@ interface ResumePreviewHybridProps {
     changedFields?: Set<string>;
     onDownloadClick?: () => void;
     showPrintButtons?: boolean;
+    sectionOrder?: string[]; // Add section order prop
 }
 
 export const ResumePreview1: React.FC<ResumePreviewHybridProps> = ({
@@ -73,6 +74,7 @@ export const ResumePreview1: React.FC<ResumePreviewHybridProps> = ({
     changedFields = new Set(),
     onDownloadClick,
     showPrintButtons = true,
+    sectionOrder = ["personalInfo", "summary", "workExperience", "projects", "leadership", "skills", "education"],
 }) => {
     const [scalingFactor, setScalingFactor] = useState(1);
     const [showWarningModal, setShowWarningModal] = useState(false);
@@ -365,6 +367,679 @@ These settings will give you the best results for your resume PDF.`);
         return `https://github.com/${github}`;
     };
 
+    // Function to render sections based on section order
+    const renderSection = (sectionId: string) => {
+        switch (sectionId) {
+            case "summary":
+                if (!showSummary) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom:
+                                Math.max(8, Math.round(10 * scalingFactor)) + "px",
+                            ...getHighlightStyle("summary"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(10, Math.round(12 * scalingFactor)) +
+                                    "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) +
+                                    "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            SUMMARY
+                        </div>
+                        <div
+                            style={{
+                                textAlign: "justify",
+                                fontSize:
+                                    Math.max(9, Math.round(11 * scalingFactor)) +
+                                    "px",
+                                lineHeight: Math.max(
+                                    1.15,
+                                    1.25 * scalingFactor
+                                ).toString(),
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            {data.summary ||
+                                "Your professional summary will appear here..."}
+                        </div>
+                    </div>
+                );
+
+            case "workExperience":
+                return (
+                    <div
+                        style={{
+                            marginBottom:
+                                Math.max(8, Math.round(10 * scalingFactor)) + "px",
+                            ...getHighlightStyle("workExperience"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(10, Math.round(12 * scalingFactor)) + "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) + "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            WORK EXPERIENCE
+                        </div>
+                        {data.workExperience.length > 0 ? (
+                            data.workExperience.map((exp, index) => (
+                                <div
+                                    key={exp.id}
+                                    style={{
+                                        marginBottom:
+                                            index === data.workExperience.length - 1
+                                                ? "0px"
+                                                : Math.max(
+                                                      3,
+                                                      Math.round(4 * scalingFactor)
+                                                  ) + "px",
+                                    }}
+                                >
+                                    {/* Header on single line with Flexbox */}
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "flex-start",
+                                            fontSize:
+                                                Math.max(
+                                                    9,
+                                                    Math.round(11 * scalingFactor)
+                                                ) + "px",
+                                            fontWeight: "bold",
+                                            letterSpacing: "0.001px",
+                                            lineHeight: Math.max(
+                                                1.05,
+                                                1.15 * scalingFactor
+                                            ).toString(),
+                                            marginBottom:
+                                                Math.max(
+                                                    1,
+                                                    Math.round(2 * scalingFactor)
+                                                ) + "px",
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                paddingRight: "10px",
+                                            }}
+                                        >
+                                            {exp.position}
+                                            {exp.company && `, ${exp.company}`}
+                                            {exp.location && `, ${exp.location}`}
+                                            {exp.roleType &&
+                                                exp.roleType !== "None" &&
+                                                ` — ${exp.roleType}`}
+                                        </span>
+                                        <span
+                                            style={{
+                                                flexShrink: 0,
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            {exp.duration}
+                                        </span>
+                                    </div>
+
+                                    {/* Responsibilities */}
+                                    {exp.responsibilities.map(
+                                        (resp, respIndex) =>
+                                            resp.trim() && (
+                                                <div
+                                                    key={respIndex}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "flex-start",
+                                                        marginBottom:
+                                                            Math.max(
+                                                                0.3,
+                                                                Math.round(
+                                                                    1 * scalingFactor
+                                                                )
+                                                            ) + "px",
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            fontSize:
+                                                                Math.max(
+                                                                    9,
+                                                                    Math.round(
+                                                                        11 *
+                                                                            scalingFactor
+                                                                    )
+                                                                ) + "px",
+                                                            marginRight: "5px",
+                                                            minWidth: "8px",
+                                                            lineHeight: Math.max(
+                                                                1.15,
+                                                                1.25 * scalingFactor
+                                                            ).toString(),
+                                                        }}
+                                                    >
+                                                        •
+                                                    </span>
+                                                    <div
+                                                        style={{
+                                                            textAlign: "justify",
+                                                            fontSize:
+                                                                Math.max(
+                                                                    9,
+                                                                    Math.round(
+                                                                        11 *
+                                                                            scalingFactor
+                                                                    )
+                                                                ) + "px",
+                                                            lineHeight: Math.max(
+                                                                1.15,
+                                                                1.25 * scalingFactor
+                                                            ).toString(),
+                                                            letterSpacing: "0.1px",
+                                                        }}
+                                                    >
+                                                        {resp}
+                                                    </div>
+                                                </div>
+                                            )
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div
+                                style={{
+                                    fontSize:
+                                        Math.max(9, Math.round(11 * scalingFactor)) +
+                                        "px",
+                                    fontStyle: "italic",
+                                    color: "#666",
+                                    letterSpacing: "0.1px",
+                                }}
+                            >
+                                Your work experience will appear here...
+                            </div>
+                        )}
+                    </div>
+                );
+
+            case "projects":
+                if (!showProjects || !data.projects || data.projects.length === 0) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom:
+                                Math.max(8, Math.round(10 * scalingFactor)) + "px",
+                            ...getHighlightStyle("projects"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(10, Math.round(12 * scalingFactor)) +
+                                    "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) +
+                                    "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            PROJECTS
+                        </div>
+                        {data.projects.map((project, index) => (
+                            <div
+                                key={project.id}
+                                style={{
+                                    marginBottom:
+                                        index === data.projects.length - 1
+                                            ? "0px"
+                                            : Math.max(
+                                                  2,
+                                                  Math.round(4 * scalingFactor)
+                                              ) + "px",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "flex-start",
+                                        fontSize:
+                                            Math.max(
+                                                9,
+                                                Math.round(11 * scalingFactor)
+                                            ) + "px",
+                                        fontWeight: "bold",
+                                        letterSpacing: "0.01px",
+                                        lineHeight: Math.max(
+                                            1.05,
+                                            1.1 * scalingFactor
+                                        ).toString(),
+                                        marginBottom:
+                                            Math.max(
+                                                1,
+                                                Math.round(2 * scalingFactor)
+                                            ) + "px",
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            paddingRight: "10px",
+                                        }}
+                                    >
+                                        {project.position}
+                                        {project.company && `, ${project.company}`}
+                                        {project.location &&
+                                            `, ${project.location}`}
+                                        {project.roleType &&
+                                            project.roleType !== "None" &&
+                                            ` — ${project.roleType}`}
+                                        {project.linkName && project.linkUrl && (
+                                            <>
+                                                {" — "}
+                                                <a
+                                                    href={project.linkUrl}
+                                                    style={{
+                                                        color: "blue",
+                                                        textDecoration: "none",
+                                                    }}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    {project.linkName}
+                                                </a>
+                                            </>
+                                        )}
+                                    </span>
+                                    <span
+                                        style={{
+                                            flexShrink: 0,
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        {project.duration}
+                                    </span>
+                                </div>
+                                {project.responsibilities.map(
+                                    (resp, respIndex) =>
+                                        resp.trim() && (
+                                            <div
+                                                key={respIndex}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "flex-start",
+                                                    marginBottom:
+                                                        Math.max(
+                                                            0.5,
+                                                            Math.round(
+                                                                1 * scalingFactor
+                                                            )
+                                                        ) + "px",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontSize:
+                                                            Math.max(
+                                                                9,
+                                                                Math.round(
+                                                                    11 *
+                                                                        scalingFactor
+                                                                )
+                                                            ) + "px",
+                                                        marginRight: "5px",
+                                                        minWidth: "8px",
+                                                        lineHeight: Math.max(
+                                                            1.15,
+                                                            1.25 * scalingFactor
+                                                        ).toString(),
+                                                    }}
+                                                >
+                                                    •
+                                                </span>
+                                                <div
+                                                    style={{
+                                                        textAlign: "justify",
+                                                        fontSize:
+                                                            Math.max(
+                                                                9,
+                                                                Math.round(
+                                                                    11 *
+                                                                        scalingFactor
+                                                                )
+                                                            ) + "px",
+                                                        lineHeight: Math.max(
+                                                            1.15,
+                                                            1.25 * scalingFactor
+                                                        ).toString(),
+                                                        letterSpacing: "0.01px",
+                                                    }}
+                                                >
+                                                    {resp}
+                                                </div>
+                                            </div>
+                                        )
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                );
+
+            case "leadership":
+                if (!showLeadership || !data.leadership || data.leadership.length === 0) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom:
+                                Math.max(8, Math.round(10 * scalingFactor)) +
+                                "px",
+                            ...getHighlightStyle("leadership"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(
+                                        10,
+                                        Math.round(12 * scalingFactor)
+                                    ) + "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) +
+                                    "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            LEADERSHIP & VOLUNTEERING
+                        </div>
+                        {data.leadership.map((item) => (
+                            <div
+                                key={item.id}
+                                style={{
+                                    fontSize:
+                                        Math.max(
+                                            9,
+                                            Math.round(11 * scalingFactor)
+                                        ) + "px",
+                                    marginBottom:
+                                        Math.max(
+                                            1.5,
+                                            Math.round(2 * scalingFactor)
+                                        ) + "px",
+                                    letterSpacing: "0.1px",
+                                    lineHeight: Math.max(
+                                        1.05,
+                                        1.15 * scalingFactor
+                                    ).toString(),
+                                }}
+                            >
+                                <span style={{ fontWeight: "bold" }}>
+                                    {item.title}
+                                </span>
+                                {item.organization && `, ${item.organization}`}
+                            </div>
+                        ))}
+                    </div>
+                );
+
+            case "skills":
+                return (
+                    <div
+                        style={{
+                            marginBottom:
+                                Math.max(8, Math.round(10 * scalingFactor)) + "px",
+                            ...getHighlightStyle("skills"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(10, Math.round(12 * scalingFactor)) + "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) + "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            SKILLS
+                        </div>
+                        {data.skills.length > 0 ? (
+                            data.skills.map((category) => (
+                                <div
+                                    key={category.id}
+                                    style={{
+                                        fontSize:
+                                            Math.max(
+                                                9,
+                                                Math.round(11 * scalingFactor)
+                                            ) + "px",
+                                        marginBottom:
+                                            Math.max(2, Math.round(3 * scalingFactor)) +
+                                            "px",
+                                        lineHeight: Math.max(
+                                            1.15,
+                                            1.25 * scalingFactor
+                                        ).toString(),
+                                        letterSpacing: "0.01px",
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            width: "160px",
+                                            flexShrink: 0,
+                                            fontWeight: "bold",
+                                            letterSpacing: "0.01px",
+                                        }}
+                                    >
+                                        {category.category}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontWeight: "bold",
+                                            margin: "0 5px",
+                                        }}
+                                    >
+                                        :
+                                    </span>
+                                    <span
+                                        style={{
+                                            flex: "1",
+                                            wordWrap: "break-word",
+                                            textAlign: "justify",
+                                        }}
+                                    >
+                                        {formatSkills(category.skills)}
+                                    </span>
+                                </div>
+                            ))
+                        ) : (
+                            <div
+                                style={{
+                                    fontSize:
+                                        Math.max(9, Math.round(11 * scalingFactor)) +
+                                        "px",
+                                    fontStyle: "italic",
+                                    color: "#666",
+                                    letterSpacing: "0.01px",
+                                }}
+                            >
+                                Your skills will appear here...
+                            </div>
+                        )}
+                    </div>
+                );
+
+            case "education":
+                return (
+                    <div
+                        style={{
+                            marginBottom: "0px",
+                            ...getHighlightStyle("education"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(10, Math.round(12 * scalingFactor)) + "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) + "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            EDUCATION
+                        </div>
+                        <div>
+                            {data.education.length > 0 ? (
+                                data.education.map((edu, index) => (
+                                    <div
+                                        key={edu.id}
+                                        style={{
+                                            marginBottom:
+                                                index === data.education.length - 1
+                                                    ? "0px"
+                                                    : Math.max(
+                                                          2,
+                                                          Math.round(3 * scalingFactor)
+                                                      ) + "px",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "flex-start",
+                                                fontSize:
+                                                    Math.max(
+                                                        9,
+                                                        Math.round(11 * scalingFactor)
+                                                    ) + "px",
+                                                letterSpacing: "0.1px",
+                                                lineHeight: Math.max(
+                                                    1.05,
+                                                    1.15 * scalingFactor
+                                                ).toString(),
+                                                marginBottom:
+                                                    Math.max(
+                                                        0.5,
+                                                        Math.round(1 * scalingFactor)
+                                                    ) + "px",
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    textOverflow: "ellipsis",
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    paddingRight: "10px",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontWeight: "bold",
+                                                        letterSpacing: "0.0001px",
+                                                    }}
+                                                >
+                                                    {edu.institution}
+                                                    {edu.location &&
+                                                        `, ${edu.location}`}
+                                                </span>
+                                                <span>
+                                                    {" "}
+                                                    - {edu.degree}
+                                                    {edu.field && `, ${edu.field}`}
+                                                </span>
+                                            </span>
+                                            <span
+                                                style={{
+                                                    flexShrink: 0,
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {edu.duration}
+                                            </span>
+                                        </div>
+                                        {edu.additionalInfo && (
+                                            <div
+                                                style={{
+                                                    fontSize:
+                                                        Math.max(
+                                                            9,
+                                                            Math.round(
+                                                                11 * scalingFactor
+                                                            )
+                                                        ) + "px",
+                                                    letterSpacing: "0.1px",
+                                                    lineHeight: Math.max(
+                                                        1.05,
+                                                        1.15 * scalingFactor
+                                                    ).toString(),
+                                                    marginBottom: "0px",
+                                                }}
+                                            >
+                                                {edu.additionalInfo}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div
+                                    style={{
+                                        fontSize:
+                                            Math.max(
+                                                9,
+                                                Math.round(11 * scalingFactor)
+                                            ) + "px",
+                                        fontStyle: "italic",
+                                        color: "#666",
+                                        letterSpacing: "0.1px",
+                                        marginBottom: "0px",
+                                    }}
+                                >
+                                    Your education will appear here...
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
+            default:
+                return null;
+        }
+    };
+
     const getHighlightStyle = (fieldPath: string) => {
         if (showChanges && changedFields.has(fieldPath)) {
             return {
@@ -386,7 +1061,7 @@ These settings will give you the best results for your resume PDF.`);
 
     const resumeContent = (
         <>
-            {/* Header */}
+            {/* Header - Always first */}
             <div
                 style={{
                     textAlign: "center",
@@ -499,663 +1174,10 @@ These settings will give you the best results for your resume PDF.`);
                 </div>
             </div>
 
-            {/* Summary - Only show if enabled */}
-            {showSummary && (
-                <div
-                    style={{
-                        marginBottom:
-                            Math.max(8, Math.round(10 * scalingFactor)) + "px",
-                        ...getHighlightStyle("summary"),
-                    }}
-                >
-                    <div
-                        style={{
-                            fontSize:
-                                Math.max(10, Math.round(12 * scalingFactor)) +
-                                "px",
-                            borderBottom: "1px solid #000",
-                            paddingBottom: "1px",
-                            marginBottom:
-                                Math.max(3, Math.round(4 * scalingFactor)) +
-                                "px",
-                            fontWeight: "bold",
-                            letterSpacing: "0.1px",
-                        }}
-                    >
-                        SUMMARY
-                    </div>
-                    <div
-                        style={{
-                            textAlign: "justify",
-                            fontSize:
-                                Math.max(9, Math.round(11 * scalingFactor)) +
-                                "px",
-                            lineHeight: Math.max(
-                                1.15,
-                                1.25 * scalingFactor
-                            ).toString(),
-                            letterSpacing: "0.1px",
-                        }}
-                    >
-                        {data.summary ||
-                            "Your professional summary will appear here..."}
-                    </div>
-                </div>
-            )}
-
-            {/* Work Experience */}
-            <div
-                style={{
-                    marginBottom:
-                        Math.max(8, Math.round(10 * scalingFactor)) + "px",
-                    ...getHighlightStyle("workExperience"),
-                }}
-            >
-                <div
-                    style={{
-                        fontSize:
-                            Math.max(10, Math.round(12 * scalingFactor)) + "px",
-                        borderBottom: "1px solid #000",
-                        paddingBottom: "1px",
-                        marginBottom:
-                            Math.max(3, Math.round(4 * scalingFactor)) + "px",
-                        fontWeight: "bold",
-                        letterSpacing: "0.1px",
-                    }}
-                >
-                    WORK EXPERIENCE
-                </div>
-                {data.workExperience.length > 0 ? (
-                    data.workExperience.map((exp, index) => (
-                        <div
-                            key={exp.id}
-                            style={{
-                                marginBottom:
-                                    index === data.workExperience.length - 1
-                                        ? "0px"
-                                        : Math.max(
-                                              3,
-                                              Math.round(4 * scalingFactor)
-                                          ) + "px",
-                            }}
-                        >
-                            {/* Header on single line with Flexbox */}
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    fontSize:
-                                        Math.max(
-                                            9,
-                                            Math.round(11 * scalingFactor)
-                                        ) + "px",
-                                    fontWeight: "bold",
-                                    letterSpacing: "0.001px",
-                                    lineHeight: Math.max(
-                                        1.05,
-                                        1.15 * scalingFactor
-                                    ).toString(),
-                                    marginBottom:
-                                        Math.max(
-                                            1,
-                                            Math.round(2 * scalingFactor)
-                                        ) + "px",
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        paddingRight: "10px",
-                                    }}
-                                >
-                                    {exp.position}
-                                    {exp.company && `, ${exp.company}`}
-                                    {exp.location && `, ${exp.location}`}
-                                    {exp.roleType &&
-                                        exp.roleType !== "None" &&
-                                        ` — ${exp.roleType}`}
-                                </span>
-                                <span
-                                    style={{
-                                        flexShrink: 0,
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {exp.duration}
-                                </span>
-                            </div>
-
-                            {/* Responsibilities */}
-                            {exp.responsibilities.map(
-                                (resp, respIndex) =>
-                                    resp.trim() && (
-                                        <div
-                                            key={respIndex}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "flex-start",
-                                                marginBottom:
-                                                    Math.max(
-                                                        0.3,
-                                                        Math.round(
-                                                            1 * scalingFactor
-                                                        )
-                                                    ) + "px",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontSize:
-                                                        Math.max(
-                                                            9,
-                                                            Math.round(
-                                                                11 *
-                                                                    scalingFactor
-                                                            )
-                                                        ) + "px",
-                                                    marginRight: "5px",
-                                                    minWidth: "8px",
-                                                    lineHeight: Math.max(
-                                                        1.15,
-                                                        1.25 * scalingFactor
-                                                    ).toString(),
-                                                }}
-                                            >
-                                                •
-                                            </span>
-                                            <div
-                                                style={{
-                                                    textAlign: "justify",
-                                                    fontSize:
-                                                        Math.max(
-                                                            9,
-                                                            Math.round(
-                                                                11 *
-                                                                    scalingFactor
-                                                            )
-                                                        ) + "px",
-                                                    lineHeight: Math.max(
-                                                        1.15,
-                                                        1.25 * scalingFactor
-                                                    ).toString(),
-                                                    letterSpacing: "0.1px",
-                                                }}
-                                            >
-                                                {resp}
-                                            </div>
-                                        </div>
-                                    )
-                            )}
-                        </div>
-                    ))
-                ) : (
-                    <div
-                        style={{
-                            fontSize:
-                                Math.max(9, Math.round(11 * scalingFactor)) +
-                                "px",
-                            fontStyle: "italic",
-                            color: "#666",
-                            letterSpacing: "0.1px",
-                        }}
-                    >
-                        Your work experience will appear here...
-                    </div>
-                )}
-            </div>
-
-            {/* Projects - Only show if enabled */}
-            {showProjects && data.projects && data.projects.length > 0 && (
-                <div
-                    style={{
-                        marginBottom:
-                            Math.max(8, Math.round(10 * scalingFactor)) + "px",
-                        ...getHighlightStyle("projects"),
-                    }}
-                >
-                    <div
-                        style={{
-                            fontSize:
-                                Math.max(10, Math.round(12 * scalingFactor)) +
-                                "px",
-                            borderBottom: "1px solid #000",
-                            paddingBottom: "1px",
-                            marginBottom:
-                                Math.max(3, Math.round(4 * scalingFactor)) +
-                                "px",
-                            fontWeight: "bold",
-                            letterSpacing: "0.1px",
-                        }}
-                    >
-                        PROJECTS
-                    </div>
-                    {data.projects.map((project, index) => (
-                        <div
-                            key={project.id}
-                            style={{
-                                marginBottom:
-                                    index === data.projects.length - 1
-                                        ? "0px"
-                                        : Math.max(
-                                              2,
-                                              Math.round(4 * scalingFactor)
-                                          ) + "px",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    fontSize:
-                                        Math.max(
-                                            9,
-                                            Math.round(11 * scalingFactor)
-                                        ) + "px",
-                                    fontWeight: "bold",
-                                    letterSpacing: "0.01px",
-                                    lineHeight: Math.max(
-                                        1.05,
-                                        1.1 * scalingFactor
-                                    ).toString(),
-                                    marginBottom:
-                                        Math.max(
-                                            1,
-                                            Math.round(2 * scalingFactor)
-                                        ) + "px",
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        paddingRight: "10px",
-                                    }}
-                                >
-                                    {project.position}
-                                    {project.company && `, ${project.company}`}
-                                    {project.location &&
-                                        `, ${project.location}`}
-                                    {project.roleType &&
-                                        project.roleType !== "None" &&
-                                        ` — ${project.roleType}`}
-                                    {project.linkName && project.linkUrl && (
-                                        <>
-                                            {" — "}
-                                            <a
-                                                href={project.linkUrl}
-                                                style={{
-                                                    color: "blue",
-                                                    textDecoration: "none",
-                                                }}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {project.linkName}
-                                            </a>
-                                        </>
-                                    )}
-                                </span>
-                                <span
-                                    style={{
-                                        flexShrink: 0,
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {project.duration}
-                                </span>
-                            </div>
-                            {project.responsibilities.map(
-                                (resp, respIndex) =>
-                                    resp.trim() && (
-                                        <div
-                                            key={respIndex}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "flex-start",
-                                                marginBottom:
-                                                    Math.max(
-                                                        0.5,
-                                                        Math.round(
-                                                            1 * scalingFactor
-                                                        )
-                                                    ) + "px",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontSize:
-                                                        Math.max(
-                                                            9,
-                                                            Math.round(
-                                                                11 *
-                                                                    scalingFactor
-                                                            )
-                                                        ) + "px",
-                                                    marginRight: "5px",
-                                                    minWidth: "8px",
-                                                    lineHeight: Math.max(
-                                                        1.15,
-                                                        1.25 * scalingFactor
-                                                    ).toString(),
-                                                }}
-                                            >
-                                                •
-                                            </span>
-                                            <div
-                                                style={{
-                                                    textAlign: "justify",
-                                                    fontSize:
-                                                        Math.max(
-                                                            9,
-                                                            Math.round(
-                                                                11 *
-                                                                    scalingFactor
-                                                            )
-                                                        ) + "px",
-                                                    lineHeight: Math.max(
-                                                        1.15,
-                                                        1.25 * scalingFactor
-                                                    ).toString(),
-                                                    letterSpacing: "0.01px",
-                                                }}
-                                            >
-                                                {resp}
-                                            </div>
-                                        </div>
-                                    )
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Leadership & Volunteering - Only show if enabled */}
-            {showLeadership &&
-                data.leadership &&
-                data.leadership.length > 0 && (
-                    <div
-                        style={{
-                            marginBottom:
-                                Math.max(8, Math.round(10 * scalingFactor)) +
-                                "px",
-                            ...getHighlightStyle("leadership"),
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize:
-                                    Math.max(
-                                        10,
-                                        Math.round(12 * scalingFactor)
-                                    ) + "px",
-                                borderBottom: "1px solid #000",
-                                paddingBottom: "1px",
-                                marginBottom:
-                                    Math.max(3, Math.round(4 * scalingFactor)) +
-                                    "px",
-                                fontWeight: "bold",
-                                letterSpacing: "0.1px",
-                            }}
-                        >
-                            LEADERSHIP & VOLUNTEERING
-                        </div>
-                        {data.leadership.map((item) => (
-                            <div
-                                key={item.id}
-                                style={{
-                                    fontSize:
-                                        Math.max(
-                                            9,
-                                            Math.round(11 * scalingFactor)
-                                        ) + "px",
-                                    marginBottom:
-                                        Math.max(
-                                            1.5,
-                                            Math.round(2 * scalingFactor)
-                                        ) + "px",
-                                    letterSpacing: "0.1px",
-                                    lineHeight: Math.max(
-                                        1.05,
-                                        1.15 * scalingFactor
-                                    ).toString(),
-                                }}
-                            >
-                                <span style={{ fontWeight: "bold" }}>
-                                    {item.title}
-                                </span>
-                                {item.organization && `, ${item.organization}`}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-            {/* Skills */}
-            <div
-                style={{
-                    marginBottom:
-                        Math.max(8, Math.round(10 * scalingFactor)) + "px",
-                    ...getHighlightStyle("skills"),
-                }}
-            >
-                <div
-                    style={{
-                        fontSize:
-                            Math.max(10, Math.round(12 * scalingFactor)) + "px",
-                        borderBottom: "1px solid #000",
-                        paddingBottom: "1px",
-                        marginBottom:
-                            Math.max(3, Math.round(4 * scalingFactor)) + "px",
-                        fontWeight: "bold",
-                        letterSpacing: "0.1px",
-                    }}
-                >
-                    SKILLS
-                </div>
-                {data.skills.length > 0 ? (
-                    data.skills.map((category) => (
-                        <div
-                            key={category.id}
-                            style={{
-                                fontSize:
-                                    Math.max(
-                                        9,
-                                        Math.round(11 * scalingFactor)
-                                    ) + "px",
-                                marginBottom:
-                                    Math.max(2, Math.round(3 * scalingFactor)) +
-                                    "px",
-                                lineHeight: Math.max(
-                                    1.15,
-                                    1.25 * scalingFactor
-                                ).toString(),
-                                letterSpacing: "0.01px",
-                                display: "flex",
-                                alignItems: "flex-start",
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: "160px",
-                                    flexShrink: 0,
-                                    fontWeight: "bold",
-                                    letterSpacing: "0.01px",
-                                }}
-                            >
-                                {category.category}
-                            </span>
-                            <span
-                                style={{
-                                    fontWeight: "bold",
-                                    margin: "0 5px",
-                                }}
-                            >
-                                :
-                            </span>
-                            <span
-                                style={{
-                                    flex: "1",
-                                    wordWrap: "break-word",
-                                    textAlign: "justify",
-                                }}
-                            >
-                                {formatSkills(category.skills)}
-                            </span>
-                        </div>
-                    ))
-                ) : (
-                    <div
-                        style={{
-                            fontSize:
-                                Math.max(9, Math.round(11 * scalingFactor)) +
-                                "px",
-                            fontStyle: "italic",
-                            color: "#666",
-                            letterSpacing: "0.01px",
-                        }}
-                    >
-                        Your skills will appear here...
-                    </div>
-                )}
-            </div>
-
-            {/* Education - No bottom margin as it's the last section */}
-            <div
-                style={{
-                    marginBottom: "0px",
-                    ...getHighlightStyle("education"),
-                }}
-            >
-                <div
-                    style={{
-                        fontSize:
-                            Math.max(10, Math.round(12 * scalingFactor)) + "px",
-                        borderBottom: "1px solid #000",
-                        paddingBottom: "1px",
-                        marginBottom:
-                            Math.max(3, Math.round(4 * scalingFactor)) + "px",
-                        fontWeight: "bold",
-                        letterSpacing: "0.1px",
-                    }}
-                >
-                    EDUCATION
-                </div>
-                <div>
-                    {data.education.length > 0 ? (
-                        data.education.map((edu, index) => (
-                            <div
-                                key={edu.id}
-                                style={{
-                                    marginBottom:
-                                        index === data.education.length - 1
-                                            ? "0px"
-                                            : Math.max(
-                                                  2,
-                                                  Math.round(3 * scalingFactor)
-                                              ) + "px",
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
-                                        fontSize:
-                                            Math.max(
-                                                9,
-                                                Math.round(11 * scalingFactor)
-                                            ) + "px",
-                                        letterSpacing: "0.1px",
-                                        lineHeight: Math.max(
-                                            1.05,
-                                            1.15 * scalingFactor
-                                        ).toString(),
-                                        marginBottom:
-                                            Math.max(
-                                                0.5,
-                                                Math.round(1 * scalingFactor)
-                                            ) + "px",
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            paddingRight: "10px",
-                                        }}
-                                    >
-                                        <span
-                                            style={{
-                                                fontWeight: "bold",
-                                                letterSpacing: "0.0001px",
-                                            }}
-                                        >
-                                            {edu.institution}
-                                            {edu.location &&
-                                                `, ${edu.location}`}
-                                        </span>
-                                        <span>
-                                            {" "}
-                                            - {edu.degree}
-                                            {edu.field && `, ${edu.field}`}
-                                        </span>
-                                    </span>
-                                    <span
-                                        style={{
-                                            flexShrink: 0,
-                                            whiteSpace: "nowrap",
-                                        }}
-                                    >
-                                        {edu.duration}
-                                    </span>
-                                </div>
-                                {edu.additionalInfo && (
-                                    <div
-                                        style={{
-                                            fontSize:
-                                                Math.max(
-                                                    9,
-                                                    Math.round(
-                                                        11 * scalingFactor
-                                                    )
-                                                ) + "px",
-                                            letterSpacing: "0.1px",
-                                            lineHeight: Math.max(
-                                                1.05,
-                                                1.15 * scalingFactor
-                                            ).toString(),
-                                            marginBottom: "0px",
-                                        }}
-                                    >
-                                        {edu.additionalInfo}
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    ) : (
-                        <div
-                            style={{
-                                fontSize:
-                                    Math.max(
-                                        9,
-                                        Math.round(11 * scalingFactor)
-                                    ) + "px",
-                                fontStyle: "italic",
-                                color: "#666",
-                                letterSpacing: "0.1px",
-                                marginBottom: "0px",
-                            }}
-                        >
-                            Your education will appear here...
-                        </div>
-                    )}
-                </div>
-            </div>
+            {/* Render sections based on section order */}
+            {sectionOrder
+                .filter(sectionId => sectionId !== "personalInfo") // Skip personal info as it's always first
+                .map(sectionId => renderSection(sectionId))}
         </>
     );
 
