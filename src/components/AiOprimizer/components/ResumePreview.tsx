@@ -67,6 +67,7 @@ interface ResumePreviewProps {
     changedFields?: Set<string>;
     onDownloadClick?: () => void; // Add this prop to handle download clicks
     showPrintButtons?: boolean; // Add this prop to control print buttons visibility
+    sectionOrder?: string[]; // Add section order prop
 }
 
 export const ResumePreview: React.FC<ResumePreviewProps> = ({
@@ -79,6 +80,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
     changedFields = new Set(),
     onDownloadClick,
     showPrintButtons = true,
+    sectionOrder = ["personalInfo", "summary", "workExperience", "projects", "leadership", "skills", "education", "publications"],
 }) => {
     const [scalingFactor, setScalingFactor] = useState(1);
     const [showWarningModal, setShowWarningModal] = useState(false);
@@ -536,6 +538,659 @@ The resume will print across multiple pages if needed, ensuring no content is cu
         return `https://github.com/${github}`;
     };
 
+    // Function to render sections based on section order
+    const renderSection = (sectionId: string) => {
+        switch (sectionId) {
+            case "summary":
+                if (!showSummary) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom: styles.sectionMargin,
+                            ...getHighlightStyle("summary"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: styles.fontSize,
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "2px",
+                                marginBottom: styles.itemMargin,
+                                fontWeight: "bold",
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            SUMMARY
+                        </div>
+                        <div
+                            style={{
+                                textAlign: "justify",
+                                fontSize: styles.fontSize,
+                                lineHeight: styles.lineHeight,
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            {data.summary ||
+                                "Your professional summary will appear here..."}
+                        </div>
+                    </div>
+                );
+
+            case "workExperience":
+                return (
+                    <div
+                        style={{
+                            marginBottom: styles.sectionMargin,
+                            ...getHighlightStyle("workExperience"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: styles.fontSize,
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "2px",
+                                marginBottom: styles.itemMargin,
+                                fontWeight: "bold",
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            WORK EXPERIENCE
+                        </div>
+                        {data.workExperience.length > 0 ? (
+                            data.workExperience.map((exp, index) => (
+                                <div
+                                    key={exp.id}
+                                    className="work-experience-item"
+                                    style={{
+                                        marginBottom:
+                                            index === data.workExperience.length - 1
+                                                ? styles.bulletSpacing
+                                                : styles.itemMargin,
+                                    }}
+                                >
+                                    {/* Header with left/right alignment */}
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "flex-start",
+                                            marginBottom: styles.bulletSpacing,
+                                        }}
+                                    >
+                                        {/* Left side */}
+                                        <div style={{ flex: "1" }}>
+                                            {exp.company && (
+                                                <div
+                                                    style={{
+                                                        fontSize: styles.fontSize,
+                                                        fontWeight: "bold",
+                                                        letterSpacing: "-0.025em",
+                                                        lineHeight: styles.lineHeight,
+                                                    }}
+                                                >
+                                                    {exp.company}
+                                                </div>
+                                            )}
+                                            <div
+                                                style={{
+                                                    fontSize: styles.fontSize,
+                                                    letterSpacing: "-0.025em",
+                                                    lineHeight: styles.lineHeight,
+                                                }}
+                                            >
+                                                {exp.position}
+                                                {exp.roleType &&
+                                                    exp.roleType !== "None" &&
+                                                    ` – ${exp.roleType}`}
+                                            </div>
+                                        </div>
+
+                                        {/* Right side */}
+                                        <div
+                                            style={{
+                                                textAlign: "right",
+                                                marginLeft: "20px",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    fontSize: styles.fontSize,
+                                                    letterSpacing: "-0.025em",
+                                                    lineHeight: styles.lineHeight,
+                                                }}
+                                            >
+                                                {exp.location}
+                                            </div>
+                                            <div
+                                                style={{
+                                                    fontSize: styles.fontSize,
+                                                    letterSpacing: "-0.025em",
+                                                    lineHeight: styles.lineHeight,
+                                                }}
+                                            >
+                                                {exp.duration}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Responsibilities */}
+                                    {exp.responsibilities.map(
+                                        (resp, respIndex) =>
+                                            resp.trim() && (
+                                                <div
+                                                    key={respIndex}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "flex-start",
+                                                        marginBottom:
+                                                            styles.bulletSpacing,
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            fontSize: styles.fontSize,
+                                                            marginRight: "4px",
+                                                            minWidth: "8px",
+                                                        }}
+                                                    >
+                                                        •
+                                                    </span>
+                                                    <div
+                                                        style={{
+                                                            textAlign: "justify",
+                                                            fontSize: styles.fontSize,
+                                                            lineHeight:
+                                                                styles.lineHeight,
+                                                            letterSpacing: "-0.025em",
+                                                        }}
+                                                    >
+                                                        {resp}
+                                                    </div>
+                                                </div>
+                                            )
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div
+                                style={{
+                                    fontSize: styles.fontSize,
+                                    fontStyle: "italic",
+                                    color: "#666",
+                                    letterSpacing: "-0.025em",
+                                }}
+                            >
+                                Your work experience will appear here...
+                            </div>
+                        )}
+                    </div>
+                );
+
+            case "projects":
+                if (!showProjects || !data.projects || data.projects.length === 0) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom: styles.sectionMargin,
+                            ...getHighlightStyle("projects"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: styles.fontSize,
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "2px",
+                                marginBottom: styles.itemMargin,
+                                fontWeight: "bold",
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            PROJECTS
+                        </div>
+                        {data.projects.map((project, index) => (
+                            <div
+                                key={project.id}
+                                className="project-item"
+                                style={{
+                                    marginBottom:
+                                        index === data.projects.length - 1
+                                            ? styles.bulletSpacing
+                                            : styles.itemMargin,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "flex-start",
+                                        marginBottom: styles.bulletSpacing,
+                                    }}
+                                >
+                                    {/* Left side */}
+                                    <div style={{ flex: "1" }}>
+                                        {project.company && (
+                                            <div
+                                                style={{
+                                                    fontSize: styles.fontSize,
+                                                    fontWeight: "bold",
+                                                    letterSpacing: "-0.025em",
+                                                    lineHeight: styles.lineHeight,
+                                                }}
+                                            >
+                                                {project.company}
+                                            </div>
+                                        )}
+                                        <div
+                                            style={{
+                                                fontSize: styles.fontSize,
+                                                fontWeight: "700 !important",
+                                                letterSpacing: "-0.025em",
+                                                lineHeight: styles.lineHeight,
+                                                color: "#000",
+                                                fontStyle: "normal",
+                                            }}
+                                        >
+                                            <strong>{project.position}</strong>
+                                            {project.roleType &&
+                                                project.roleType !== "None" &&
+                                                ` – ${project.roleType}`}
+                                            {project.linkName &&
+                                                project.linkUrl && (
+                                                    <>
+                                                        {" — "}
+                                                        <a
+                                                            href={project.linkUrl}
+                                                            style={{
+                                                                color: "blue",
+                                                                textDecoration:
+                                                                    "none",
+                                                            }}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            {project.linkName}
+                                                        </a>
+                                                    </>
+                                                )}
+                                        </div>
+                                    </div>
+
+                                    {/* Right side */}
+                                    <div
+                                        style={{
+                                            textAlign: "right",
+                                            marginLeft: "20px",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                fontSize: styles.fontSize,
+                                                letterSpacing: "-0.025em",
+                                                lineHeight: styles.lineHeight,
+                                            }}
+                                        >
+                                            {project.location}
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: styles.fontSize,
+                                                letterSpacing: "-0.025em",
+                                                lineHeight: styles.lineHeight,
+                                            }}
+                                        >
+                                            {project.duration}
+                                        </div>
+                                    </div>
+                                </div>
+                                {project.responsibilities.map(
+                                    (resp, respIndex) =>
+                                        resp.trim() && (
+                                            <div
+                                                key={respIndex}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "flex-start",
+                                                    marginBottom:
+                                                        styles.bulletSpacing,
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontSize: styles.fontSize,
+                                                        marginRight: "4px",
+                                                        minWidth: "8px",
+                                                    }}
+                                                >
+                                                    •
+                                                </span>
+                                                <div
+                                                    style={{
+                                                        textAlign: "justify",
+                                                        fontSize: styles.fontSize,
+                                                        lineHeight:
+                                                            styles.lineHeight,
+                                                        letterSpacing: "-0.025em",
+                                                    }}
+                                                >
+                                                    {resp}
+                                                </div>
+                                            </div>
+                                        )
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                );
+
+            case "leadership":
+                if (!showLeadership || !data.leadership || data.leadership.length === 0) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom: styles.sectionMargin,
+                            ...getHighlightStyle("leadership"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: styles.fontSize,
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "2px",
+                                marginBottom: styles.itemMargin,
+                                fontWeight: "bold",
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            LEADERSHIP & VOLUNTEERING
+                        </div>
+                        {data.leadership.map((item) => (
+                            <div
+                                key={item.id}
+                                style={{
+                                    fontSize: styles.fontSize,
+                                    marginBottom: styles.bulletSpacing,
+                                    letterSpacing: "-0.025em",
+                                    lineHeight: styles.lineHeight,
+                                }}
+                            >
+                                {item.title}
+                                {item.organization && `, ${item.organization}`}
+                            </div>
+                        ))}
+                    </div>
+                );
+
+            case "skills":
+                return (
+                    <div
+                        style={{
+                            marginBottom:
+                                Math.max(8, Math.round(10 * scalingFactor)) + "px",
+                            ...getHighlightStyle("skills"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize:
+                                    Math.max(10, Math.round(12 * scalingFactor)) + "px",
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "1px",
+                                marginBottom:
+                                    Math.max(3, Math.round(4 * scalingFactor)) + "px",
+                                fontWeight: "bold",
+                                letterSpacing: "0.1px",
+                            }}
+                        >
+                            SKILLS
+                        </div>
+                        {data.skills.length > 0 ? (
+                            data.skills.map((category) => (
+                                <div
+                                    key={category.id}
+                                    style={{
+                                        fontSize:
+                                            Math.max(
+                                                9,
+                                                Math.round(11 * scalingFactor)
+                                            ) + "px",
+                                        marginBottom:
+                                            Math.max(2, Math.round(3 * scalingFactor)) +
+                                            "px",
+                                        lineHeight: Math.max(
+                                            1.15,
+                                            1.25 * scalingFactor
+                                        ).toString(),
+                                        letterSpacing: "0.01px",
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            width: "160px",
+                                            flexShrink: 0,
+                                            fontWeight: "bold",
+                                            letterSpacing: "0.01px",
+                                        }}
+                                    >
+                                        {category.category}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontWeight: "bold",
+                                            margin: "0 5px",
+                                        }}
+                                    >
+                                        :
+                                    </span>
+                                    <span
+                                        style={{
+                                            flex: "1",
+                                            wordWrap: "break-word",
+                                            textAlign: "justify",
+                                        }}
+                                    >
+                                        {formatSkills(category.skills)}
+                                    </span>
+                                </div>
+                            ))
+                        ) : (
+                            <div
+                                style={{
+                                    fontSize:
+                                        Math.max(9, Math.round(11 * scalingFactor)) +
+                                        "px",
+                                    fontStyle: "italic",
+                                    color: "#666",
+                                    letterSpacing: "0.01px",
+                                }}
+                            >
+                                Your skills will appear here...
+                            </div>
+                        )}
+                    </div>
+                );
+
+            case "education":
+                return (
+                    <div
+                        className="education-section"
+                        style={{
+                            marginBottom: "0px",
+                            ...getHighlightStyle("education"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: styles.fontSize,
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "2px",
+                                marginBottom: styles.itemMargin,
+                                fontWeight: "bold",
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            EDUCATION
+                        </div>
+                        <div>
+                            {data.education.length > 0 ? (
+                                data.education.map((edu, index) => (
+                                    <div
+                                        key={edu.id}
+                                        className="education-item"
+                                        style={{
+                                            marginBottom:
+                                                index === data.education.length - 1
+                                                    ? "0px"
+                                                    : styles.itemMargin,
+                                        }}
+                                    >
+                                        {/* Header with left/right alignment */}
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "flex-start",
+                                                marginBottom: styles.bulletSpacing,
+                                            }}
+                                        >
+                                            {/* Left side */}
+                                            <div style={{ flex: "1" }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: styles.fontSize,
+                                                        fontWeight: "bold",
+                                                        letterSpacing: "-0.025em",
+                                                        lineHeight: styles.lineHeight,
+                                                    }}
+                                                >
+                                                    {edu.institution}
+                                                    {edu.location &&
+                                                        `, ${edu.location}`}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: styles.fontSize,
+                                                        letterSpacing: "-0.025em",
+                                                        lineHeight: styles.lineHeight,
+                                                    }}
+                                                >
+                                                    {edu.degree}
+                                                    {edu.field && `, ${edu.field}`}
+                                                </div>
+                                            </div>
+
+                                            {/* Right side */}
+                                            <div
+                                                style={{
+                                                    textAlign: "right",
+                                                    marginLeft: "20px",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        fontSize: styles.fontSize,
+                                                        letterSpacing: "-0.025em",
+                                                        lineHeight: styles.lineHeight,
+                                                    }}
+                                                >
+                                                    {edu.duration}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Additional Info */}
+                                        {edu.additionalInfo && (
+                                            <div
+                                                style={{
+                                                    fontSize: styles.fontSize,
+                                                    letterSpacing: "-0.025em",
+                                                    lineHeight: styles.lineHeight,
+                                                }}
+                                            >
+                                                {edu.additionalInfo}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div
+                                    style={{
+                                        fontSize: styles.fontSize,
+                                        fontStyle: "italic",
+                                        color: "#666",
+                                        letterSpacing: "-0.025em",
+                                    }}
+                                >
+                                    Your education will appear here...
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
+            case "publications":
+                if (!showPublications || !data.publications || data.publications.length === 0) return null;
+                return (
+                    <div
+                        style={{
+                            marginBottom: "10px !important",
+                            ...getHighlightStyle("publications"),
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: styles.fontSize,
+                                borderBottom: "1px solid #000",
+                                paddingBottom: "2px",
+                                marginBottom: styles.itemMargin,
+                                fontWeight: "bold",
+                                letterSpacing: "-0.025em",
+                            }}
+                        >
+                            PUBLICATIONS
+                        </div>
+                        {data.publications.map(
+                            (item) =>
+                                item.details.trim() && (
+                                    <div
+                                        key={item.id}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            marginBottom: styles.bulletSpacing,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                fontSize: styles.fontSize,
+                                                marginRight: "4px",
+                                                minWidth: "8px",
+                                            }}
+                                        >
+                                            •
+                                        </span>
+                                        <div
+                                            style={{
+                                                textAlign: "justify",
+                                                fontSize: styles.fontSize,
+                                                lineHeight: styles.lineHeight,
+                                                letterSpacing: "-0.025em",
+                                            }}
+                                        >
+                                            {item.details}
+                                        </div>
+                                    </div>
+                                )
+                        )}
+                    </div>
+                );
+
+            default:
+                return null;
+        }
+    };
+
     // Helper function to get highlight style if field is changed
     const getHighlightStyle = (fieldPath: string) => {
         // Removed background color highlighting - now returns empty object
@@ -544,7 +1199,7 @@ The resume will print across multiple pages if needed, ensuring no content is cu
 
     const resumeContent = (
         <>
-            {/* Header */}
+            {/* Header - Always first */}
             <div
                 style={{
                     textAlign: "center",
@@ -658,644 +1313,10 @@ The resume will print across multiple pages if needed, ensuring no content is cu
                 </div>
             </div>
 
-            {/* Summary - Only show if enabled */}
-            {showSummary && (
-                <div
-                    style={{
-                        marginBottom: styles.sectionMargin,
-                        ...getHighlightStyle("summary"),
-                    }}
-                >
-                    <div
-                        style={{
-                            fontSize: styles.fontSize,
-                            borderBottom: "1px solid #000",
-                            paddingBottom: "2px",
-                            marginBottom: styles.itemMargin,
-                            fontWeight: "bold",
-                            letterSpacing: "-0.025em",
-                        }}
-                    >
-                        SUMMARY
-                    </div>
-                    <div
-                        style={{
-                            textAlign: "justify",
-                            fontSize: styles.fontSize,
-                            lineHeight: styles.lineHeight,
-                            letterSpacing: "-0.025em",
-                        }}
-                    >
-                        {data.summary ||
-                            "Your professional summary will appear here..."}
-                    </div>
-                </div>
-            )}
-
-            {/* Work Experience */}
-            <div
-                style={{
-                    marginBottom: styles.sectionMargin,
-                    ...getHighlightStyle("workExperience"),
-                }}
-            >
-                <div
-                    style={{
-                        fontSize: styles.fontSize,
-                        borderBottom: "1px solid #000",
-                        paddingBottom: "2px",
-                        marginBottom: styles.itemMargin,
-                        fontWeight: "bold",
-                        letterSpacing: "-0.025em",
-                    }}
-                >
-                    WORK EXPERIENCE
-                </div>
-                {data.workExperience.length > 0 ? (
-                    data.workExperience.map((exp, index) => (
-                        <div
-                            key={exp.id}
-                            className="work-experience-item"
-                            style={{
-                                marginBottom:
-                                    index === data.workExperience.length - 1
-                                        ? styles.bulletSpacing
-                                        : styles.itemMargin,
-                            }}
-                        >
-                            {/* Header with left/right alignment */}
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    marginBottom: styles.bulletSpacing,
-                                }}
-                            >
-                                {/* Left side */}
-                                <div style={{ flex: "1" }}>
-                                    {exp.company && (
-                                        <div
-                                            style={{
-                                                fontSize: styles.fontSize,
-                                                fontWeight: "bold",
-                                                letterSpacing: "-0.025em",
-                                                lineHeight: styles.lineHeight,
-                                            }}
-                                        >
-                                            {exp.company}
-                                        </div>
-                                    )}
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                        }}
-                                    >
-                                        {exp.position}
-                                        {exp.roleType &&
-                                            exp.roleType !== "None" &&
-                                            ` – ${exp.roleType}`}
-                                    </div>
-                                </div>
-
-                                {/* Right side */}
-                                <div
-                                    style={{
-                                        textAlign: "right",
-                                        marginLeft: "20px",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                        }}
-                                    >
-                                        {exp.location}
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                        }}
-                                    >
-                                        {exp.duration}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Responsibilities */}
-                            {exp.responsibilities.map(
-                                (resp, respIndex) =>
-                                    resp.trim() && (
-                                        <div
-                                            key={respIndex}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "flex-start",
-                                                marginBottom:
-                                                    styles.bulletSpacing,
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontSize: styles.fontSize,
-                                                    marginRight: "4px",
-                                                    minWidth: "8px",
-                                                }}
-                                            >
-                                                •
-                                            </span>
-                                            <div
-                                                style={{
-                                                    textAlign: "justify",
-                                                    fontSize: styles.fontSize,
-                                                    lineHeight:
-                                                        styles.lineHeight,
-                                                    letterSpacing: "-0.025em",
-                                                }}
-                                            >
-                                                {resp}
-                                            </div>
-                                        </div>
-                                    )
-                            )}
-                        </div>
-                    ))
-                ) : (
-                    <div
-                        style={{
-                            fontSize: styles.fontSize,
-                            fontStyle: "italic",
-                            color: "#666",
-                            letterSpacing: "-0.025em",
-                        }}
-                    >
-                        Your work experience will appear here...
-                    </div>
-                )}
-            </div>
-
-            {/* Projects - Only show if enabled */}
-            {data.projects && data.projects.length > 0 && (
-                <div
-                    style={{
-                        marginBottom: styles.sectionMargin,
-                        ...getHighlightStyle("projects"),
-                    }}
-                >
-                    <div
-                        style={{
-                            fontSize: styles.fontSize,
-                            borderBottom: "1px solid #000",
-                            paddingBottom: "2px",
-                            marginBottom: styles.itemMargin,
-                            fontWeight: "bold",
-                            letterSpacing: "-0.025em",
-                        }}
-                    >
-                        PROJECTS
-                    </div>
-                    {data.projects.map((project, index) => (
-                        <div
-                            key={project.id}
-                            className="project-item"
-                            style={{
-                                marginBottom:
-                                    index === data.projects.length - 1
-                                        ? styles.bulletSpacing
-                                        : styles.itemMargin,
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    marginBottom: styles.bulletSpacing,
-                                }}
-                            >
-                                {/* Left side */}
-                                <div style={{ flex: "1" }}>
-                                    {project.company && (
-                                        <div
-                                            style={{
-                                                fontSize: styles.fontSize,
-                                                fontWeight: "bold",
-                                                letterSpacing: "-0.025em",
-                                                lineHeight: styles.lineHeight,
-                                            }}
-                                        >
-                                            {project.company}
-                                        </div>
-                                    )}
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            fontWeight: "700 !important",
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                            color: "#000",
-                                            fontStyle: "normal",
-                                        }}
-                                    >
-                                        <strong>{project.position}</strong>
-                                        {project.roleType &&
-                                            project.roleType !== "None" &&
-                                            ` – ${project.roleType}`}
-                                        {project.linkName &&
-                                            project.linkUrl && (
-                                                <>
-                                                    {" — "}
-                                                    <a
-                                                        href={project.linkUrl}
-                                                        style={{
-                                                            color: "blue",
-                                                            textDecoration:
-                                                                "none",
-                                                        }}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        {project.linkName}
-                                                    </a>
-                                                </>
-                                            )}
-                                    </div>
-                                </div>
-
-                                {/* Right side */}
-                                <div
-                                    style={{
-                                        textAlign: "right",
-                                        marginLeft: "20px",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                        }}
-                                    >
-                                        {project.location}
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                        }}
-                                    >
-                                        {project.duration}
-                                    </div>
-                                </div>
-                            </div>
-                            {project.responsibilities.map(
-                                (resp, respIndex) =>
-                                    resp.trim() && (
-                                        <div
-                                            key={respIndex}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "flex-start",
-                                                marginBottom:
-                                                    styles.bulletSpacing,
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontSize: styles.fontSize,
-                                                    marginRight: "4px",
-                                                    minWidth: "8px",
-                                                }}
-                                            >
-                                                •
-                                            </span>
-                                            <div
-                                                style={{
-                                                    textAlign: "justify",
-                                                    fontSize: styles.fontSize,
-                                                    lineHeight:
-                                                        styles.lineHeight,
-                                                    letterSpacing: "-0.025em",
-                                                }}
-                                            >
-                                                {resp}
-                                            </div>
-                                        </div>
-                                    )
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Leadership & Volunteering - Only show if enabled */}
-            {showLeadership &&
-                data.leadership &&
-                data.leadership.length > 0 && (
-                    <div
-                        style={{
-                            marginBottom: styles.sectionMargin,
-                            ...getHighlightStyle("leadership"),
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize: styles.fontSize,
-                                borderBottom: "1px solid #000",
-                                paddingBottom: "2px",
-                                marginBottom: styles.itemMargin,
-                                fontWeight: "bold",
-                                letterSpacing: "-0.025em",
-                            }}
-                        >
-                            LEADERSHIP & VOLUNTEERING
-                        </div>
-                        {data.leadership.map((item) => (
-                            <div
-                                key={item.id}
-                                style={{
-                                    fontSize: styles.fontSize,
-                                    marginBottom: styles.bulletSpacing,
-                                    letterSpacing: "-0.025em",
-                                    lineHeight: styles.lineHeight,
-                                }}
-                            >
-                                {item.title}
-                                {item.organization && `, ${item.organization}`}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-            {/* Skills */}
-            <div
-                style={{
-                    marginBottom:
-                        Math.max(8, Math.round(10 * scalingFactor)) + "px",
-                    ...getHighlightStyle("skills"),
-                }}
-            >
-                <div
-                    style={{
-                        fontSize:
-                            Math.max(10, Math.round(12 * scalingFactor)) + "px",
-                        borderBottom: "1px solid #000",
-                        paddingBottom: "1px",
-                        marginBottom:
-                            Math.max(3, Math.round(4 * scalingFactor)) + "px",
-                        fontWeight: "bold",
-                        letterSpacing: "0.1px",
-                    }}
-                >
-                    SKILLS
-                </div>
-                {data.skills.length > 0 ? (
-                    data.skills.map((category) => (
-                        <div
-                            key={category.id}
-                            style={{
-                                fontSize:
-                                    Math.max(
-                                        9,
-                                        Math.round(11 * scalingFactor)
-                                    ) + "px",
-                                marginBottom:
-                                    Math.max(2, Math.round(3 * scalingFactor)) +
-                                    "px",
-                                lineHeight: Math.max(
-                                    1.15,
-                                    1.25 * scalingFactor
-                                ).toString(),
-                                letterSpacing: "0.01px",
-                                display: "flex",
-                                alignItems: "flex-start",
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: "160px",
-                                    flexShrink: 0,
-                                    fontWeight: "bold",
-                                    letterSpacing: "0.01px",
-                                }}
-                            >
-                                {category.category}
-                            </span>
-                            <span
-                                style={{
-                                    fontWeight: "bold",
-                                    margin: "0 5px",
-                                }}
-                            >
-                                :
-                            </span>
-                            <span
-                                style={{
-                                    flex: "1",
-                                    wordWrap: "break-word",
-                                    textAlign: "justify",
-                                }}
-                            >
-                                {formatSkills(category.skills)}
-                            </span>
-                        </div>
-                    ))
-                ) : (
-                    <div
-                        style={{
-                            fontSize:
-                                Math.max(9, Math.round(11 * scalingFactor)) +
-                                "px",
-                            fontStyle: "italic",
-                            color: "#666",
-                            letterSpacing: "0.01px",
-                        }}
-                    >
-                        Your skills will appear here...
-                    </div>
-                )}
-            </div>
-
-            {/* Education */}
-            <div
-                className="education-section"
-                style={{
-                    marginBottom: "0px",
-                    ...getHighlightStyle("education"),
-                }}
-            >
-                <div
-                    style={{
-                        fontSize: styles.fontSize,
-                        borderBottom: "1px solid #000",
-                        paddingBottom: "2px",
-                        marginBottom: styles.itemMargin,
-                        fontWeight: "bold",
-                        letterSpacing: "-0.025em",
-                    }}
-                >
-                    EDUCATION
-                </div>
-                <div>
-                    {data.education.length > 0 ? (
-                        data.education.map((edu, index) => (
-                            <div
-                                key={edu.id}
-                                className="education-item"
-                                style={{
-                                    marginBottom:
-                                        index === data.education.length - 1
-                                            ? "0px"
-                                            : styles.itemMargin,
-                                }}
-                            >
-                                {/* Header with left/right alignment */}
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
-                                        marginBottom: styles.bulletSpacing,
-                                    }}
-                                >
-                                    {/* Left side */}
-                                    <div style={{ flex: "1" }}>
-                                        <div
-                                            style={{
-                                                fontSize: styles.fontSize,
-                                                fontWeight: "bold",
-                                                letterSpacing: "-0.025em",
-                                                lineHeight: styles.lineHeight,
-                                            }}
-                                        >
-                                            {edu.institution}
-                                            {edu.location &&
-                                                `, ${edu.location}`}
-                                        </div>
-                                        <div
-                                            style={{
-                                                fontSize: styles.fontSize,
-                                                letterSpacing: "-0.025em",
-                                                lineHeight: styles.lineHeight,
-                                            }}
-                                        >
-                                            {edu.degree}
-                                            {edu.field && `, ${edu.field}`}
-                                        </div>
-                                    </div>
-
-                                    {/* Right side */}
-                                    <div
-                                        style={{
-                                            textAlign: "right",
-                                            marginLeft: "20px",
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                fontSize: styles.fontSize,
-                                                letterSpacing: "-0.025em",
-                                                lineHeight: styles.lineHeight,
-                                            }}
-                                        >
-                                            {edu.duration}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Additional Info */}
-                                {edu.additionalInfo && (
-                                    <div
-                                        style={{
-                                            fontSize: styles.fontSize,
-                                            letterSpacing: "-0.025em",
-                                            lineHeight: styles.lineHeight,
-                                        }}
-                                    >
-                                        {edu.additionalInfo}
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    ) : (
-                        <div
-                            style={{
-                                fontSize: styles.fontSize,
-                                fontStyle: "italic",
-                                color: "#666",
-                                letterSpacing: "-0.025em",
-                            }}
-                        >
-                            Your education will appear here...
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Publications - Only show if enabled */}
-            {showPublications &&
-                data.publications &&
-                data.publications.length > 0 && (
-                    <div
-                        style={{
-                            marginBottom: "10px !important",
-                            ...getHighlightStyle("publications"),
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize: styles.fontSize,
-                                borderBottom: "1px solid #000",
-                                paddingBottom: "2px",
-                                marginBottom: styles.itemMargin,
-                                fontWeight: "bold",
-                                letterSpacing: "-0.025em",
-                            }}
-                        >
-                            PUBLICATIONS
-                        </div>
-                        {data.publications.map(
-                            (item) =>
-                                item.details.trim() && (
-                                    <div
-                                        key={item.id}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "flex-start",
-                                            marginBottom: styles.bulletSpacing,
-                                        }}
-                                    >
-                                        <span
-                                            style={{
-                                                fontSize: styles.fontSize,
-                                                marginRight: "4px",
-                                                minWidth: "8px",
-                                            }}
-                                        >
-                                            •
-                                        </span>
-                                        <div
-                                            style={{
-                                                textAlign: "justify",
-                                                fontSize: styles.fontSize,
-                                                lineHeight: styles.lineHeight,
-                                                letterSpacing: "-0.025em",
-                                            }}
-                                        >
-                                            {item.details}
-                                        </div>
-                                    </div>
-                                )
-                        )}
-                    </div>
-                )}
+            {/* Render sections based on section order */}
+            {sectionOrder
+                .filter(sectionId => sectionId !== "personalInfo") // Skip personal info as it's always first
+                .map(sectionId => renderSection(sectionId))}
         </>
     );
 

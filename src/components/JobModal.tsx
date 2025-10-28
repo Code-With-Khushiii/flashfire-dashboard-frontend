@@ -341,7 +341,20 @@ export default function JobModal({
                 const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
                 
                 if (hoursDiff < 24) {
-                    setResumeData(parsed.data);
+                    const defaultOrder = [
+                        "personalInfo",
+                        "summary",
+                        "workExperience",
+                        "projects",
+                        "leadership",
+                        "skills",
+                        "education",
+                        "publications",
+                    ];
+                    setResumeData({
+                        ...parsed.data,
+                        sectionOrder: parsed.data?.sectionOrder || defaultOrder,
+                    });
                     setResumeLoading(false);
                     return;
                 }
@@ -351,10 +364,28 @@ export default function JobModal({
             const result = await response.json();
             
             if (response.ok && result.success) {
-                setResumeData(result.optimizedResume);
+                const defaultOrder = [
+                    "personalInfo",
+                    "summary",
+                    "workExperience",
+                    "projects",
+                    "leadership",
+                    "skills",
+                    "education",
+                    "publications",
+                ];
+                setResumeData({
+                    ...result.optimizedResume,
+                    sectionOrder:
+                        result.optimizedResume?.sectionOrder || defaultOrder,
+                });
                 // Cache for 24 hours
                 sessionStorage.setItem(cacheKey, JSON.stringify({
-                    data: result.optimizedResume,
+                    data: {
+                        ...result.optimizedResume,
+                        sectionOrder:
+                            result.optimizedResume?.sectionOrder || defaultOrder,
+                    },
                     timestamp: new Date().getTime()
                 }));
             } else {
@@ -374,7 +405,21 @@ export default function JobModal({
             // First check if job has optimizedResume data directly
             if (jobDetails.optimizedResume?.resumeData) {
                 console.log("Auto-loading resume from job data");
-                setResumeData(jobDetails.optimizedResume);
+                const defaultOrder = [
+                    "personalInfo",
+                    "summary",
+                    "workExperience",
+                    "projects",
+                    "leadership",
+                    "skills",
+                    "education",
+                    "publications",
+                ];
+                setResumeData({
+                    ...jobDetails.optimizedResume,
+                    sectionOrder:
+                        jobDetails.optimizedResume.sectionOrder || defaultOrder,
+                });
                 return;
             }
             
@@ -1243,6 +1288,7 @@ useEffect(() => {
                                             showChanges={false}
                                             changedFields={new Set()}
                                             showPrintButtons={role === "operations"}
+                                            sectionOrder={resumeData.sectionOrder}
                                         />
                                     )}
                                     
@@ -1255,6 +1301,7 @@ useEffect(() => {
                                             showChanges={false}
                                             changedFields={new Set()}
                                             showPrintButtons={role === "operations"}
+                                            sectionOrder={resumeData.sectionOrder}
                                         />
                                     )}
                                     
@@ -1266,6 +1313,7 @@ useEffect(() => {
                                                     showSummary={resumeData.showSummary}
                                                     showPublications={resumeData.showPublications}
                                                     showPrintButtons={role === "operations"}
+                                                    sectionOrder={resumeData.sectionOrder}
                                                 />
                                             )}
                                 </div>

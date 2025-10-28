@@ -711,6 +711,7 @@ type Entry = {
   showProjects?: boolean;
   showLeadership?: boolean;
   showPublications?: boolean;
+  sectionOrder?: string[];
 };
 
 // Cloudinary sometimes serves PDFs under `image/upload`.
@@ -929,7 +930,8 @@ export default function DocumentUpload() {
               showSummary: resume.showSummary,
               showProjects: resume.showProjects,
               showLeadership: resume.showLeadership,
-              showPublications: resume.showPublications
+              showPublications: resume.showPublications,
+              sectionOrder: resume.sectionOrder
             };
           });
           allResumes = [...allResumes, ...jobResumes];
@@ -1936,6 +1938,7 @@ export default function DocumentUpload() {
                             showChanges={false}
                             changedFields={new Set()}
                             showPrintButtons={role === "operations"}
+                            sectionOrder={resumeData.sectionOrder}
                           />
                         )}
                         {resumeData.version === 1 && (
@@ -1947,6 +1950,7 @@ export default function DocumentUpload() {
                             showChanges={false}
                             changedFields={new Set()}
                             showPrintButtons={role === "operations"}
+                            sectionOrder={resumeData.sectionOrder}
                           />
                         )}
                         {resumeData.version === 2 && (
@@ -1957,6 +1961,7 @@ export default function DocumentUpload() {
                             showSummary={resumeData.showSummary}
                             showPublications={resumeData.showPublications}
                             showPrintButtons={role === "operations"}
+                            sectionOrder={resumeData.sectionOrder}
                           />
                         )}
                         <div className="mt-4">
@@ -2002,7 +2007,8 @@ export default function DocumentUpload() {
                               showSummary: it.showSummary,
                               showProjects: it.showProjects,
                               showLeadership: it.showLeadership,
-                              showPublications: it.showPublications
+                              showPublications: it.showPublications,
+                              sectionOrder: it.sectionOrder
                             });
                             setPreviewMode(true);
                           } else if (it.isJobBased && (it.jobID || it.jobId) && it.hasResume) {

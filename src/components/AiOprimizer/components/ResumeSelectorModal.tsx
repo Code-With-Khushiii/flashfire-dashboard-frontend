@@ -35,7 +35,7 @@ export default function ResumeSelectorModal({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const { setResumeId } = useResumeUnlockStore();
-    const { setLastSelectedResume } = useResumeStore();
+    const { setLastSelectedResume, setSectionOrder } = useResumeStore();
     const apiUrl = import.meta.env.VITE_API_URL || "https://resume-maker-backend-lf5z.onrender.com";
 
     useEffect(() => {
@@ -223,6 +223,25 @@ export default function ResumeSelectorModal({
 
             // Store the selected resume persistently for future use
             setLastSelectedResume(resumeData, selectedResumeId);
+
+            // Apply backend-provided section order to editor (left side) immediately
+            const defaultOrder = [
+                "personalInfo",
+                "summary",
+                "workExperience",
+                "projects",
+                "leadership",
+                "skills",
+                "education",
+                "publications",
+            ];
+            try {
+                if (resumeData?.sectionOrder && Array.isArray(resumeData.sectionOrder)) {
+                    setSectionOrder(resumeData.sectionOrder);
+                } else {
+                    setSectionOrder(defaultOrder);
+                }
+            } catch {}
 
             onSelect(resumeData);
             setUnlockModalOpen(false);
