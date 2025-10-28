@@ -1557,7 +1557,8 @@ function App() {
                         showProjects: showProjects,
                         showLeadership: showLeadership,
                         showPublications: showPublications,
-                        version: versionV
+                            version: versionV,
+                            sectionOrder: sectionOrder
                     }
                 }),
             });
@@ -1909,8 +1910,8 @@ function App() {
                                     />
 
                                     {/* Draggable Sections */}
-                                    <DraggableSections
-                                        sections={[
+                                    {(() => {
+                                        const definitions = [
                                             {
                                                 id: "summary",
                                                 title: "Summary",
@@ -1921,13 +1922,7 @@ function App() {
                                                     />
                                                 ) : <div className="text-gray-500 italic">Summary section is disabled</div>,
                                                 isEnabled: showSummary,
-                                                onToggle: (enabled) => {
-                                                    console.log(
-                                                        "Summary checkbox manually changed to:",
-                                                        enabled
-                                                    );
-                                                    setShowSummary(enabled);
-                                                },
+                                                onToggle: (enabled: boolean) => setShowSummary(enabled),
                                                 showToggle: true,
                                             },
                                             {
@@ -1952,7 +1947,7 @@ function App() {
                                                     />
                                                 ) : <div className="text-gray-500 italic">Projects section is disabled</div>,
                                                 isEnabled: showProjects,
-                                                onToggle: (enabled) => setShowProjects(enabled),
+                                                onToggle: (enabled: boolean) => setShowProjects(enabled),
                                                 showToggle: true,
                                             },
                                             {
@@ -1965,7 +1960,7 @@ function App() {
                                                     />
                                                 ) : <div className="text-gray-500 italic">Leadership section is disabled</div>,
                                                 isEnabled: showLeadership,
-                                                onToggle: (enabled) => setShowLeadership(enabled),
+                                                onToggle: (enabled: boolean) => setShowLeadership(enabled),
                                                 showToggle: true,
                                             },
                                             {
@@ -2002,12 +1997,21 @@ function App() {
                                                     />
                                                 ) : <div className="text-gray-500 italic">Publications section is disabled</div>,
                                                 isEnabled: showPublications,
-                                                onToggle: (enabled) => setShowPublications(enabled),
+                                                onToggle: (enabled: boolean) => setShowPublications(enabled),
                                                 showToggle: true,
                                             }] : []),
-                                        ]}
-                                        onSectionOrderChange={setSectionOrder}
-                                    />
+                                        ];
+                                        const order = sectionOrder.filter((id) => id !== "personalInfo" && (versionV === 2 || id !== "publications"));
+                                        const ordered = order
+                                            .map((id) => definitions.find((d) => d.id === id))
+                                            .filter(Boolean) as any[];
+                                        return (
+                                            <DraggableSections
+                                                sections={ordered}
+                                                onSectionOrderChange={setSectionOrder}
+                                            />
+                                        );
+                                    })()}
 
                                     {/* Save Button - Also lock this */}
 
@@ -2279,181 +2283,123 @@ function App() {
                                         {optimizedData && (
                                             <>
                                                 <LockedSection
-                                                    isLocked={
-                                                        !isEditingUnlocked
-                                                    }
+                                                    isLocked={!isEditingUnlocked}
                                                     sectionName="Editable session "
                                                 >
                                                     <PersonalInfo
-                                                        data={
-                                                            optimizedData.personalInfo
-                                                        }
-                                                        onChange={
-                                                            updateOptimizedPersonalInfo
-                                                        }
+                                                        data={optimizedData.personalInfo}
+                                                        onChange={updateOptimizedPersonalInfo}
                                                     />
-                                                    <Summary
-                                                        data={
-                                                            optimizedData.summary
-                                                        }
-                                                        onChange={
-                                                            updateOptimizedSummary
-                                                        }
-                                                    />
-                                                    <WorkExperience
-                                                        data={
-                                                            optimizedData.workExperience
-                                                        }
-                                                        onChange={
-                                                            updateOptimizedWorkExperience
-                                                        }
-                                                    />
-
-                                                    {/* Projects Toggle */}
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                id="showOptimizedProjects"
-                                                                checked={
-                                                                    showProjects
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setShowProjects(
-                                                                        e.target
-                                                                            .checked
-                                                                    )
-                                                                }
-                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                    {(() => {
+                                                        const definitions = [
+                                                            {
+                                                                id: "summary",
+                                                                title: "Summary",
+                                                                component: (
+                                                                    <Summary
+                                                                        data={optimizedData.summary}
+                                                                        onChange={updateOptimizedSummary}
+                                                                    />
+                                                                ),
+                                                                isEnabled: true,
+                                                                showToggle: false,
+                                                            },
+                                                            {
+                                                                id: "workExperience",
+                                                                title: "Work Experience",
+                                                                component: (
+                                                                    <WorkExperience
+                                                                        data={optimizedData.workExperience}
+                                                                        onChange={updateOptimizedWorkExperience}
+                                                                    />
+                                                                ),
+                                                                isEnabled: true,
+                                                                showToggle: false,
+                                                            },
+                                                            {
+                                                                id: "projects",
+                                                                title: "Projects",
+                                                                component: showProjects ? (
+                                                                    <Projects
+                                                                        data={optimizedData.projects}
+                                                                        onChange={updateOptimizedProjects}
+                                                                    />
+                                                                ) : <div className="text-gray-500 italic">Projects section is disabled</div>,
+                                                                isEnabled: showProjects,
+                                                                onToggle: (enabled: boolean) => setShowProjects(enabled),
+                                                                showToggle: true,
+                                                            },
+                                                            {
+                                                                id: "leadership",
+                                                                title: "Leadership & Volunteering",
+                                                                component: showLeadership ? (
+                                                                    <Leadership
+                                                                        data={optimizedData.leadership}
+                                                                        onChange={updateOptimizedLeadership}
+                                                                    />
+                                                                ) : <div className="text-gray-500 italic">Leadership section is disabled</div>,
+                                                                isEnabled: showLeadership,
+                                                                onToggle: (enabled: boolean) => setShowLeadership(enabled),
+                                                                showToggle: true,
+                                                            },
+                                                            {
+                                                                id: "skills",
+                                                                title: "Skills",
+                                                                component: (
+                                                                    <Skills
+                                                                        data={optimizedData.skills}
+                                                                        onChange={updateOptimizedSkills}
+                                                                    />
+                                                                ),
+                                                                isEnabled: true,
+                                                                showToggle: false,
+                                                            },
+                                                            {
+                                                                id: "education",
+                                                                title: "Education",
+                                                                component: (
+                                                                    <Education
+                                                                        data={optimizedData.education}
+                                                                        onChange={updateOptimizedEducation}
+                                                                    />
+                                                                ),
+                                                                isEnabled: true,
+                                                                showToggle: false,
+                                                            },
+                                                            ...(versionV == 2 ? [{
+                                                                id: "publications",
+                                                                title: "Publications",
+                                                                component: showPublications ? (
+                                                                    <Publications
+                                                                        data={optimizedData.publications}
+                                                                        onChange={updateOptimizedPublications}
+                                                                    />
+                                                                ) : <div className="text-gray-500 italic">Publications section is disabled</div>,
+                                                                isEnabled: showPublications,
+                                                                onToggle: (enabled: boolean) => setShowPublications(enabled),
+                                                                showToggle: true,
+                                                            }] : []),
+                                                        ];
+                                                        const order = sectionOrder.filter((id) => id !== "personalInfo" && (versionV === 2 || id !== "publications"));
+                                                        const ordered = order
+                                                            .map((id) => definitions.find((d) => d.id === id))
+                                                            .filter(Boolean) as any[];
+                                                        return (
+                                                            <DraggableSections
+                                                                sections={ordered}
+                                                                onSectionOrderChange={setSectionOrder}
                                                             />
-                                                            <label
-                                                                htmlFor="showOptimizedProjects"
-                                                                className="text-sm font-medium text-gray-700"
-                                                            >
-                                                                Include Projects
-                                                                section
-                                                            </label>
-                                                        </div>
-
-                                                        {showProjects && (
-                                                            <Projects
-                                                                data={
-                                                                    optimizedData.projects
-                                                                }
-                                                                onChange={
-                                                                    updateOptimizedProjects
-                                                                }
-                                                            />
-                                                        )}
-                                                    </div>
-
-                                                    {/* Leadership & Volunteering Toggle */}
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                id="showOptimizedLeadership"
-                                                                checked={
-                                                                    showLeadership
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setShowLeadership(
-                                                                        e.target
-                                                                            .checked
-                                                                    )
-                                                                }
-                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                            />
-                                                            <label
-                                                                htmlFor="showOptimizedLeadership"
-                                                                className="text-sm font-medium text-gray-700"
-                                                            >
-                                                                Include
-                                                                Leadership &
-                                                                Volunteering
-                                                                section
-                                                            </label>
-                                                        </div>
-
-                                                        {showLeadership && (
-                                                            <Leadership
-                                                                data={
-                                                                    optimizedData.leadership
-                                                                }
-                                                                onChange={
-                                                                    updateOptimizedLeadership
-                                                                }
-                                                            />
-                                                        )}
-                                                    </div>
-
-                                                    <Skills
-                                                        data={
-                                                            optimizedData.skills
-                                                        }
-                                                        onChange={
-                                                            updateOptimizedSkills
-                                                        }
-                                                    />
-                                                    <Education
-                                                        data={
-                                                            optimizedData.education
-                                                        }
-                                                        onChange={
-                                                            updateOptimizedEducation
-                                                        }
-                                                    />
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                id="showOptimizedPublications"
-                                                                checked={
-                                                                    showPublications
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setShowPublications(
-                                                                        e.target
-                                                                            .checked
-                                                                    )
-                                                                }
-                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                            />
-                                                            <label
-                                                                htmlFor="showOptimizedPublications"
-                                                                className="text-sm font-medium text-gray-700"
-                                                            >
-                                                                Include
-                                                                Publications
-                                                                section
-                                                            </label>
-                                                        </div>
-
-                                                        {showPublications && (
-                                                            <Publications
-                                                                data={
-                                                                    optimizedData.publications
-                                                                }
-                                                                onChange={
-                                                                    updateOptimizedPublications
-                                                                }
-                                                            />
-                                                        )}
-                                                    </div>
+                                                        );
+                                                    })()}
 
                                                     {/* Save Optimized Button */}
                                                     <button
                                                         onClick={() => {
-                                                            // Save optimized data to localStorage with a different key
                                                             localStorage.setItem(
                                                                 "optimizedResumeData",
-                                                                JSON.stringify(
-                                                                    optimizedData
-                                                                )
+                                                                JSON.stringify(optimizedData)
                                                             );
-                                                            alert(
-                                                                "Optimized resume saved!"
-                                                            );
+                                                            alert("Optimized resume saved!");
                                                         }}
                                                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
                                                     >
