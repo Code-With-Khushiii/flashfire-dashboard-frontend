@@ -159,6 +159,16 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
     const payload = apiPayload as any;
 
+     const safeIsoFromDateLike = (value: unknown): string => {
+      if (!value || typeof value !== "string") return "";
+      const trimmed = value.trim();
+      if (!trimmed || /^(n\/a|na|none|null|undefined)$/i.test(trimmed)) return "";
+      const monthYearMatch = /^\d{4}-\d{2}$/.test(trimmed);
+      const candidate = monthYearMatch ? `${trimmed}-01` : trimmed;
+      const d = new Date(candidate);
+      return isNaN(d.getTime()) ? "" : d.toISOString();
+    };
+
     // Coerce string fields to arrays when backend returns a comma/semicolon separated string
     const toArray = (v: unknown): string[] => {
       if (Array.isArray(v)) return v.filter(Boolean);
@@ -177,12 +187,12 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       firstName: payload.firstName || "",
       lastName: payload.lastName || "",
       contactNumber: payload.contactNumber || "",
-      dob: payload.dob ? new Date(payload.dob).toISOString() : "",
+      dob: safeIsoFromDateLike(payload.dob),
       bachelorsUniDegree: payload.bachelorsUniDegree || "",
-      bachelorsGradMonthYear: payload.bachelorsGradMonthYear ? new Date(payload.bachelorsGradMonthYear).toISOString() : "",
+      bachelorsGradMonthYear: safeIsoFromDateLike(payload.bachelorsGradMonthYear),
       bachelorsGPA: payload.bachelorsGPA || "",
       mastersUniDegree: payload.mastersUniDegree || "",
-      mastersGradMonthYear: payload.mastersGradMonthYear ? new Date(payload.mastersGradMonthYear).toISOString() : "",
+      mastersGradMonthYear: safeIsoFromDateLike(payload.mastersGradMonthYear),
       mastersGPA: payload.mastersGPA || "",
       transcriptUrl: payload.transcriptUrl || "",
       visaStatus: payload.visaStatus || "Other",
