@@ -1539,24 +1539,30 @@ function App() {
 
             const { startingContent, finalChanges } = getChangedFieldsOnly();
 
+
+            delete (startingContent as any).projects;
+            delete (finalChanges as any).projects;
+            delete (startingContent as any).education;
+            delete (finalChanges as any).education;
+            delete (startingContent as any).publications;
+            delete (finalChanges as any).publications;
+            delete (startingContent as any).leadership;
+            delete (finalChanges as any).leadership;
+
             if (!showSummary) {
                 delete (startingContent as any).summary;
                 delete (finalChanges as any).summary;
             }
-            if (!showProjects) {
-                delete (startingContent as any).projects;
-                delete (finalChanges as any).projects;
-            }
-            if (!showLeadership) {
-                delete (startingContent as any).leadership;
-                delete (finalChanges as any).leadership;
-            }
-            if (!showPublications) {
-                delete (startingContent as any).publications;
-                delete (finalChanges as any).publications;
-            }
+            // The rest (projects/leadership/education/publications) are already stripped above
 
             console.log("Auto-saving changes for job ID:", jobId);
+
+
+            const optimizedDataForSave = JSON.parse(JSON.stringify(optimizedData));
+            delete (optimizedDataForSave as any).projects;
+            delete (optimizedDataForSave as any).education;
+            delete (optimizedDataForSave as any).publications;
+            delete (optimizedDataForSave as any).leadership;
 
             const response = await fetch(`${apiUrl}/saveChangedSession`, {
                 method: "POST",
@@ -1568,12 +1574,12 @@ function App() {
                     startingContent: startingContent,
                     finalChanges: finalChanges,
                     optimizedResume: {
-                        resumeData: optimizedData,
+                        resumeData: optimizedDataForSave,
                         hasResume: true,
                         showSummary: showSummary,
-                        showProjects: showProjects,
-                        showLeadership: showLeadership,
-                        showPublications: showPublications,
+                        showProjects: false,
+                        showLeadership: false,
+                        showPublications: false,
                             version: versionV,
                             sectionOrder: sectionOrder
                     }
