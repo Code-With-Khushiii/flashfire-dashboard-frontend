@@ -1574,12 +1574,12 @@ function App() {
                     startingContent: startingContent,
                     finalChanges: finalChanges,
                     optimizedResume: {
-                        resumeData: optimizedDataForSave,
+                        resumeData: optimizedData,
                         hasResume: true,
                         showSummary: showSummary,
-                        showProjects: false,
-                        showLeadership: false,
-                        showPublications: false,
+                        showProjects: showProjects,
+                        showLeadership: showLeadership,
+                        showPublications: showPublications,
                             version: versionV,
                             sectionOrder: sectionOrder
                     }
