@@ -399,14 +399,14 @@ export default function Login() {
       const res = await fetch(`${API_BASE_URL}/operations/verify-session-key`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, sessionKey: sessionKeyInput })
+        body: JSON.stringify({ email: email.toLowerCase(), sessionKey: sessionKeyInput })
       })
       const data = await res.json()
       if (res.ok) {
         toastUtils.dismissToast(loadingToast)
         toastUtils.success('Verified. Welcome to Operations Dashboard!')
-        // persist key for future logins
-        localStorage.setItem('opsSessionKey', JSON.stringify({ email, sessionKey: sessionKeyInput, verifiedAt: Date.now() }))
+        // persist key for future logins (store lowercase email)
+        localStorage.setItem('opsSessionKey', JSON.stringify({ email: email.toLowerCase(), sessionKey: sessionKeyInput, verifiedAt: Date.now() }))
         setRequireSessionKey(false)
         setSessionKeyInput("")
         navigate('/manage')
@@ -472,11 +472,12 @@ export default function Login() {
           if (stored) {
             try {
               const parsed = JSON.parse(stored)
-              if (parsed?.email === email && parsed?.sessionKey) {
+              const operatorEmail = (data?.user?.email || email || '').toLowerCase()
+              if (parsed?.sessionKey && parsed?.email && parsed.email === operatorEmail) {
                 const resVerify = await fetch(`${import.meta.env.VITE_API_BASE_URL}/operations/verify-session-key`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ email, sessionKey: parsed.sessionKey })
+                  body: JSON.stringify({ email: operatorEmail, sessionKey: parsed.sessionKey })
                 })
                 if (resVerify.ok) {
                   toastUtils.success('Verified with saved session key')
