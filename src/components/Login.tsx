@@ -383,12 +383,42 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [, setResponse] = useState<LoginResponse | null>(null)
   const [googleButtonKey, setGoogleButtonKey] = useState<number>(Date.now())
+  const [requireSessionKey, setRequireSessionKey] = useState<boolean>(false)
+  const [sessionKeyInput, setSessionKeyInput] = useState<string>("")
 
   const navigate = useNavigate()
   const { setName, setEmailOperations, setRole, setManagedUsers } = useOperationsStore()
   const userContext = useContext(UserContext)
   const setData = userContext?.setData
   const { setProfileFromApi } = useUserProfile()
+  
+  const verifySessionKey = async () => {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+    const loadingToast = toastUtils.loading('Verifying session key...')
+    try {
+      const res = await fetch(`${API_BASE_URL}/operations/verify-session-key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, sessionKey: sessionKeyInput })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toastUtils.dismissToast(loadingToast)
+        toastUtils.success('Verified. Welcome to Operations Dashboard!')
+        // persist key for future logins
+        localStorage.setItem('opsSessionKey', JSON.stringify({ email, sessionKey: sessionKeyInput, verifiedAt: Date.now() }))
+        setRequireSessionKey(false)
+        setSessionKeyInput("")
+        navigate('/manage')
+      } else {
+        toastUtils.dismissToast(loadingToast)
+        toastUtils.error(data?.error || 'Invalid or expired session key')
+      }
+    } catch (e) {
+      toastUtils.dismissToast(loadingToast)
+      toastUtils.error('Network error while verifying key')
+    }
+  }
 
   // Force Google button to refresh on component mount to clear any cached state
   useEffect(() => {
@@ -437,8 +467,27 @@ export default function Login() {
           setRole(data.user.role)
           setManagedUsers(data.user.managedUsers)
           toastUtils.dismissToast(loadingToast)
-          toastUtils.success("Welcome to Operations Dashboard!")
-          navigate("/manage")
+          // Auto-verify with stored key if available
+          const stored = localStorage.getItem('opsSessionKey')
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored)
+              if (parsed?.email === email && parsed?.sessionKey) {
+                const resVerify = await fetch(`${import.meta.env.VITE_API_BASE_URL}/operations/verify-session-key`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email, sessionKey: parsed.sessionKey })
+                })
+                if (resVerify.ok) {
+                  toastUtils.success('Verified with saved session key')
+                  navigate('/manage')
+                  return
+                }
+              }
+            } catch {}
+          }
+          // Otherwise show session key prompt
+          setRequireSessionKey(true)
         } else {
           toastUtils.dismissToast(loadingToast)
           toastUtils.error(data?.message || toastMessages.loginError)
@@ -725,7 +774,6 @@ export default function Login() {
       useOneTap={false}
       auto_select={false}
       cancel_on_tap_outside={true}
-      prompt="select_account"
       ux_mode="popup"
       onSuccess={async (credentialResponse) => {
         const loadingToast = toastUtils.loading(toastMessages.loggingIn)
@@ -849,6 +897,59 @@ export default function Login() {
           </form>
 
         </div>
+      </div>
+      {/* Session Key Modal */}
+      <SessionKeyModal 
+        visible={requireSessionKey}
+        onClose={() => { setRequireSessionKey(false); setSessionKeyInput("") }}
+        onSubmit={verifySessionKey}
+        sessionKeyInput={sessionKeyInput}
+        setSessionKeyInput={setSessionKeyInput}
+        email={email}
+      />
+    </div>
+  )
+}
+
+// Session Key Modal
+// Placed at end to avoid layout shifts
+// Render conditionally when requireSessionKey is true
+// Note: preserving existing design language
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function SessionKeyModal({ visible, onClose, onSubmit, sessionKeyInput, setSessionKeyInput, email }: { visible: boolean, onClose: () => void, onSubmit: () => void, sessionKeyInput: string, setSessionKeyInput: (v: string) => void, email: string }) {
+  if (!visible) return null
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md transform transition-all">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700">🔑</span>
+            <span>Enter Session Key</span>
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">A valid 8-digit key is required to access the dashboard for {email}.</p>
+        </div>
+        <form onSubmit={(e)=>{ e.preventDefault(); onSubmit(); }} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Session Key</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="^[0-9]{8}$"
+              maxLength={8}
+              required
+              value={sessionKeyInput}
+              onChange={(e)=> setSessionKeyInput(e.target.value.replace(/[^0-9]/g, '').slice(0,8))}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent tracking-widest text-center"
+              placeholder="########"
+              title="Enter exactly 8 digits"
+              autoComplete="one-time-code"
+            />
+          </div>
+          <div className="flex space-x-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl">Verify</button>
+          </div>
+        </form>
       </div>
     </div>
   )
