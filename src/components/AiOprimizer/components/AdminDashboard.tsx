@@ -39,6 +39,7 @@ interface SessionKey {
   isUsed: boolean;
   isActive: boolean;
   createdAt: string;
+  source?: 'optimizer' | 'dashboard';
 }
 
 interface Statistics {
@@ -77,17 +78,18 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const [sessionKeyForm, setSessionKeyForm] = useState({
     username: '',
-    duration: 24
+    duration: 720, // 30 days preset for dashboard
+    target: 'dashboard' as 'optimizer' | 'dashboard'
   });
 
-  const API_BASE = import.meta.env.VITE_API_URL || 
-      (import.meta.env.DEV ? import.meta.env.VITE_DEV_API_URL || 'http://localhost:8001' : '');
+  const API_OPTIMIZER = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? import.meta.env.VITE_DEV_API_URL || 'http://localhost:8001' : '');
+  const API_DASHBOARD = import.meta.env.VITE_API_BASE_URL || '';
 
-  const authFetch = (url: string, options: RequestInit = {}) => {
+  const authFetch = (base: string, url: string, options: RequestInit = {}) => {
     const headers: Record<string, string> = options.headers ? { ...options.headers as Record<string, string> } : {};
     headers['Authorization'] = `Bearer ${token}`;
     headers['Content-Type'] = 'application/json';
-    return fetch(`${API_BASE}${url}`, { ...options, headers });
+    return fetch(`${base}${url}`, { ...options, headers });
   };
 
   const loadAllData = async () => {
@@ -105,7 +107,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const loadUsers = async () => {
     try {
-      const response = await authFetch('/api/admin/users');
+      const response = await authFetch(API_OPTIMIZER, '/api/admin/users');
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -117,7 +119,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const loadLoginHistory = async () => {
     try {
-      const response = await authFetch('/api/sessions/active-sessions');
+      const response = await authFetch(API_OPTIMIZER, '/api/sessions/active-sessions');
       if (response.ok) {
         const data = await response.json();
         setLoginHistory(data);
@@ -129,11 +131,29 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const loadSessionKeys = async () => {
     try {
-      const response = await authFetch('/api/sessions/session-keys');
-      if (response.ok) {
-        const data = await response.json();
-        setSessionKeys(data);
+      const requests: Promise<Response>[] = [];
+      // Optimizer backend (default)
+      requests.push(authFetch(API_OPTIMIZER, '/api/sessions/session-keys'));
+      // Dashboard backend (if configured)
+      if (API_DASHBOARD) {
+        requests.push(authFetch(API_DASHBOARD, '/api/sessions/session-keys'));
       }
+
+      const responses = await Promise.allSettled(requests);
+      const merged: SessionKey[] = [];
+      for (const res of responses) {
+        if (res.status === 'fulfilled') {
+          const r = res.value;
+          if (r.ok) {
+            const data: SessionKey[] = await r.json();
+            const source: 'optimizer' | 'dashboard' = r.url.startsWith(API_DASHBOARD) ? 'dashboard' : 'optimizer';
+            merged.push(...data.map(k => ({ ...k, source })));
+          }
+        }
+      }
+      // Sort by createdAt desc
+      merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setSessionKeys(merged);
     } catch (error) {
       console.error('Failed to load session keys:', error);
     }
@@ -141,7 +161,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const loadStatistics = async () => {
     try {
-      const response = await authFetch('/api/admin/statistics');
+      const response = await authFetch(API_OPTIMIZER, '/api/admin/statistics');
       if (response.ok) {
         const data = await response.json();
         setStatistics(data);
@@ -158,7 +178,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await authFetch('/api/admin/add-user', {
+      const response = await authFetch(API_OPTIMIZER, '/api/admin/add-user', {
         method: 'POST',
         body: JSON.stringify(formData)
       });
@@ -182,7 +202,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
     if (!confirm(`Are you sure you want to delete user ${username}?`)) return;
 
     try {
-      const response = await authFetch(`/api/admin/delete-user?username=${encodeURIComponent(username)}`, {
+      const response = await authFetch(API_OPTIMIZER, `/api/admin/delete-user?username=${encodeURIComponent(username)}`, {
         method: 'DELETE'
       });
 
@@ -202,21 +222,27 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const handleGenerateSessionKey = async () => {
     try {
-      const response = await authFetch('/api/sessions/generate-session-key', {
+      const base = sessionKeyForm.target === 'dashboard' && API_DASHBOARD ? API_DASHBOARD : API_OPTIMIZER;
+      const response = await authFetch(base, '/api/sessions/generate-session-key', {
         method: 'POST',
         body: JSON.stringify({
           username: sessionKeyForm.username,
           duration: sessionKeyForm.duration,
-          createdBy: 'admin'
+          createdBy: 'admin',
+          target: sessionKeyForm.target
         })
       });
       
       if (response.ok) {
         const data = await response.json();
-        alert(`Session key generated: ${data.sessionKey}\n\nThis 8-digit key is valid for ${sessionKeyForm.duration} hours.\n\nPlease provide this key to the intern for login.`);
+        if (data.sessionKey) {
+          alert(`Session key generated: ${data.sessionKey}\n\nThis 8-digit key is valid for ${sessionKeyForm.duration} hours.\n\nPlease provide this key to the intern for login.`);
+          loadSessionKeys();
+        } else {
+          alert('No session key required for optimizer');
+        }
         setShowGenerateSessionKey(false);
-        setSessionKeyForm({ username: '', duration: 24 });
-        loadSessionKeys();
+        setSessionKeyForm({ username: '', duration: 24, target: 'dashboard' });
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to generate session key');
@@ -231,7 +257,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
     if (!confirm('Are you sure you want to revoke this session?')) return;
     
     try {
-      const response = await authFetch('/api/sessions/revoke-session', {
+      const response = await authFetch(API_OPTIMIZER, '/api/sessions/revoke-session', {
         method: 'POST',
         body: JSON.stringify({ sessionId })
       });
@@ -252,7 +278,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
     if (!confirm(`Are you sure you want to revoke all sessions for ${username}?`)) return;
     
     try {
-      const response = await authFetch('/api/sessions/revoke-user-sessions', {
+      const response = await authFetch(API_OPTIMIZER, '/api/sessions/revoke-user-sessions', {
         method: 'POST',
         body: JSON.stringify({ username })
       });
@@ -273,7 +299,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
     if (!confirm(`Are you sure you want to delete ${username}'s account? This will log them out from all devices.`)) return;
     
     try {
-      const response = await authFetch('/api/sessions/delete-user', {
+      const response = await authFetch(API_OPTIMIZER, '/api/sessions/delete-user', {
         method: 'DELETE',
         body: JSON.stringify({ username })
       });
@@ -571,7 +597,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                         <div key={sessionKey._id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center space-x-3 mb-2">
+                          <div className="flex items-center space-x-3 mb-2">
                                 <span className="font-semibold text-gray-900">{sessionKey.username}</span>
                                 <span className="text-sm text-gray-500">•</span>
                                 <span className="text-sm text-gray-500">{sessionKey.duration}h</span>
@@ -583,6 +609,11 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                                 }`}>
                                   {sessionKey.isUsed ? 'Used' : 'Active'}
                                 </span>
+                            {sessionKey.source && (
+                              <span className={`text-xs px-2 py-1 rounded-full border ${sessionKey.source === 'dashboard' ? 'border-purple-300 text-purple-700 bg-purple-50' : 'border-blue-300 text-blue-700 bg-blue-50'}`}>
+                                {sessionKey.source === 'dashboard' ? 'Dashboard' : 'Optimizer'}
+                              </span>
+                            )}
                               </div>
                               <div className="text-sm text-gray-600 space-y-1">
                                 <div>Session Key: <code className="bg-gray-200 px-2 py-1 rounded font-mono text-lg">{sessionKey.sessionKey}</code></div>
@@ -728,7 +759,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                         {loginHistory?.map((event) => {
                           const user = users.find(u => u.username === event.username);
                           return (
-                            <tr key={event.id} className="hover:bg-gray-50 transition-colors">
+                            <tr key={event._id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center space-x-3">
                                   <div className={`p-2 rounded-xl ${user?.role === 'admin' ? 'bg-red-100' : 'bg-blue-100'}`}>
@@ -748,11 +779,11 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm text-gray-900 flex items-center space-x-2">
                                   <MapPin className="h-4 w-4 text-gray-400" />
-                                  <span>{event.ip}</span>
+                                  <span>{event.ipAddress}</span>
                                 </div>
                                 <div className="text-xs text-gray-500 flex items-center space-x-2 mt-1">
                                   <Clock className="h-3 w-3" />
-                                  <span>{new Date(event.loginTime).toLocaleString()}</span>
+                                  <span>{new Date(event.createdAt).toLocaleString()}</span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
@@ -811,6 +842,21 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
               <form onSubmit={(e) => { e.preventDefault(); handleGenerateSessionKey(); }} className="p-6 space-y-6">
                 <div className="space-y-4">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Target</label>
+                    <select
+                      value={sessionKeyForm.target}
+                      onChange={(e) => {
+                        const nextTarget = e.target.value as 'optimizer' | 'dashboard';
+                        const nextDuration = nextTarget === 'dashboard' ? 720 : 24;
+                        setSessionKeyForm({ ...sessionKeyForm, target: nextTarget, duration: nextDuration });
+                      }}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="optimizer">Optimizer</option>
+                      <option value="dashboard">Dashboard</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Username/Email</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -830,7 +876,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                     <input
                       type="number"
                       min="1"
-                      max="168"
+                      max="999"
                       required
                       value={sessionKeyForm.duration}
                       onChange={(e) => setSessionKeyForm({ ...sessionKeyForm, duration: parseInt(e.target.value) })}
