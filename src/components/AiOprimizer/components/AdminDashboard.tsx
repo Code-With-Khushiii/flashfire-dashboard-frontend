@@ -78,8 +78,8 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
 
   const [sessionKeyForm, setSessionKeyForm] = useState({
     username: '',
-    duration: 720, // 30 days preset for dashboard
-    target: 'dashboard' as 'optimizer' | 'dashboard'
+    duration: 720, // Always 30 days (720 hours)
+    target: 'optimizer' as 'optimizer' | 'dashboard'
   });
 
   const API_OPTIMIZER = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? import.meta.env.VITE_DEV_API_URL || 'http://localhost:8001' : '');
@@ -175,6 +175,13 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
     loadAllData();
   }, []);
 
+  // Reset session key form when modal opens
+  useEffect(() => {
+    if (showGenerateSessionKey) {
+      setSessionKeyForm({ username: '', duration: 720, target: 'optimizer' });
+    }
+  }, [showGenerateSessionKey]);
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -242,7 +249,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
           alert('No session key required for optimizer');
         }
         setShowGenerateSessionKey(false);
-        setSessionKeyForm({ username: '', duration: 24, target: 'dashboard' });
+        setSessionKeyForm({ username: '', duration: 720, target: 'dashboard' });
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to generate session key');
@@ -847,8 +854,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                       value={sessionKeyForm.target}
                       onChange={(e) => {
                         const nextTarget = e.target.value as 'optimizer' | 'dashboard';
-                        const nextDuration = nextTarget === 'dashboard' ? 720 : 24;
-                        setSessionKeyForm({ ...sessionKeyForm, target: nextTarget, duration: nextDuration });
+                        setSessionKeyForm({ ...sessionKeyForm, target: nextTarget });
                       }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -876,13 +882,14 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                     <input
                       type="number"
                       min="1"
-                      max="999"
+                      max="9999"
                       required
                       value={sessionKeyForm.duration}
-                      onChange={(e) => setSessionKeyForm({ ...sessionKeyForm, duration: parseInt(e.target.value) })}
+                      onChange={(e) => setSessionKeyForm({ ...sessionKeyForm, duration: parseInt(e.target.value) || 720 })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="24"
+                      placeholder="720 (default: 30 days)"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Default: 720 hours (30 days). You can change this as needed.</p>
                   </div>
                 </div>
 

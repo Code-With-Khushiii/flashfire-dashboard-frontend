@@ -1573,16 +1573,16 @@ function App() {
                     id: jobId,
                     startingContent: startingContent,
                     finalChanges: finalChanges,
-                    optimizedResume: {
-                        resumeData: optimizedData,
-                        hasResume: true,
-                        showSummary: showSummary,
-                        showProjects: showProjects,
-                        showLeadership: showLeadership,
-                        showPublications: showPublications,
-                            version: versionV,
-                            sectionOrder: sectionOrder
-                    }
+                    // optimizedResume: {
+                    //     resumeData: optimizedData,
+                    //     hasResume: true,
+                    //     showSummary: showSummary,
+                    //     showProjects: showProjects,
+                    //     showLeadership: showLeadership,
+                    //     showPublications: showPublications,
+                    //         version: versionV,
+                    //         sectionOrder: sectionOrder
+                    // }
                 }),
             });
 

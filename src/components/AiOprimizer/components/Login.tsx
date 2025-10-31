@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Eye,
     EyeOff,
@@ -22,7 +22,67 @@ const Login: React.FC<{
     const [showPassword, setShowPassword] = useState(false);
     const [showSessionKey, setShowSessionKey] = useState(false);
     const [requiresSessionKey, setRequiresSessionKey] = useState(false);
+    const [checkingStoredKey, setCheckingStoredKey] = useState(true);
 
+    useEffect(() => {
+        const checkStoredSessionKey = async () => {
+            const storedSessionKey = localStorage.getItem("sessionKeyOptimizer");
+            const storedUsername = localStorage.getItem("userEmail");
+            const storedPassword = localStorage.getItem("userPassword"); // We'll need to store this too
+
+            if (storedSessionKey && storedUsername && storedPassword) {
+                const API_BASE =
+                    import.meta.env.VITE_API_URL ||
+                    (import.meta.env.DEV
+                        ? import.meta.env.VITE_DEV_API_URL || "http://localhost:8001"
+                        : "");
+
+                try {
+                    // Verify session key is still valid
+                    const verifyRes = await fetch(`${API_BASE}/api/sessions/validate-session-key`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            username: storedUsername,
+                            sessionKey: storedSessionKey
+                        }),
+                    });
+
+                    const verifyData = await verifyRes.json();
+
+                    if (verifyData.valid) {
+                        // Session key is still valid, auto-login
+                        const loginRes = await fetch(`${API_BASE}/api/login`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                username: storedUsername,
+                                password: storedPassword,
+                                sessionKey: storedSessionKey
+                            }),
+                        });
+
+                        if (loginRes.ok) {
+                            const data = await loginRes.json();
+                            localStorage.setItem("jwt", data.token);
+                            if (data.user?.role) {
+                                localStorage.setItem("role", data.user.role);
+                            }
+                            onLogin(data.token, data.user?.role, storedUsername);
+                            return;
+                        }
+                    }
+                    // Don't clear stored keys - let user re-enter if expired
+                } catch (error) {
+                    console.error("Error checking stored session key:", error);
+                    // Don't clear stored keys - let user re-enter if expired
+                }
+            }
+            setCheckingStoredKey(false);
+        };
+
+        checkStoredSessionKey();
+    }, [onLogin]);
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -35,7 +95,33 @@ const Login: React.FC<{
                 : "");
 
         try {
-            // First check if user is admin by trying login without session key
+            // Check if there's a stored session key for this user
+            const storedSessionKey = localStorage.getItem("sessionKeyOptimizer");
+            
+            // First try login with stored session key if available
+            if (storedSessionKey) {
+                const loginWithKeyRes = await fetch(`${API_BASE}/api/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password, sessionKey: storedSessionKey }),
+                });
+
+                if (loginWithKeyRes.ok) {
+                    // Login successful with stored key
+                    const data = await loginWithKeyRes.json();
+                    localStorage.setItem("jwt", data.token);
+                    localStorage.setItem("userEmail", username);
+                    localStorage.setItem("userPassword", password);
+                    if (data.user?.role) {
+                        localStorage.setItem("role", data.user.role);
+                    }
+                    onLogin(data.token, data.user?.role, username);
+                    return;
+                }
+                // If stored key failed, continue to ask for new key
+            }
+
+            // Try admin login (without session key)
             const adminCheckData = { username, password };
 
             const adminCheckRes = await fetch(`${API_BASE}/api/login`, {
@@ -64,7 +150,9 @@ const Login: React.FC<{
                     setRequiresSessionKey(true);
                     setLoading(false);
                     setError(
-                        "Please enter the 8-10 digit session key provided by your admin"
+                        storedSessionKey 
+                            ? "Your stored session key has expired. Please enter a new one."
+                            : "Please enter the 8-10 digit session key provided by your admin"
                     );
                     return;
                 } else {
@@ -116,6 +204,9 @@ const Login: React.FC<{
                 if (data.user?.role) {
                     localStorage.setItem("role", data.user.role);
                 }
+                // Store session key and password for auto-login on next visit
+                localStorage.setItem("sessionKeyOptimizer", sessionKey);
+                localStorage.setItem("userPassword", password);
                 onLogin(data.token, data.user?.role, username);
             } else {
                 setError(data.error || "Invalid or expired session key");
@@ -126,6 +217,20 @@ const Login: React.FC<{
             setLoading(false);
         }
     };
+
+    // Show loading spinner while checking for stored session key
+    if (checkingStoredKey) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-lg font-medium text-gray-700">Checking credentials...</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex">
