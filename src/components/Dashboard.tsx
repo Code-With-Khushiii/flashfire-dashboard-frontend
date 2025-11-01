@@ -426,7 +426,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Secondary Stats (unchanged visuals; responsive spacing) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-5 md:p-6 border border-gray-200">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -454,7 +454,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Application Pipeline (full-page vertical scroll; stacks on mobile) */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
