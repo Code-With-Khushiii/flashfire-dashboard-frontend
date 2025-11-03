@@ -414,16 +414,9 @@ function App() {
 
     // Function to check loaded resume data and set checkboxes accordingly
     const checkLoadedResumeData = (
-        resumeData: ResumeDataType & { checkboxStates?: any; sectionOrder?: string[]; version?: number; V?: number }
+        resumeData: ResumeDataType & { checkboxStates?: any; sectionOrder?: string[] }
     ) => {
         console.log("Checking loaded resume data for sections...");
-
-        // Set versionV based on resume version if available
-        const resumeVersion = (resumeData as any).version ?? (resumeData as any).V;
-        if (resumeVersion !== undefined && typeof resumeVersion === 'number') {
-            console.log("Setting versionV from resume:", resumeVersion);
-            setVersion(resumeVersion);
-        }
 
         // Check if there are saved checkbox states from the database
         if (resumeData.checkboxStates) {
