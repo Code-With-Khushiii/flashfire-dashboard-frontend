@@ -533,20 +533,7 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
                                             {edu.duration}
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: "9pt" }}>
-                                        {edu.degree}
-                                        {edu.field && ` in ${edu.field}`}
-                                    </div>
-                                    {edu.additionalInfo && (
-                                        <div
-                                            style={{
-                                                fontSize: "9pt",
-                                                marginTop: "2px",
-                                            }}
-                                        >
-                                            {edu.additionalInfo}
-                                        </div>
-                                    )}
+                                    <div style={{ fontSize: "9pt" }}>{edu.degree}</div>
                                 </div>
                             ))
                         ) : (
