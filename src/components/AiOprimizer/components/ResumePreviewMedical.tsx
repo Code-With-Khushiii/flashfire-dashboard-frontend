@@ -323,7 +323,7 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
                                     }}
                                 >
                                     <div style={{ fontSize: "9pt" }}>
-                                        <span style={{ fontWeight: "bold" }}>{project.position}</span>
+                                        {project.position}
                                         {project.roleType &&
                                             project.roleType !== "None" &&
                                             ` – ${project.roleType}`}
