@@ -254,6 +254,7 @@ function App() {
         setShowPublications,
         sectionOrder,
         setSectionOrder,
+        lastSelectedResumeId
     } = useResumeStore();
 
     const {
@@ -287,7 +288,7 @@ function App() {
     useEffect(() => {
         setCurrentResumeView("editor");
     }, []);
-
+    let opp 
     // Debug: Log store state on mount
     useEffect(() => {
         console.log("Optimizer component mounted. Store state:", {
@@ -1083,7 +1084,7 @@ function App() {
 
     const handleV1Resume = async () => {
         try {
-            console.log("Saving to V1 resume with ID:", resume_id);
+            console.log("Saving to V1 resume with ID:", lastSelectedResumeId);
             const apiUrl =
                 import.meta.env.VITE_API_URL || "https://resume-maker-backend-lf5z.onrender.com";
             await fetch(`${apiUrl}/api/save-v1-resume`, {
@@ -1091,7 +1092,7 @@ function App() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ id: resume_id, version: versionV }),
+                body: JSON.stringify({ id: lastSelectedResumeId, version: 1 }),
             });
             alert("V1 resume saved go to All resume V1 to see it.");
         } catch (error) {
@@ -1101,7 +1102,7 @@ function App() {
     };
     const handleV2Resume = async () => {
         try {
-            console.log("Saving to V2 resume with ID:", resume_id);
+            console.log("Saving to V2 resume with ID:", lastSelectedResumeId);
             const apiUrl =
                 import.meta.env.VITE_API_URL || "https://resume-maker-backend-lf5z.onrender.com";
             await fetch(`${apiUrl}/api/save-v2-resume`, {
@@ -1109,7 +1110,7 @@ function App() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ id: resume_id, version: versionV }),
+                body: JSON.stringify({ id: lastSelectedResumeId, version: 2 }),
             });
             alert(
                 "Medical resume saved go to Medical resume session  to see it."
