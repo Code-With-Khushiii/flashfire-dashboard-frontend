@@ -153,6 +153,14 @@ const Navigation: React.FC<NavigationProps> = ({
                   activeTab === id
                     ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border shadow-md"
                     : " text-gray-700 hover:text-gray-900 hover:bg-gray-200  hover:shadow hover:scale-[1.02] active:scale-[0.98]"
+                } ${
+                  id === 'dashboard'
+                    ? 'nav-dashboard'
+                    : id === 'jobs'
+                    ? 'nav-job-tracker'
+                    : id === 'optimizer'
+                    ? 'nav-documents'
+                    : ''
                 }`}
               >
                 <Icon
@@ -332,7 +340,7 @@ const Navigation: React.FC<NavigationProps> = ({
       </div>
 
       {/* Absolute Mobile Menu */}
-      {menuOpen && (
+          {menuOpen && (
         <div
           ref={mobileMenuRef}
           className="absolute top-16 right-3 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-50 animate-fade-in md:hidden"
@@ -344,11 +352,19 @@ const Navigation: React.FC<NavigationProps> = ({
                 onTabChange(id);
                 setMenuOpen(false);
               }}
-              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-all ${
+                  className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-all ${
                 activeTab === id
                   ? "bg-gradient-to-r from-orange-100 to-red-100 text-gray-900"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                  } ${
+                    id === 'dashboard'
+                      ? 'nav-dashboard'
+                      : id === 'jobs'
+                      ? 'nav-job-tracker'
+                      : id === 'optimizer'
+                      ? 'nav-documents'
+                      : ''
+                  }`}
             >
               <Icon className="w-4 h-4" />
               {label}

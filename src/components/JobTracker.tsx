@@ -590,7 +590,7 @@ const handleDragEnd = (e: React.DragEvent) => {
           </div>
           <button
             onClick={() => setShowJobForm(true)}
-            className="whitespace-nowrap bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+            className="whitespace-nowrap bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md guide-add-job"
           >
             Add Jobs
           </button>
@@ -690,7 +690,7 @@ const handleDragEnd = (e: React.DragEvent) => {
                                 <div className="flex-1 space-y-3 min-h-[500px]">
                                     <Suspense fallback={<LoadingScreen />}>
                                         {paginatedJobs?.map((job) => (
-                                            <div key={job.jobID} className="relative">
+                                            <div key={job.jobID} className="relative guide-job-card">
                                                 <JobCard
                                                     job={job}
                                                     showJobModal={showJobModal}
@@ -710,7 +710,7 @@ const handleDragEnd = (e: React.DragEvent) => {
                                     </Suspense>
                                     {filteredAndSortedJobs &&
                                         filteredAndSortedJobs.length === 0 && (
-                                            <div className="text-center py-12 text-gray-400">
+                                            <div className={`text-center py-12 text-gray-400 ${status === 'saved' ? 'guide-job-card' : ''}`}>
                                                 <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
                                                     <Plus className="w-5 h-5" />
                                                 </div>
