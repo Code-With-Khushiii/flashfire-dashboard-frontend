@@ -285,18 +285,17 @@ const Dashboard: React.FC = () => {
             sessionStorage.setItem('hasProfile', 'true');
             // Close modal
             setShowProfileModal(false);
-            // Trigger guide popup after profile completion - ONLY for new users
-            // Check if guide should be shown (if user hasn't seen it before)
-            const guideSeen = localStorage.getItem("dashboardGuideSeen");
-            if (guideSeen !== "true") {
-              // Set flag to trigger guide in MainContent (only for new users)
+            // Trigger guide popup after profile completion
+            // const guideSeen = localStorage.getItem("dashboardGuideSeen");
+            // if (guideSeen !== "true") {
+              // Set flag to trigger guide in MainContent
               localStorage.setItem("showGuideAfterProfile", "true");
               // Dispatch custom event to trigger guide
               window.dispatchEvent(new CustomEvent('profileCompleted', { detail: { showGuide: true } }));
               console.log("✅ Guide will be shown for new user after profile completion");
-            } else {
-              console.log("ℹ️ User has already seen the guide - skipping");
-            }
+            // } else {
+            //   console.log("ℹ️ User has already seen the guide - skipping");
+            // }
           }}
         />
       )}

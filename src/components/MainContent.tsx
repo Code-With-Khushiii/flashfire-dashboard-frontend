@@ -181,6 +181,11 @@ useEffect(() => {
   updateUserDetails();
 }, []);
 
+useEffect(() => {
+  setCurrentStep(0);
+  setShowGuide(true);
+}, []);
+
 // const [showGuide, setShowGuide] = useState(false);
 // const [currentStep, setCurrentStep] = useState(0);
 
@@ -254,52 +259,14 @@ const handleExit = () => {
   setShowGuide(false);
    console.log(currentStep);
   // Remove the flag so the guide won't show again unless explicitly reset
-  try {
-    localStorage.setItem("dashboardGuideSeen", "true");
-
-  } catch (e) {}
+  // try {
+  //   localStorage.setItem("dashboardGuideSeen", "true");
+  //
+  // } catch (e) {}
       console.log(currentStep);
 
 };
 
-
-// Show guide ONLY after profile form completion - for new users only
-  useEffect(() => {
-    const handleProfileCompleted = (event: CustomEvent) => {
-      if (event.detail?.showGuide) {
-        // Double check user is new (hasn't seen guide before)
-        const guideSeen = localStorage.getItem("dashboardGuideSeen");
-        if (guideSeen !== "true") {
-          console.log("🎯 Profile completed - showing guide for new user");
-          setCurrentStep(0);
-          setShowGuide(true);
-        }
-        // Clear the flag
-        localStorage.removeItem("showGuideAfterProfile");
-      }
-    };
-
-    // Listen for custom event from Dashboard when profile is completed
-    window.addEventListener('profileCompleted', handleProfileCompleted as EventListener);
-
-    // Also check localStorage flag on mount (in case event was missed or page refreshed)
-    const showGuideFlag = localStorage.getItem("showGuideAfterProfile");
-    if (showGuideFlag === "true") {
-      const guideSeen = localStorage.getItem("dashboardGuideSeen");
-      // Only show if user is new (hasn't seen guide before)
-      if (guideSeen !== "true") {
-        console.log("🎯 Profile completed (from localStorage) - showing guide for new user");
-        setCurrentStep(0);
-        setShowGuide(true);
-      }
-      localStorage.removeItem("showGuideAfterProfile");
-    }
-
-    return () => {
-      window.removeEventListener('profileCompleted', handleProfileCompleted as EventListener);
-    };
-  }, []);
-  
 
 // DISABLED: These useEffect hooks were interfering with Joyride step progression
 // Tab switching is now handled by the onStepChange callback in GuidePopup

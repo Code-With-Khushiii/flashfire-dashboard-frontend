@@ -111,7 +111,7 @@ const GuidePopup = ({ run = false, onExit, onStepChange, stepIndex }: GuidePopup
           </p>
         </div>
       ),
-      placement: "bottom" as Placement,
+      placement: "top" as Placement,
     },
     {
       target: ".nav-job-tracker",
