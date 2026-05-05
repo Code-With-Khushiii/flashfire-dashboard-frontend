@@ -269,19 +269,19 @@ const Navigation: React.FC<NavigationProps> = ({
           </div>
         </div>
       )}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
+           <div className="flex min-w-0 items-center space-x-2 sm:space-x-4">
+            <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg sm:h-12 sm:w-12">
               {/* <FileText className="w-7 h-7 text-white" /> */}
               <img src="./Logo.png" alt="" className='rounded-xl' />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent sm:text-2xl">
                 FLASHFIRE
               </h1>
-              <p className="text-xs text-gray-500 font-medium -mt-1">Your Dream. Our Passion</p>
+              <p className="hidden text-xs text-gray-500 font-medium -mt-1 sm:block">Your Dream. Our Passion</p>
             </div>
           </div>
           {/* Desktop Tabs */}
@@ -321,7 +321,7 @@ const Navigation: React.FC<NavigationProps> = ({
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
             {/* Refer and Earn Button - Desktop */}
             {user && (
               <button
@@ -511,7 +511,7 @@ const Navigation: React.FC<NavigationProps> = ({
       {menuOpen && (
         <div
           ref={mobileMenuRef}
-          className="absolute top-16 right-3 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-50 animate-fade-in md:hidden"
+          className="absolute top-16 right-3 w-48 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl shadow-lg border border-gray-200 z-50 animate-fade-in md:hidden"
         >
           {tabs.map(({ id, label, icon: Icon }) => (
             <button
@@ -560,7 +560,7 @@ const Navigation: React.FC<NavigationProps> = ({
       {profileDropDown && (
         <div
           ref={mobileProfileRef}
-          className="absolute top-16 right-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-in p-5 space-y-5 md:hidden"
+          className="absolute top-16 right-3 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-in p-4 space-y-5 md:hidden sm:p-5"
         >
          <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                     

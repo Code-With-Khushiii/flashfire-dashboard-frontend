@@ -135,7 +135,7 @@ const JobCard: React.FC<JobCardProps> = ({
       onMouseLeave={handleMouseLeave}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`rounded-lg border w-full border-gray-200 p-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-move hover:scale-[1.02] hover:-rotate-1 ${
+      className={`w-full cursor-move rounded-lg border border-gray-200 p-2 shadow-sm transition-all duration-200 hover:shadow-md sm:hover:-rotate-1 sm:hover:scale-[1.02] ${
         shouldHighlight
           ? "bg-red-100 border-red-300"
           : hasUnseenResume
@@ -145,18 +145,18 @@ const JobCard: React.FC<JobCardProps> = ({
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h4 className="font-semibold text-gray-900 line-clamp-2 break-words">{job.jobTitle}</h4>
+          <div className="flex items-start gap-1.5">
+            <h4 className="line-clamp-2 break-words text-sm font-semibold leading-5 text-gray-900 sm:text-base">{job.jobTitle}</h4>
             {autoOptCompleted && !job.optimizedResumeSeen && (
               <Sparkles className="w-3.5 h-3.5 text-green-600 flex-shrink-0" title="Resume auto optimized" />
             )}
           </div>
-          <div className="flex items-center text-sm text-gray-600 mt-1">
+          <div className="mt-1 flex min-w-0 items-center text-sm text-gray-600">
   {job.companyName && (
               <img
               src={`https://www.google.com/s2/favicons?domain=${sanitizeCompanyDomain(job.companyName)}&sz=64`}
               alt="Company Logo"
-              className="w-[20px] h-[20px] m-2"
+              className="m-1.5 h-5 w-5 flex-shrink-0 sm:m-2"
               style={{ display: 'none' }} // Start hidden until load check
               onError={(e) => {
                 e.currentTarget.style.display = "none"; // Hide broken image
@@ -172,7 +172,7 @@ const JobCard: React.FC<JobCardProps> = ({
               }}
             />
             )}
-            <span className="truncate max-w-full block">{job.companyName}</span> <hr />
+            <span className="block max-w-full truncate">{job.companyName}</span> <hr />
           </div>
         </div>
       </div>

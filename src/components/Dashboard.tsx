@@ -208,25 +208,25 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
 
         {/* Welcome Section */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex flex-col md:flex-row items-start justify-between gap-4">
-            <div className="flex-1 border-l-4 border-orange-600 pl-4 md:pl-6 py-2">
-              <h1 className="mt-2 text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.15]">
+            <div className="w-full flex-1 border-l-4 border-orange-600 pl-3 py-2 sm:pl-4 md:pl-6">
+              <h1 className="mt-1 whitespace-nowrap text-lg font-extrabold tracking-tight leading-[1.15] sm:mt-2 sm:text-3xl md:text-4xl">
                 <span className="text-zinc-900">Welcome to Your</span>{" "}
-                <span className="inline-block bg-gradient-to-r from-[#FF5722] to-[#FF6B00] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#FF5722] to-[#FF6B00] bg-clip-text text-transparent">
                   Career Dashboard
                 </span>
               </h1>
-              <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-3xl">
+              <p className="max-w-3xl text-xs leading-5 text-gray-600 sm:text-base sm:leading-relaxed md:text-lg">
                 Every role tracked. Every milestone celebrated. Your journey to success starts here.
               </p>
             </div>
 
             {/* Dashboard Manager and Referral Benefits */}
-            <div className="w-full md:w-auto flex flex-col md:flex-row items-start md:items-center gap-3">
+            <div className="w-full md:w-auto flex flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <DashboardManagerDisplay />
               <ReferralBenefitsDisplay />
             </div>
@@ -250,15 +250,15 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6 mb-8">
           {/* Total Applications */}
-          <div className="bg-white rounded-xl shadow-sm p-5 md:p-6 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
               {stats.total}
             </h3>
             <p className="text-gray-600 text-sm">Total Applications</p>
@@ -271,13 +271,13 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Active Interviews */}
-          <div className="bg-white rounded-xl shadow-sm p-5 md:p-6 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-orange-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.interviewing}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{stats.interviewing}</h3>
             <p className="text-gray-600 text-sm">Active Interviews</p>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
               <div
@@ -288,13 +288,13 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Offers Received */}
-          <div className="bg-white rounded-xl shadow-sm p-5 md:p-6 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
               {stats.offer}
             </h3>
             <p className="text-gray-600 text-sm">Offers Received</p>
@@ -307,13 +307,13 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Success Rate */}
-          <div className="bg-white rounded-xl shadow-sm p-5 md:p-6 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{successRate}%</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{successRate}%</h3>
             <p className="text-gray-600 text-sm">Success Rate</p>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
               <div
@@ -325,55 +325,55 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Application Pipeline */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Application Pipeline</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h2 className="text-base font-bold text-gray-900 mb-4 sm:text-xl sm:mb-6">Application Pipeline</h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-5 gap-2 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5">
             {/* Saved */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <Clock className="w-8 h-8 text-gray-400" />
+            <div className="flex min-w-0 flex-col items-center space-y-1.5 sm:space-y-2">
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center sm:h-16 sm:w-16">
+                <Clock className="w-5 h-5 text-gray-400 sm:h-8 sm:w-8" />
               </div>
-              <span className="text-sm font-medium text-gray-600">Saved</span>
-              <span className="text-lg font-bold text-gray-900">
+              <span className="max-w-full truncate text-[10px] font-medium text-gray-600 sm:text-sm">Saved</span>
+              <span className="text-sm font-bold text-gray-900 sm:text-lg">
                 {stats.saved}
               </span>
             </div>
 
             {/* Applied */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <FileText className="w-8 h-8 text-blue-600" />
+            <div className="flex min-w-0 flex-col items-center space-y-1.5 sm:space-y-2">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center sm:h-16 sm:w-16">
+                <FileText className="w-5 h-5 text-blue-600 sm:h-8 sm:w-8" />
               </div>
-              <span className="text-sm font-medium text-gray-600">Applied</span>
-              <span className="text-lg font-bold text-gray-900">{stats.applied}</span>
+              <span className="max-w-full truncate text-[10px] font-medium text-gray-600 sm:text-sm">Applied</span>
+              <span className="text-sm font-bold text-gray-900 sm:text-lg">{stats.applied}</span>
             </div>
 
             {/* Interview */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                <Users className="w-8 h-8 text-orange-600" />
+            <div className="flex min-w-0 flex-col items-center space-y-1.5 sm:space-y-2">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center sm:h-16 sm:w-16">
+                <Users className="w-5 h-5 text-orange-600 sm:h-8 sm:w-8" />
               </div>
-              <span className="text-sm font-medium text-gray-600">Interview</span>
-              <span className="text-lg font-bold text-gray-900">{stats.interviewing}</span>
+              <span className="max-w-full truncate text-[10px] font-medium text-gray-600 sm:text-sm">Interview</span>
+              <span className="text-sm font-bold text-gray-900 sm:text-lg">{stats.interviewing}</span>
             </div>
 
             {/* Offer */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="flex min-w-0 flex-col items-center space-y-1.5 sm:space-y-2">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center sm:h-16 sm:w-16">
+                <CheckCircle className="w-5 h-5 text-green-600 sm:h-8 sm:w-8" />
               </div>
-              <span className="text-sm font-medium text-gray-600">Offer</span>
-              <span className="text-lg font-bold text-gray-900">{stats.offer}</span>
+              <span className="max-w-full truncate text-[10px] font-medium text-gray-600 sm:text-sm">Offer</span>
+              <span className="text-sm font-bold text-gray-900 sm:text-lg">{stats.offer}</span>
             </div>
 
             {/* Rejected */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <XCircle className="w-8 h-8 text-red-600" />
+            <div className="flex min-w-0 flex-col items-center space-y-1.5 sm:space-y-2">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center sm:h-16 sm:w-16">
+                <XCircle className="w-5 h-5 text-red-600 sm:h-8 sm:w-8" />
               </div>
-              <span className="text-sm font-medium text-gray-600">Rejected</span>
-              <span className="text-lg font-bold text-gray-900">{stats.rejected}</span>
+              <span className="max-w-full truncate text-[10px] font-medium text-gray-600 sm:text-sm">Rejected</span>
+              <span className="text-sm font-bold text-gray-900 sm:text-lg">{stats.rejected}</span>
             </div>
           </div>
         </div>
@@ -420,26 +420,26 @@ const RecentActivity = React.memo(({ recentJobs }: { recentJobs: any[] }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6 mt-8">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-      <div className="space-y-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mt-6 sm:mt-8">
+      <h2 className="text-base font-bold text-gray-900 mb-4 sm:text-xl sm:mb-6">Recent Activity</h2>
+      <div className="space-y-3 sm:space-y-4">
         {recentJobs.map((job) => {
           const key = (job.currentStatus || "saved").toLowerCase().split(" ")[0];
           const config = statusConfig[key] || statusConfig.saved;
           const Icon = config.icon;
 
           return (
-            <div key={job.jobID} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <div className={`w-10 h-10 ${config.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
-                <Icon className="w-5 h-5 text-gray-400" />
+            <div key={job.jobID} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50/50 p-2.5 sm:gap-4 sm:border-0 sm:bg-transparent sm:p-0">
+              <div className={`w-8 h-8 ${config.bgColor} rounded-full flex items-center justify-center flex-shrink-0 sm:h-10 sm:w-10`}>
+                <Icon className="w-4 h-4 text-gray-400 sm:h-5 sm:w-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 break-words">{job.jobTitle}</p>
-                <p className="text-sm text-gray-500">{job.companyName}</p>
+                <p className="truncate text-xs font-medium text-gray-900 sm:text-sm">{job.jobTitle}</p>
+                <p className="truncate text-[11px] text-gray-500 sm:text-sm">{job.companyName}</p>
               </div>
               <div className="flex-shrink-0">
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}
+                  className={`inline-flex max-w-[82px] items-center truncate rounded-full px-2 py-0.5 text-[10px] font-medium sm:max-w-none sm:px-2.5 sm:text-xs ${config.bgColor} ${config.textColor}`}
                 >
                   {job.currentStatus}
                 </span>

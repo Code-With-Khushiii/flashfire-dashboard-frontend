@@ -1019,14 +1019,14 @@ const JobTracker = () => {
     };
 
     return (
-        <div className="px-4 sm:px-6 lg:px-8 py-6  min-h-screen">
+        <div className="min-h-screen px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+            <div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-col justify-around items-start w-full">
-                    <h2 className="text-4xl md:text-4xl font-extrabold text-zinc-900 mb-2 tracking-tight leading-[1.1]">Job Tracker</h2>
-                    <p className="text-gray-600 text-3x1 ">Track your job applications and manage your career pipeline</p>
+                    <h2 className="mb-2 text-3xl font-extrabold leading-[1.1] tracking-tight text-zinc-900 sm:text-4xl">Job Tracker</h2>
+                    <p className="text-sm leading-6 text-gray-600 sm:text-base">Track your job applications and manage your career pipeline</p>
                 </div>
-                <div className="mt-4 sm:mt-0 flex items-center justify-end gap-4 w-full">
+                <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
                     {role === "operations" && userDetails?.email && (
                         <button
                             onClick={() => {
@@ -1034,7 +1034,7 @@ const JobTracker = () => {
                                 setShowNotifyPasswordModal(true);
                             }}
                             disabled={notifyCooldown > 0 || notifyLoading}
-                            className={`whitespace-nowrap px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm flex items-center gap-2 ${
+                            className={`flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200 sm:w-auto ${
                                 notifyCooldown > 0
                                     ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                                     : notifyLoading
@@ -1062,14 +1062,14 @@ const JobTracker = () => {
                             )}
                         </button>
                     )}
-                    <div className="relative">
+                    <div className="relative w-full min-w-0 sm:flex-[1_1_240px] lg:max-w-xs">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
                             placeholder="Search jobs..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white shadow-sm"
+                            className="w-full rounded-lg border border-orange-300 bg-white py-2 pl-10 pr-4 shadow-sm focus:border-transparent focus:ring-2 focus:ring-orange-500"
                         />
                         {filteredJobs.length > 0 && (
                             <div className="absolute top-full mt-2 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
@@ -1093,7 +1093,7 @@ const JobTracker = () => {
                     </div>
                     <button
                         onClick={() => setShowJobForm(true)}
-                        className="whitespace-nowrap bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="w-full whitespace-nowrap rounded-lg bg-gradient-to-br from-orange-500 to-red-500 px-4 py-2 font-medium text-white shadow-sm transition-all duration-200 hover:from-orange-600 hover:to-red-600 hover:shadow-md sm:w-auto"
                     >
                         Add Jobs
                     </button>
@@ -1101,7 +1101,7 @@ const JobTracker = () => {
                         <button
                             onClick={handleQueueAutoOptimizeSavedJobs}
                             disabled={autoOptimizeLoading}
-                            className={`whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 shadow-sm ${
+                            className={`w-full whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium shadow-sm transition-all duration-200 sm:w-auto sm:py-1.5 ${
                                 autoOptimizeLoading
                                     ? "bg-purple-300 text-white cursor-wait"
                                     : "bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white hover:shadow-md"
@@ -1117,7 +1117,7 @@ const JobTracker = () => {
             {/* Board */}
             <div
                 ref={boardRef}
-                className="flex gap-6 overflow-x-auto pb-6"
+                className="flex gap-4 overflow-x-auto pb-6 md:gap-6"
                 onDragOver={handleDragOverBoard}
             >
                 {statusColumns.map(({ status, label, color }) => {
@@ -1168,7 +1168,7 @@ const JobTracker = () => {
                     return (
                         <div
                             key={status}
-                            className={`${color} rounded-xl p-4 min-w-[280px] w-80 flex flex-col shadow-sm border border-gray-200 transition-all duration-200`}
+                            className={`${color} flex min-w-[280px] w-80 flex-col rounded-xl border border-gray-200 p-3 shadow-sm transition-all duration-200 sm:p-4`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, status)}
@@ -1215,7 +1215,7 @@ const JobTracker = () => {
                             </div>
 
                             {/* Job Cards */}
-                            <div className="flex-1 space-y-3 min-h-[500px]">
+                            <div className="min-h-[500px] flex-1 space-y-3">
                                 <Suspense fallback={<LoadingScreen />}>
                                     {paginatedJobs?.map((job) => (
                                         <div key={job.jobID} className="relative">

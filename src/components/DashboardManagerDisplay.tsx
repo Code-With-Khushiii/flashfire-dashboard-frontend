@@ -124,12 +124,12 @@ const DashboardManagerDisplay: React.FC = () => {
   // Show fallback if no manager is assigned
   if (!effectiveManagerName) {
     return (
-      <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border border-white/20">
+      <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
         <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
           <span className="text-gray-500 text-sm">?</span>
         </div>
-        <div className="flex flex-col items-start">
-          <span className="text-sm font-medium text-gray-900">
+        <div className="flex min-w-0 flex-col items-start">
+          <span className="max-w-full truncate text-xs font-medium text-gray-900 sm:text-sm">
             No Manager Assigned
           </span>
           <span className="text-xs text-gray-500">
@@ -142,9 +142,9 @@ const DashboardManagerDisplay: React.FC = () => {
 
   if (loading && !managerData) {
     return (
-      <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border border-white/20">
+      <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
         <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <div className="h-3 bg-gray-200 rounded animate-pulse w-20 mb-1"></div>
           <div className="h-2 bg-gray-200 rounded animate-pulse w-16"></div>
         </div>
@@ -162,12 +162,12 @@ const DashboardManagerDisplay: React.FC = () => {
       .toUpperCase();
 
     return (
-      <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border border-white/20">
+      <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
         <div className="w-8 h-8 rounded-full overflow-hidden bg-orange-500 text-white flex-shrink-0 flex items-center justify-center text-xs font-semibold">
           {initials || '?'}
         </div>
-        <div className="flex flex-col items-start">
-          <span className="text-sm font-medium text-gray-900">
+        <div className="flex min-w-0 flex-col items-start">
+          <span className="max-w-full truncate text-xs font-medium text-gray-900 sm:text-sm">
             {effectiveManagerName}
           </span>
           <span className="text-xs text-gray-500">
@@ -189,7 +189,7 @@ const DashboardManagerDisplay: React.FC = () => {
   const photoUrl = (managerData.profilePhoto || "").trim();
 
   return (
-    <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border border-white/20">
+    <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
       {/* Manager Photo */}
       <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
         {!photoUrl || photoLoadFailed ? (
@@ -210,8 +210,8 @@ const DashboardManagerDisplay: React.FC = () => {
       </div>
 
       {/* Manager Name */}
-      <div className="flex flex-col items-start">
-        <span className="text-sm font-medium text-gray-900">
+      <div className="flex min-w-0 flex-col items-start">
+        <span className="max-w-full truncate text-xs font-medium text-gray-900 sm:text-sm">
           {managerData.fullName}
         </span>
         <span className="text-xs text-gray-500">

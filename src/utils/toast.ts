@@ -12,6 +12,8 @@ export const toastUtils = {
   error: (message: string) => {
     toast.error(message, {
       duration: 4000,
+      // Prevent stacking identical errors (e.g. many failing API calls at once)
+      id: `error:${message}`,
     });
   },
 
@@ -38,15 +40,16 @@ export const toastUtils = {
   custom: (message: string, type: 'success' | 'error' | 'loading' | 'info' = 'success') => {
     switch (type) {
       case 'success':
-        return toast.success(message);
+        return toast.success(message, { id: `success:${message}` });
       case 'error':
-        return toast.error(message);
+        return toast.error(message, { id: `error:${message}` });
       case 'loading':
         return toast.loading(message);
       case 'info':
         return toast(message, {
           icon: 'ℹ️',
           duration: 4000,
+          id: `info:${message}`,
         });
       default:
         return toast(message);

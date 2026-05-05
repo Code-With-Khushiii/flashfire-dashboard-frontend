@@ -61,9 +61,9 @@ const ReferralBenefitsDisplay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border border-white/20">
+      <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
         <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <div className="h-3 bg-gray-200 rounded animate-pulse w-24 mb-1"></div>
           <div className="h-2 bg-gray-200 rounded animate-pulse w-20"></div>
         </div>
@@ -72,15 +72,15 @@ const ReferralBenefitsDisplay: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border border-white/20">
+    <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
       {/* Gift Icon */}
       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow">
         <Gift className="w-4 h-4 text-white" />
       </div>
 
       {/* Referral Info */}
-      <div className="flex flex-col items-start">
-        <span className="text-sm font-medium text-gray-900">
+      <div className="flex min-w-0 flex-col items-start">
+        <span className="max-w-full truncate text-xs font-medium text-gray-900 sm:text-sm">
           + {applicationsCount}  Applications
         </span>
         <span className="text-xs text-gray-500">
