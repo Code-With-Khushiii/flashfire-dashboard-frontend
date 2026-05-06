@@ -157,7 +157,7 @@ const Register = () => {
   // };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 overflow-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-orange-50 via-white to-red-50">
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-72 h-72 bg-orange-200/30 rounded-full blur-3xl"></div>
@@ -166,8 +166,8 @@ const Register = () => {
       </div>
 
       {/* Main Content Container - Optimized for single screen */}
-      <div className="relative min-h-screen flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
+      <div className="relative flex min-h-screen items-center justify-center px-3 py-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md min-w-0">
           
           {/* Header Section - Reduced spacing */}
           <div className="text-center mb-4">
@@ -185,7 +185,7 @@ const Register = () => {
           </div>
 
           {/* Signup Form Card - Reduced padding */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
+          <div className="rounded-2xl border border-white/20 bg-white/80 p-4 shadow-xl backdrop-blur-sm sm:p-6">
             
             {/* Google Sign-in Button - Smaller */}
             {/* <button
@@ -237,7 +237,7 @@ const Register = () => {
             <form onSubmit={handleSubmit} className="space-y-3">
               
               {/* Name Fields Row */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {/* First Name Input */}
                 <div>
                   <label htmlFor="firstName" className="block text-xs font-medium text-gray-700 mb-1">
@@ -251,7 +251,7 @@ const Register = () => {
                       type="text"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      className={`w-full pl-9 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm ${
+                      className={`w-full min-w-0 rounded-xl border py-2.5 pl-9 pr-3 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                         errors.firstName ? 'border-red-500' : 'border-gray-200'
                       }`}
                       placeholder="John"
@@ -273,7 +273,7 @@ const Register = () => {
                       type="text"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      className={`w-full pl-9 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm ${
+                      className={`w-full min-w-0 rounded-xl border py-2.5 pl-9 pr-3 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                         errors.lastName ? 'border-red-500' : 'border-gray-200'
                       }`}
                       placeholder="Doe"
@@ -296,7 +296,7 @@ const Register = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full pl-9 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm ${
+                    className={`w-full min-w-0 rounded-xl border py-2.5 pl-9 pr-3 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                       errors.email ? 'border-red-500' : 'border-gray-200'
                     }`}
                     placeholder="john.doe@example.com"
@@ -317,7 +317,7 @@ const Register = () => {
                     name="planType"
                     value={formData.planType}
                     onChange={handleInputChange}
-                    className={`w-full pl-9 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm bg-white ${
+                    className={`w-full min-w-0 rounded-xl border bg-white py-2.5 pl-9 pr-8 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                       errors.planType ? 'border-red-500' : 'border-gray-200'
                     }`}
                   >
@@ -344,7 +344,7 @@ const Register = () => {
                     value={formData.dashboardManager}
                     onChange={handleInputChange}
                     disabled={loadingManagers}
-                    className={`w-full pl-9 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm bg-white ${
+                    className={`w-full min-w-0 rounded-xl border bg-white py-2.5 pl-9 pr-8 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                       errors.dashboardManager ? 'border-red-500' : 'border-gray-200'
                     } ${loadingManagers ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
@@ -374,7 +374,7 @@ const Register = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`w-full pl-9 pr-10 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm ${
+                    className={`w-full min-w-0 rounded-xl border py-2.5 pl-9 pr-10 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                       errors.password ? 'border-red-500' : 'border-gray-200'
                     }`}
                     placeholder="Min. 8 characters"
@@ -403,7 +403,7 @@ const Register = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className={`w-full pl-9 pr-10 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-sm ${
+                    className={`w-full min-w-0 rounded-xl border py-2.5 pl-9 pr-10 text-sm transition-all duration-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 ${
                       errors.confirmPassword ? 'border-red-500' : 'border-gray-200'
                     }`}
                     placeholder="Confirm your password"

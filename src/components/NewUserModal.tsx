@@ -2414,7 +2414,7 @@ const handleSubmit = () => {
                   <ErrorText>{errors.bachelorsUniDegree}</ErrorText>
                 </div>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <DatePicker
                         label="Start Date"
@@ -2483,7 +2483,7 @@ const handleSubmit = () => {
                   <ErrorText>{errors.mastersUniDegree}</ErrorText>
                 </div>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <DatePicker
                         label="Start Date (Optional)"
@@ -3044,7 +3044,6 @@ const handleSubmit = () => {
     </div>
   );
 }
-
 
 
 
