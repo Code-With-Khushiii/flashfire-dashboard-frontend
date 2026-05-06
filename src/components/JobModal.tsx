@@ -2371,23 +2371,23 @@ export default function JobModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4"
             style={{ overscrollBehavior: "contain" }}
         >
             <div
-                className="relative w-full max-w-6xl h-[90vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden"
+                className="relative flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:h-[90vh]"
                 style={{ overscrollBehavior: "contain" }}
             >
                 {/* Header */}
-                <div className="w-full bg-gradient-to-r from-orange-600 to-red-500 text-white p-4 z-10">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                            <FileText className="w-6 h-6 mr-3" />
-                            <div>
-                                <h1 className="text-xl font-bold">
+                <div className="z-10 w-full bg-gradient-to-r from-orange-600 to-red-500 p-3 text-white sm:p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center">
+                            <FileText className="mr-2 h-5 w-5 flex-shrink-0 sm:mr-3 sm:h-6 sm:w-6" />
+                            <div className="min-w-0">
+                                <h1 className="text-base font-bold sm:text-xl">
                                     📄 FlashFire Jobs
                                 </h1>
-                                <p className="text-orange-100 text-sm">
+                                <p className="truncate text-xs text-orange-100 sm:text-sm">
                                     {jobDetails.jobTitle}
                                     <span style={{
                                         color: (role === 'operator' || role === 'operations') && !jobDetails.downloaded ? '#d1d5db' : 'inherit',
@@ -2397,7 +2397,7 @@ export default function JobModal({
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
                             {role == "operations" ? (
                                 <>
                                     <button
@@ -2436,7 +2436,7 @@ export default function JobModal({
                                                 toastUtils.error("Failed to copy URL to clipboard");
                                             }
                                         }}
-                                        className="hover:bg-orange-900 hover:bg-opacity-20 p-2 rounded-full transition-colors bg-orange-700 px-4 py-2 text-white font-medium"
+                                        className="rounded-lg bg-orange-700 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-orange-900 hover:bg-opacity-20 sm:px-4 sm:text-sm"
                                     >
                                         Copy Optimize URL
                                     </button>
@@ -2492,7 +2492,7 @@ export default function JobModal({
                                                 toastUtils.error("Failed to load resume. Please try again.");
                                             }
                                         }}
-                                        className="hover:bg-orange-900 hover:bg-opacity-20 p-2 rounded-full transition-colors bg-orange-700 px-4 py-2 text-white font-medium"
+                                        className="rounded-lg bg-orange-700 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-orange-900 hover:bg-opacity-20 sm:px-4 sm:text-sm"
                                     >
                                         Optimize
                                     </button>
@@ -2504,24 +2504,24 @@ export default function JobModal({
                                     setShowJobModal(false)
                                 }}
                                 disabled={isOptimizing}
-                                className={`p-2 rounded-full transition-colors ${isOptimizing ? 'cursor-not-allowed opacity-50 bg-gray-400' : 'hover:bg-white hover:bg-opacity-20'}`}
+                                className={`rounded-full p-2 transition-colors ${isOptimizing ? 'cursor-not-allowed opacity-50 bg-gray-400' : 'hover:bg-white hover:bg-opacity-20'}`}
                                 style={{
                                     backgroundColor: showOpsDownloadIndicator ? 'rgba(255,255,255,0.12)' : undefined,
                                     border: showOpsDownloadIndicator ? '1px solid rgba(255,255,255,0.18)' : undefined,
                                     boxShadow: showOpsDownloadIndicator ? '0 0 0 1px rgba(0,0,0,0.08)' : undefined,
                                 }}
                             >
-                                <X className="w-6 h-6" />
+                                <X className="h-5 w-5 sm:h-6 sm:w-6" />
                             </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Body */}
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
                     {/* Sidebar */}
-                    <div className="w-56 bg-gray-50 border-r border-gray-200 py-6 px-3">
-                        <nav className="space-y-2">
+                    <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 md:w-56 md:flex-shrink-0 md:border-b-0 md:border-r md:py-6">
+                        <nav className="flex gap-2 overflow-x-auto pb-1 md:block md:space-y-2 md:overflow-visible md:pb-0">
                             {visibleSections.map((section: any) => {
                                 const Icon = section.icon;
                                 const isActive = activeSection === section.id;
@@ -2531,20 +2531,20 @@ export default function JobModal({
                                         onClick={() =>
                                             setActiveSection(section.id)
                                         }
-                                        className={`w-full flex items-center px-3 py-2 text-left rounded-lg transition-all duration-200 text-sm ${isActive
+                                        className={`flex flex-shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-all duration-200 md:w-full ${isActive
                                             ? `${section.color} border shadow-sm`
                                             : "text-gray-700 hover:bg-white hover:shadow-sm border border-transparent"
                                             }`}
                                     >
                                         <Icon
-                                            className={`w-5 h-5 mr-2 ${isActive ? "" : "text-gray-500"
+                                            className={`mr-2 h-4 w-4 flex-shrink-0 sm:h-5 sm:w-5 ${isActive ? "" : "text-gray-500"
                                                 }`}
                                         />
                                         <span className="font-medium">
                                             {section.label}
                                         </span>
                                         {isActive && (
-                                            <ArrowRight className="w-4 h-4 ml-auto" />
+                                            <ArrowRight className="ml-2 hidden h-4 w-4 md:ml-auto md:block" />
                                         )}
                                     </button>
                                 );
@@ -2554,7 +2554,7 @@ export default function JobModal({
 
                     {/* Main Content */}
                     <div
-                        className="flex-1 overflow-y-auto p-6"
+                        className="min-w-0 flex-1 overflow-y-auto p-3 sm:p-5 md:p-6"
                         style={{ overscrollBehavior: "contain" }}
                     >
                         {renderContent()}

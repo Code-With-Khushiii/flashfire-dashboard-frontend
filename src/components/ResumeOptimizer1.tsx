@@ -1584,7 +1584,88 @@ export default function DocumentUpload() {
 }) => (
   <div className="border rounded-lg overflow-hidden">
     {/* ✅ Scrollable Container */}
-    <div className="overflow-x-auto">
+    <div className="divide-y sm:hidden">
+      {items.length === 0 ? (
+        <div className="px-4 py-6 text-sm text-gray-500">No documents yet.</div>
+      ) : (
+        items.map((it, i) => (
+          <button
+            key={i}
+            type="button"
+            className="block w-full px-4 py-4 text-left hover:bg-gray-50"
+            onClick={() => onPick(it)}
+            title="Click to preview"
+          >
+            <div className="mb-2 text-sm font-semibold text-gray-900">
+              {category === "Base" ||
+              category === "Cover Letter" ||
+              category === "Transcript"
+                ? it.name || "Unnamed"
+                : `${it.jobRole || "â€”"} at ${it.companyName || "â€”"}`}
+            </div>
+            <div className="space-y-1 text-xs text-gray-600">
+              <div>
+                <span className="font-medium text-gray-500">Created On: </span>
+                {it.createdAt
+                  ? (() => {
+                      try {
+                        const date = new Date(it.createdAt);
+                        if (isNaN(date.getTime())) return String(it.createdAt || "â€”");
+                        return date.toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        });
+                      } catch {
+                        return String(it.createdAt || "â€”");
+                      }
+                    })()
+                  : "â€”"}
+              </div>
+              <div>
+                <span className="font-medium text-gray-500">Category: </span>
+                {category} {category == "Base" ? "Resume" : ""}
+              </div>
+              {activeTab !== "base" &&
+                activeTab !== "cover" &&
+                activeTab !== "transcript" && (
+                  <div>
+                    <span className="font-medium text-gray-500">Job Link: </span>
+                    {it.jobLink ? (
+                      <a
+                        href={it.jobLink.startsWith("http") ? it.jobLink : `https://${it.jobLink}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Link
+                      </a>
+                    ) : (
+                      "â€”"
+                    )}
+                  </div>
+                )}
+            </div>
+            {!it.isJobBased && (
+              <a
+                href={toRawPdfUrl(it.link || it.url) || it.link || it.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="mt-3 inline-flex items-center gap-2 rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700"
+                title="Download"
+              >
+                <DownloadIcon />
+                Download
+              </a>
+            )}
+          </button>
+        ))
+      )}
+    </div>
+
+    <div className="hidden overflow-x-auto sm:block">
       <div className="min-w-[500px]"> {/* ensures proper column spacing */}
         {/* ✅ Header */}
         <div className="grid grid-cols-12 bg-gray-100 text-sm font-bold px-4 py-3 sticky top-0 z-10">
@@ -1749,17 +1830,17 @@ export default function DocumentUpload() {
   };
 
  return (
-  <div className="max-w-6xl mx-auto p-4">
+  <div className="mx-auto max-w-6xl p-3 sm:p-4">
     <div className="flex flex-col md:grid md:grid-cols-12 gap-4">
       
       {/* Sidebar */}
-      <aside className="md:col-span-3 bg-white rounded-lg shadow border  top-20 ">
+      <aside className="md:col-span-3 bg-white rounded-lg shadow border top-20">
         <h2 className="px-4 py-3 font-semibold border-b">Documents</h2>
-        <nav className="flex flex-wrap md:flex-col">
+        <nav className="flex overflow-x-auto md:flex-col md:overflow-visible">
           {documentTabs.map((tab) => (
             <button
               key={tab.id}
-              className={`px-4 py-3 text-left w-full hover:bg-gray-50 transition ${
+              className={`flex-shrink-0 px-4 py-3 text-left hover:bg-gray-50 transition md:w-full ${
                 activeTab === tab.id ? "bg-blue-50 text-blue-700 font-medium" : ""
               }`}
               onClick={() => {
@@ -1775,7 +1856,7 @@ export default function DocumentUpload() {
       </aside>
 
       {/* Main content */}
-      <main className="md:col-span-9 bg-white rounded-lg shadow border p-4 md:p-6">
+      <main className="min-w-0 md:col-span-9 bg-white rounded-lg shadow border p-3 sm:p-4 md:p-6">
         {/* Empty state when no tab is selected */}
         {!activeTab && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -1842,7 +1923,7 @@ export default function DocumentUpload() {
           (tab) =>
             activeTab === tab && (
               <section key={tab}>
-                <div className="flex items-center justify-between flex-wrap mb-4 gap-2">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <h3 className="text-lg font-semibold capitalize">
                     {tab === "optimized"
                       ? "Optimized Resumes"
@@ -1859,13 +1940,13 @@ export default function DocumentUpload() {
                       <ArrowLeftCircle className="w-4 h-4" /> View All Docs
                     </button>
                   ) : (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex w-full flex-col gap-3 sm:w-auto">
                       {/* Top Row: Action Buttons */}
-                      <div className="flex gap-3 items-center">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         {tab === "optimized" && (
                           <button
                             onClick={fetchAllOptimizedResumes}
-                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white shadow-sm transition-colors hover:bg-green-700 sm:w-auto"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1893,7 +1974,7 @@ export default function DocumentUpload() {
                           </svg>
                           Sort by Date
                         </button> */}
-                        <label className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                        <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white shadow-sm transition-colors hover:bg-blue-700 sm:w-auto">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
@@ -1919,7 +2000,7 @@ export default function DocumentUpload() {
 
                       {/* Bottom Row: Search Bar (only for optimized tab) */}
                       {tab === "optimized" && (
-                        <div className="flex items-center gap-2 w-full max-w-md">
+                        <div className="flex w-full items-center gap-2 sm:max-w-md">
                           <div className="relative flex-1">
                             <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
