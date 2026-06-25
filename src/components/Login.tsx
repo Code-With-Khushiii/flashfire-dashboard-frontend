@@ -618,8 +618,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* LEFT PANEL - hidden on mobile */}
-      <div className="hidden lg:flex flex-1 flex-col justify-between px-16 py-10 bg-white">
+      {/* LEFT PANEL */}
+      <div className="flex flex-1 flex-col justify-between px-6 sm:px-10 lg:px-16 py-8 lg:py-10 bg-white">
         {/* Logo */}
         <div className="flex items-center gap-0.5">
           <img src="/logo2.png" alt="Flashfire Logo" className="w-8 h-8" />
@@ -627,49 +627,44 @@ export default function Login() {
         </div>
 
         {/* Main content */}
-        <div className="max-w-lg py-12">
-          <p className="text-[#ff4b00] text-xs font-semibold tracking-widest uppercase mb-6">
+        <div className="max-w-lg py-8 lg:py-12">
+          <p className="text-[#ff4b00] text-xs font-semibold tracking-widest uppercase mb-4 lg:mb-6">
             Career Intelligence Platform
           </p>
-          <h2 className="text-5xl xl:text-6xl font-bold text-gray-900 leading-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight mb-4 lg:mb-5">
             Your next job<br />starts with a<br />
             <span className="text-[#ff4b00]">better resume.</span>
           </h2>
-          <p className="text-gray-500 text-base leading-relaxed mb-10">
+          <p className="text-gray-500 text-sm lg:text-base leading-relaxed mb-6 lg:mb-10">
             AI that rewrites, scores, and tailors your resume to beat
             ATS filters — so recruiters actually see you.
           </p>
 
           {/* Stats - 3 column */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-            <div className="flex-1 p-5 text-center border-r border-gray-200">
-              <div className="text-2xl font-bold text-gray-700">95<span className="text-[#ff4b00]">%</span></div>
+            <div className="flex-1 p-3 lg:p-5 text-center border-r border-gray-200">
+              <div className="text-xl lg:text-2xl font-bold text-gray-700">95<span className="text-[#ff4b00]">%</span></div>
               <div className="text-xs text-gray-500 mt-1">Success Rate</div>
             </div>
-            <div className="flex-1 p-5 text-center border-r border-gray-200">
-              <div className="text-2xl font-bold text-gray-700">
+            <div className="flex-1 p-3 lg:p-5 text-center border-r border-gray-200">
+              <div className="text-xl lg:text-2xl font-bold text-gray-700">
                 300<span className="text-[#ff4b00]">k+</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">Applications Sent</div>
             </div>
-            <div className="flex-1 p-5 text-center">
-              <div className="text-2xl font-bold text-gray-700">97<span className="text-[#ff4b00]">%</span></div>
+            <div className="flex-1 p-3 lg:p-5 text-center">
+              <div className="text-xl lg:text-2xl font-bold text-gray-700">97<span className="text-[#ff4b00]">%</span></div>
               <div className="text-xs text-gray-500 mt-1">Avg ATS Score</div>
             </div>
           </div>
         </div>
 
         {/* Bottom text */}
-        <p className="text-gray-400 text-sm">End-to-end encrypted • Your data is never sold</p>
+        <p className="text-gray-400 text-xs lg:text-sm">End-to-end encrypted • Your data is never sold</p>
       </div>
 
-      {/* RIGHT PANEL - full width on mobile, fixed width on desktop */}
-      <div className="w-full lg:w-[480px] xl:w-[520px] min-h-screen flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-10 bg-gray-100">
-        {/* Mobile-only logo */}
-        <div className="flex items-center gap-0.5 mb-8 lg:hidden">
-          <img src="/logo2.png" alt="Flashfire Logo" className="w-8 h-8" />
-          <span className="text-[#ff4b00] font-extrabold text-base tracking-widest uppercase">Flashfire</span>
-        </div>
+      {/* RIGHT PANEL */}
+      <div className="w-full lg:w-[480px] xl:w-[520px] flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-10 bg-gray-100">
         <h3 className="text-3xl font-bold text-gray-900 mb-1">Welcome back</h3>
         <p className="text-gray-500 text-sm mb-8">Sign in to your Flashfire account</p>
 
