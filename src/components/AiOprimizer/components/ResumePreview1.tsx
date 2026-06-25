@@ -64,6 +64,7 @@ interface ResumePreviewHybridProps {
     onDownloadClick?: () => void;
     showPrintButtons?: boolean;
     sectionOrder?: string[]; // Add section order prop
+    sectionTitles?: Record<string, string>;
 }
 
 export const ResumePreview1: React.FC<ResumePreviewHybridProps> = ({
@@ -76,7 +77,12 @@ export const ResumePreview1: React.FC<ResumePreviewHybridProps> = ({
     onDownloadClick,
     showPrintButtons = true,
     sectionOrder = ["personalInfo", "summary", "workExperience", "projects", "leadership", "skills", "education"],
+    sectionTitles = {},
 }) => {
+    const headingFor = (id: string, def: string): string => {
+        const raw = (sectionTitles?.[id] || "").trim();
+        return (raw || def).toUpperCase();
+    };
     const parseCustomLinkContent = (raw: string) => {
         const content = (raw || "").trim();
         if (!content) return { label: "", href: "" };
@@ -856,7 +862,7 @@ These settings will give you the best results for your resume PDF.`);
                                 letterSpacing: "0.1px",
                             }}
                         >
-                           LEADERSHIP & ACHIEVEMENTS
+                           {headingFor("leadership", "Leadership & Achievements")}
                         </div>
                         {data.leadership.map((item) => (
                             <div

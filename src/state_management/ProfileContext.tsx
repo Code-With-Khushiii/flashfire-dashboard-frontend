@@ -328,6 +328,10 @@ export interface UserProfile {
   preferredLocations: string[];
   targetCompanies: string[];
   reasonForLeaving: string;
+  // Employment types the candidate will accept. Multi-select. Defaults
+  // to ["Full-time"] on the backend when never edited. Drives the
+  // scraper's filter + AI judge's hard signals.
+  employmentTypes?: ("Full-time" | "Part-time" | "Contract" | "Internship")[];
 
   // Links & Documents
   linkedinUrl: string;

@@ -33,9 +33,50 @@ type Entry = {
 // Cloudinary sometimes serves PDFs under `image/upload`.
 // For preview (iframe), use `/raw/upload/`
 // For download, add `/fl_attachment/`
+// Turn an arbitrary label into a safe, readable file name (no extension).
+function sanitizeFileName(name?: string): string {
+  return (name || "document")
+    .trim()
+    .replace(/\.pdf$/i, "")
+    .replace(/[^a-zA-Z0-9-_]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 80) || "document";
+}
+
+// Build a friendly download name for a document entry, e.g. "Manav_Patel_Cover_Letter".
+function buildDownloadName(
+  it: { name?: string; jobRole?: string; companyName?: string; title?: string },
+  category: "Resume" | "Cover Letter" | "Base" | "Transcript"
+): string {
+  const base =
+    it?.name?.trim() ||
+    it?.title?.trim() ||
+    [it?.jobRole, it?.companyName].filter(Boolean).join("_") ||
+    "document";
+  const suffix =
+    category === "Cover Letter"
+      ? "Cover_Letter"
+      : category === "Transcript"
+      ? "Transcript"
+      : "Resume";
+  const cleanBase = sanitizeFileName(base);
+  // Avoid doubling the suffix — cover-letter entries are already stored as
+  // "<ClientName>_Cover_Letter", so don't turn it into "..._Cover_Letter_Cover_Letter".
+  if (cleanBase.toLowerCase().endsWith(suffix.toLowerCase())) {
+    return cleanBase;
+  }
+  return `${cleanBase}_${suffix}`;
+}
+
+// Cloudinary sometimes serves PDFs under `image/upload`.
+// For iframes, we want the original bytes. Convert to `raw/upload`.
+// Cloudinary sometimes serves PDFs under `image/upload`.
+// For preview (iframe), use `/raw/upload/`
+// For download, add `/fl_attachment/` (with a friendly filename when provided).
 function toRawPdfUrl(
   resume: string | { url?: string; link?: string },
-  opts: { download?: boolean } = {}
+  opts: { download?: boolean; fileName?: string } = {}
 ) {
   let pdfUrl = "";
 
@@ -48,7 +89,12 @@ function toRawPdfUrl(
   if (!pdfUrl) return "";
 
   if (opts.download) {
-    return pdfUrl.replace("/upload/", "/upload/fl_attachment/");
+    // `fl_attachment:<name>` makes Cloudinary serve the file with a proper
+    // Content-Disposition filename, so the browser's "Save As" defaults to it.
+    const flag = opts.fileName
+      ? `fl_attachment:${sanitizeFileName(opts.fileName)}`
+      : "fl_attachment";
+    return pdfUrl.replace("/upload/", `/upload/${flag}/`);
   }
   return pdfUrl.replace("/upload/", "/upload/"); // ✅ preview inline
 }
@@ -91,6 +137,8 @@ export default function DocumentUpload() {
     const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(
         null
     );
+    // Friendly name used when downloading the currently-previewed document.
+    const [activePreviewName, setActivePreviewName] = useState<string>("document");
     const [iframeError, setIframeError] = useState<string | null>(null);
 
     // Job-based resume state
@@ -418,8 +466,17 @@ if (activeTab === "base") defaultUrl = baseResume[0]?.link || null;
 
         for (const file of files) {
             if (type === "base" || type === "coverLetter" || type === "optimized" || type === "transcript") {
-                const name = prompt("Enter a name for this file:");
-                if (!name) return;
+                let name: string;
+
+                if (type === "coverLetter") {
+                    const userName = readAuth()?.userDetails?.name || "";
+                    const cleanName = userName.trim().replace(/\s+/g, "_");
+                    name = cleanName ? `${cleanName}_Cover_Letter` : "Cover_Letter";
+                } else {
+                    const prompted = prompt("Enter a name for this file:");
+                    if (!prompted) return;
+                    name = prompted;
+                }
 
                 if (type === "base") {
                     await uploadBaseResume(file, name);
@@ -506,6 +563,7 @@ const uploadOptimizedResume = async (file: File, name: string) => {
     // 7. Update preview
     setPreviewMode(true);
     setActivePreviewUrl(toRawPdfUrl(uploadedURL));
+    setActivePreviewName(buildDownloadName({ name }, "Resume"));
     setIframeError(null);
 
     alert("✅ Optimized resume uploaded successfully!");
@@ -563,6 +621,7 @@ const uploadCoverLetter = async (file: File, name: string) => {
     // 7. Update preview
     setPreviewMode(true);
     setActivePreviewUrl(toRawPdfUrl(uploadedURL));
+    setActivePreviewName(buildDownloadName({ name }, "Cover Letter"));
     setIframeError(null);
 
     alert("✅ Cover letter uploaded successfully!");
@@ -607,6 +666,7 @@ const uploadTranscript = async (file: File, name: string) => {
 
     setPreviewMode(true);
     setActivePreviewUrl(toRawPdfUrl(uploadedURL));
+    setActivePreviewName(buildDownloadName({ name }, "Transcript"));
     setIframeError(null);
 
     alert("✅ Transcript uploaded successfully!");
@@ -803,7 +863,8 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                   {/* Only show download for non-job-based resumes */}
                   {!it.isJobBased && (
                     <a
-                      href={toRawPdfUrl(it?.url) || it.link}
+                      href={toRawPdfUrl(it?.url || it.link || "", { download: true, fileName: buildDownloadName(it, category) }) || it.link}
+                      download={`${buildDownloadName(it, category)}.pdf`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-gray-700 hover:text-blue-600 p-2"
@@ -835,19 +896,36 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
     // ---- Reusable Preview Panel (iframe) ----
     const PreviewPanel = ({
         url,
+        downloadName,
         onChange,
     }: {
         url: string;
+        downloadName?: string;
         onChange: () => void;
     }) => {
         if (!url) return null;
-        const src = `${url}#toolbar=1&navpanes=0&scrollbar=1`; // tweak viewer UI
+        const name = downloadName || "document";
+        // Serve through our backend proxy so the PDF carries a proper
+        // Content-Disposition filename. The browser's built-in PDF viewer uses
+        // that header for its own download button, so the saved file is named
+        // after the client (e.g. "Manav_Patel_Cover_Letter.pdf") instead of the
+        // raw Cloudinary id. Falls back to the direct Cloudinary URL if the
+        // proxy base isn't configured.
+        const apiBase = import.meta.env.VITE_API_BASE_URL;
+        const proxied = apiBase
+            ? `${apiBase}/doc-proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
+            : url;
+        const src = `${proxied}#toolbar=1&navpanes=0&scrollbar=1`; // tweak viewer UI
+        // Download button forces attachment disposition (dl=1) with the same name.
+        const downloadUrl = apiBase
+            ? `${apiBase}/doc-proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}&dl=1`
+            : toRawPdfUrl(url, { download: true, fileName: name });
 
         return (
             <div className="flex flex-col items-center">
                 <div className="border shadow mb-4 w-full max-w-3xl h-[80vh] bg-gray-50">
                     <iframe
-                        key={url} // force reload when URL changes
+                        key={src} // force reload when URL changes
                         title="pdf-preview"
                         src={src}
                         className="w-full h-full"
@@ -864,7 +942,8 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
 
                 <div className="flex gap-2">
                     <a
-                        href={url}
+                        href={downloadUrl}
+                        download={`${name}.pdf`}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -979,6 +1058,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                 {baseResume && previewMode ? (
                                    <PreviewPanel
   url={toRawPdfUrl(activePreviewUrl || '')} // 👈 no download flag, pure preview
+  downloadName={activePreviewName}
   onChange={() => setPreviewMode(true)}
 />
                                 ) : (
@@ -992,6 +1072,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                                     setActivePreviewUrl(
                                                         toRawPdfUrl(it.url)!
                                                     );
+                                                    setActivePreviewName(buildDownloadName(it, "Base"));
                                                     setPreviewMode(true);
                                                     setIframeError(null);
                                                 }}
@@ -1136,6 +1217,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                                 activePreviewUrl
                                             ) as string
                                         }
+                                        downloadName={activePreviewName}
                                         onChange={() => setPreviewMode(false)}
                                     />
                                 ) : resumeLoading ? (
@@ -1179,6 +1261,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                                 setActivePreviewUrl(
                                                     toRawPdfUrl(it.url || it.link || '')!
                                                 );
+                                                setActivePreviewName(buildDownloadName(it, "Resume"));
                                                 setPreviewMode(true);
                                                 setIframeError(null);
                                             }
@@ -1240,6 +1323,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                                 activePreviewUrl
                                             ) as string
                                         }
+                                        downloadName={activePreviewName}
                                         onChange={() => setPreviewMode(false)}
                                     />
                                 ) : (
@@ -1250,6 +1334,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                             setActivePreviewUrl(
                                                 toRawPdfUrl(it.url)!
                                             );
+                                            setActivePreviewName(buildDownloadName(it, "Cover Letter"));
                                             setPreviewMode(true);
                                             setIframeError(null);
                                         }}
@@ -1291,6 +1376,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                 ) : previewMode && activePreviewUrl ? (
                                     <PreviewPanel
                                         url={toRawPdfUrl(activePreviewUrl || '') as string}
+                                        downloadName={activePreviewName}
                                         onChange={() => setPreviewMode(false)}
                                     />
                                 ) : (
@@ -1299,6 +1385,7 @@ const handleDelete = async (item: Entry, category: "base" | "optimized" | "cover
                                         category="Transcript"
                                         onPick={(it) => {
                                             setActivePreviewUrl(toRawPdfUrl(it.url || it.link || '')!);
+                                            setActivePreviewName(buildDownloadName(it, "Transcript"));
                                             setPreviewMode(true);
                                             setIframeError(null);
                                         }}

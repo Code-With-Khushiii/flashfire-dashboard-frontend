@@ -24,6 +24,7 @@ import { Calendar } from "lucide-react";
 import { getTimeAgo } from "../utils/getTimeAgo";
 import { UserContext } from "../state_management/UserContext";
 import AssignResumeModal from "./Admin/AssignResumeModal";
+import { buildResumeOptimizationInstructionPrompt } from "../utils/resumeOptimizationPrompt";
 
 type ResumeDataType = typeof initialData;
 
@@ -654,8 +655,7 @@ export default function ResumeOptimizerDashboard() {
         setIsOptimizing(true);
 
         try {
-            const prompt: string =
-                "if you recieve any HTML tages please ignore it and optimize the resume according to the given JD. Make sure not to cut down or shorten any points in the Work Experience section. IN all fields please do not cut down or shorten any points or content. For example, if a role in the base resume has 6 points, the optimized version should also retain all 6 points. The content should be aligned with the JD but the number of points per role must remain the same. Do not touch or optimize publications if given to you.";
+            const prompt = buildResumeOptimizationInstructionPrompt(jobDescription);
 
             const filteredResumeForOptimization: typeof resumeData = {
                 ...resumeData,

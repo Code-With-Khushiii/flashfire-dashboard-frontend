@@ -10,6 +10,7 @@ import { useOperationsStore } from "../state_management/Operations.ts";
 import { toastUtils, toastMessages } from "../utils/toast.ts";
 import { useJobsSessionStore } from "../state_management/JobsSessionStore.ts";
 import { isUserOriginatedJob } from "../utils/jobOrigin.ts";
+import { parseAddedTimestamp } from "../utils/getTimeAgo.ts";
 import { useUserProfile } from "../state_management/ProfileContext.tsx";
 import NotifyClientPasswordModal from "./NotifyClientPasswordModal.tsx";
 const JobModal = lazy(() => import("./JobModal.tsx"));
@@ -297,12 +298,15 @@ const JobTracker = () => {
 
     const getJobSortTimeForStatus = (job: Job, status: JobStatus): number => {
         if (status === "applied") {
-            // For APPLIED: sort by creation time (stack behavior — newest added stays on top).
-            // We intentionally skip appliedDate/attachmentsAttachedAt here because those fields
-            // get updated when operations attaches a resume, which would push old jobs back to
-            // the top even if they were applied 1+ months ago. createdAt is immutable and since
-            // jobs are typically applied within 1 day of being created, creation order ≈ applied order.
-            return getJobCreationTime(job);
+            // Sort using the SAME parser + field priority that JobCard's getTimeAgo uses
+            // (createdAt → dateAdded → updatedAt). This guarantees the visible
+            // "Added X ago" string matches the sort order regardless of mixed
+            // en-IN / en-US locale strings stored in legacy data.
+            return (
+                parseAddedTimestamp(job.createdAt) ||
+                parseAddedTimestamp(job.dateAdded) ||
+                parseAddedTimestamp(job.updatedAt)
+            );
         }
 
         // For all other columns: prefer updatedAt so recently moved cards stay on top (stack behavior)

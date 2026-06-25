@@ -17,6 +17,11 @@ const PAGE_WIDTH_PX = 816; // 8.5 inches
 const PAGE_HEIGHT_PX = 1056; // 11 inches
 const DPI = 96;
 
+// Minimum portion of the printable page the content MUST fill before it can be
+// downloaded. Prevents operators from scaling a resume so small that the first
+// page is half-empty and looks unprofessional.
+const MIN_FILL_RATIO = 0.9; // 90%
+
 export const ResumeScalingModal: React.FC<ResumeScalingModalProps> = ({
     isOpen,
     onClose,
@@ -36,6 +41,13 @@ export const ResumeScalingModal: React.FC<ResumeScalingModalProps> = ({
         userRole === "Admin" ||
         userRole === "operations" ||
         userRole === "Operations";
+
+    // The minimum-fill rule applies only to operations/operator accounts.
+    // Regular users are never blocked or shown the "page too empty" warning.
+    const isOperator = [userType, userRole].some((r) => {
+        const n = typeof r === "string" ? r.trim().toLowerCase() : "";
+        return n === "operations" || n === "operator";
+    });
 
     const [overallScale, setOverallScale] = useState(100); // Percentage
     const [pageMargin, setPageMargin] = useState(0.2); // Inches
@@ -67,6 +79,10 @@ export const ResumeScalingModal: React.FC<ResumeScalingModalProps> = ({
     const blueLinePosition = paddingPx + availableHeight;
     // Red line: absolute overflow boundary (bottom of page minus bottom margin)
     const redLinePosition = PAGE_HEIGHT_PX - marginPx;
+    // Printable region runs from the top padding down to the overflow boundary.
+    const printableHeight = redLinePosition - paddingPx;
+    // Amber line: the minimum-fill mark. Content must reach at least this far down.
+    const minFillLinePosition = paddingPx + printableHeight * MIN_FILL_RATIO;
 
     // Inject CSS to override font sizes
     useEffect(() => {
@@ -134,9 +150,33 @@ export const ResumeScalingModal: React.FC<ResumeScalingModalProps> = ({
     // Content overflows red line if: paddingPx + contentHeight > redLinePosition
     const isOverflowing = (paddingPx + contentHeight) > redLinePosition;
 
+    // How much of the printable region the content actually fills (0–1+).
+    const fillRatio = printableHeight > 0 ? contentHeight / printableHeight : 0;
+    // Underfilled = content is too short to look good (and not already overflowing).
+    // contentHeight === 0 means we haven't measured yet, so don't flag it as underfilled.
+    // Only enforced for operators; regular users are never blocked by the fill rule.
+    const isUnderfilled = isOperator && !isOverflowing && contentHeight > 0 && fillRatio < MIN_FILL_RATIO;
+    // Download is only allowed when the page is neither overflowing nor underfilled.
+    const canDownload = !isOverflowing && !isUnderfilled;
+
     const handleDownloadPDF = async () => {
         if (!previewRef.current) {
             console.error("Preview element not found");
+            return;
+        }
+
+        // Hard guard: never let an overflowing or under-filled page be downloaded,
+        // even if the button somehow gets clicked while disabled.
+        if (isOverflowing) {
+            alert("Content overflows the page. Reduce the scale, font size, or content before downloading.");
+            return;
+        }
+        if (isUnderfilled) {
+            alert(
+                `The page is only ${Math.round(fillRatio * 100)}% full. ` +
+                `At least ${Math.round(MIN_FILL_RATIO * 100)}% of the page must contain content before you can download. ` +
+                `Increase the scale or font size, or add more content.`
+            );
             return;
         }
 
@@ -400,24 +440,40 @@ export const ResumeScalingModal: React.FC<ResumeScalingModalProps> = ({
                             )}
 
                             {/* Status Indicator */}
-                            <div className={`p-4 rounded-lg ${isOverflowing ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                            <div className={`p-4 rounded-lg ${
+                                isOverflowing
+                                    ? 'bg-red-50 border border-red-200'
+                                    : isUnderfilled
+                                        ? 'bg-amber-50 border border-amber-200'
+                                        : 'bg-green-50 border border-green-200'
+                            }`}>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <div className={`w-3 h-3 rounded-full ${isOverflowing ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                                    <span className={`text-sm font-semibold ${isOverflowing ? 'text-red-700' : 'text-green-700'}`}>
-                                        {isOverflowing ? 'Content Overflow Detected' : 'Content Fits Perfectly'}
+                                    <div className={`w-3 h-3 rounded-full ${
+                                        isOverflowing ? 'bg-red-500' : isUnderfilled ? 'bg-amber-500' : 'bg-green-500'
+                                    }`}></div>
+                                    <span className={`text-sm font-semibold ${
+                                        isOverflowing ? 'text-red-700' : isUnderfilled ? 'text-amber-700' : 'text-green-700'
+                                    }`}>
+                                        {isOverflowing
+                                            ? 'Content Overflow Detected'
+                                            : isUnderfilled
+                                                ? 'Page Too Empty'
+                                                : 'Content Fits Perfectly'}
                                     </span>
                                 </div>
                                 <p className="text-xs text-gray-600">
                                     {isOverflowing
                                         ? `Content height: ${((paddingPx + contentHeight) / DPI).toFixed(2)}" exceeds overflow boundary: ${(redLinePosition / DPI).toFixed(2)}"`
-                                        : `Content fits within overflow boundary (${((paddingPx + contentHeight) / DPI).toFixed(2)}" / ${(redLinePosition / DPI).toFixed(2)}")`}
+                                        : isUnderfilled
+                                            ? `Page is only ${Math.round(fillRatio * 100)}% full. At least ${Math.round(MIN_FILL_RATIO * 100)}% must be filled — increase the scale or font size, or add more content.`
+                                            : `Page is ${Math.round(fillRatio * 100)}% full (${((paddingPx + contentHeight) / DPI).toFixed(2)}" / ${(redLinePosition / DPI).toFixed(2)}")`}
                                 </p>
                             </div>
 
                             {/* Download PDF Button */}
                             <button
                                 onClick={handleDownloadPDF}
-                                disabled={isGeneratingPDF || isOverflowing}
+                                disabled={isGeneratingPDF || !canDownload}
                                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
                                 {isGeneratingPDF ? (
@@ -450,6 +506,22 @@ export const ResumeScalingModal: React.FC<ResumeScalingModalProps> = ({
                                     boxSizing: 'border-box',
                                 }}
                             >
+                                {/* Amber Line - Minimum fill mark (operators only) */}
+                                {isOperator && (
+                                    <div
+                                        className="absolute left-0 right-0 z-10 pointer-events-none pdf-indicator-line"
+                                        style={{
+                                            top: `${minFillLinePosition}px`,
+                                            borderTop: '2px dashed #f59e0b',
+                                            boxShadow: '0 0 4px rgba(245, 158, 11, 0.4)',
+                                        }}
+                                    >
+                                        <div className="absolute -left-24 top-0 bg-amber-500 text-white text-xs px-2 py-1 rounded font-semibold whitespace-nowrap shadow-lg">
+                                            ↑ Min Fill ({Math.round(MIN_FILL_RATIO * 100)}%)
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Red Line - Overflow boundary */}
                                 <div
                                     className="absolute left-0 right-0 z-10 pointer-events-none pdf-indicator-line"

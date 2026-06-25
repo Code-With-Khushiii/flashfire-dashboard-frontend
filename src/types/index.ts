@@ -36,6 +36,19 @@ export interface Job {
     error?: string;
     [key: string]: any;
   };
+  // Second-stage screening (real employer-site re-judge). 'failed' jobs are
+  // moved to the removed column; the reason is operator-only.
+  secondJudge?: {
+    status?: 'pending' | 'processing' | 'passed' | 'failed' | 'skipped';
+    attempts?: number;
+    score?: number | null;
+    reason?: string | null;
+    error?: string | null;
+    [key: string]: any;
+  };
+  removalReason?: string | null;
+  removedBy?: string | null;
+  removalDate?: string | null;
 }
 
 export interface OptimizedResume {

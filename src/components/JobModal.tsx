@@ -32,6 +32,7 @@ import {
     getOptimizedResumeUrl,
     getOptimizedResumeTitle,
 } from "../utils/getOptimizedResumeUrl.ts";
+import { buildResumeOptimizationInstructionPrompt } from "../utils/resumeOptimizationPrompt.ts";
 import { ResumePreview } from "./AiOprimizer/components/ResumePreview.tsx";
 // import { ResumePreview1 } from "./AiOprimizer/components/ResumePreview1";
 import { ResumePreviewMedical } from "./AiOprimizer/components/ResumePreviewMedical.tsx";
@@ -631,8 +632,13 @@ export default function JobModal({
     }, [jobDetails?.jobID, jobDetails?.jobDescription, activeSection, getJobDescription, isJobDescriptionLoading, loadJobDescription]);
 
     useEffect(() => {
-        if (role === "operations" && jobDetails?.jobID && jobDetails?.userID) {
-            const isRemoved = jobDetails?.currentStatus?.toLowerCase().startsWith('deleted') || 
+        // Fetch the removal reason for BOTH operator roles ('operations' AND
+        // 'operator') — previously only 'operations' fetched it, so an
+        // 'operator' viewer saw an empty removal block. The red detail block
+        // below is gated by isOperatorViewer, which covers both.
+        const isOpsViewer = role === "operations" || role === "operator";
+        if (isOpsViewer && jobDetails?.jobID && jobDetails?.userID) {
+            const isRemoved = jobDetails?.currentStatus?.toLowerCase().startsWith('deleted') ||
                              jobDetails?.currentStatus?.toLowerCase().startsWith('removed');
             
             if (isRemoved) {
@@ -1905,6 +1911,27 @@ export default function JobModal({
                                                     isOperatorViewer && name
                                                         ? `Added by ${name}`
                                                         : 'Added';
+                                            } else if (evLower === 'saved') {
+                                                displayEvent = 'Saved';
+                                            } else if (evLower.startsWith('applied by')) {
+                                                const tail = event
+                                                    .replace(/^applied by\s+/i, '')
+                                                    .trim();
+                                                displayEvent = tail
+                                                    ? `Applied by ${tail}`
+                                                    : 'Applied';
+                                            } else if (
+                                                evLower.startsWith('removed') ||
+                                                evLower.startsWith('deleted')
+                                            ) {
+                                                // Removal steps (incl. "removed by AI" from the
+                                                // second-stage screening worker). Normal clients
+                                                // see a plain "Removed"; operators keep the raw
+                                                // label and get the detailed reason in the red
+                                                // block below ("Failed second-stage screening …").
+                                                if (!isOperatorViewer) {
+                                                    displayEvent = 'Removed';
+                                                }
                                             }
                                             return (
                                                 <li
@@ -1933,6 +1960,60 @@ export default function JobModal({
                                                 </li>
                                             );
                                         }
+                                    )}
+                                    {isOperatorViewer && (jobDetails?.optimizedResume?.hasResume || jobDetails?.autoOptimization?.status) && (
+                                        <li className="mb-10 ms-6">
+                                            <span className="absolute flex items-center justify-center w-6 h-6 bg-emerald-100 rounded-full -start-3 ring-8 ring-white">
+                                                <span className="text-sm">🛠️</span>
+                                            </span>
+                                            <h3 className="flex items-center mb-1 text-md font-semibold text-emerald-800">
+                                                Resume optimization
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {jobDetails?.optimizedResume?.hasResume
+                                                    ? 'Resume auto-optimized automatically.'
+                                                    : jobDetails?.autoOptimization?.status === 'failed'
+                                                        ? 'Auto-optimization failed — optimize manually.'
+                                                        : jobDetails?.autoOptimization?.status === 'skipped'
+                                                            ? `Auto-optimization skipped${jobDetails?.autoOptimization?.error ? `: ${jobDetails.autoOptimization.error}` : '.'}`
+                                                            : jobDetails?.autoOptimization?.status === 'processing'
+                                                                ? 'Auto-optimization in progress.'
+                                                                : 'Auto-optimization queued.'}
+                                            </p>
+                                        </li>
+                                    )}
+                                    {isOperatorViewer && jobDetails?.secondJudge?.status && (
+                                        <li className="mb-10 ms-6">
+                                            <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -start-3 ring-8 ring-white ${
+                                                jobDetails.secondJudge.status === 'passed'
+                                                    ? 'bg-green-100'
+                                                    : jobDetails.secondJudge.status === 'failed'
+                                                        ? 'bg-red-100'
+                                                        : 'bg-blue-100'
+                                            }`}>
+                                                <span className="text-sm">🛡️</span>
+                                            </span>
+                                            <h3 className={`flex items-center mb-1 text-md font-semibold ${
+                                                jobDetails.secondJudge.status === 'passed'
+                                                    ? 'text-green-800'
+                                                    : jobDetails.secondJudge.status === 'failed'
+                                                        ? 'text-red-800'
+                                                        : 'text-blue-800'
+                                            }`}>
+                                                Second-stage screening
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {jobDetails.secondJudge.status === 'passed'
+                                                    ? `Passed${jobDetails.secondJudge.score != null ? ` (score ${jobDetails.secondJudge.score})` : ''} — matched the client profile on the real posting.`
+                                                    : jobDetails.secondJudge.status === 'failed'
+                                                        ? `⚠️ Flagged for review${jobDetails.secondJudge.score != null ? ` (score ${jobDetails.secondJudge.score})` : ''}${jobDetails.secondJudge.reason ? ` — ${jobDetails.secondJudge.reason}` : ''}. Kept — your call whether to remove.`
+                                                        : jobDetails.secondJudge.status === 'processing'
+                                                            ? 'Opening the employer site and re-judging…'
+                                                            : jobDetails.secondJudge.status === 'skipped'
+                                                                ? (jobDetails.secondJudge.reason || 'The second-stage check could not be completed — job kept.')
+                                                                : 'Queued for second-stage screening.'}
+                                            </p>
+                                        </li>
                                     )}
                                     {isOperatorViewer && removalReasonData && (
                                         <li className="mb-10 ms-6">
@@ -2069,7 +2150,7 @@ export default function JobModal({
             const isVersion2 = resumeVersion === 2;
 
             // Step 2: Optimize the resume
-            const prompt = "if you recieve any HTML tages please ignore it and optimize the resume according to the given JD. Make sure not to cut down or shorten any points in the Work Experience section. IN all fields please do not cut down or shorten any points or content. For example, if a role in the base resume has 6 points, the optimized version should also retain all 6 points. The content should be aligned with the JD but the number of points per role must remain the same. Do not touch or optimize publications if given to you.";
+            const prompt = buildResumeOptimizationInstructionPrompt(jobDesc);
 
             const filteredResumeForOptimization = {
                 ...resumeData,
@@ -2258,6 +2339,10 @@ export default function JobModal({
                                     showLeadership: resumeData.checkboxStates?.showLeadership || false,
                                     showPublications: resumeData.checkboxStates?.showPublications || false,
                                 },
+                                sectionTitles:
+                                    (optimizedData as any)?.sectionTitles
+                                    || (resumeData as any)?.sectionTitles
+                                    || {},
                             };
                             const pdfResponse = await fetch(`${pdfServerUrl}/v1/generate-pdf`, {
                                 method: "POST",
@@ -2306,6 +2391,10 @@ export default function JobModal({
                                     showLeadership: resumeData.checkboxStates?.showLeadership || false,
                                     showPublications: resumeData.checkboxStates?.showPublications || false,
                                 },
+                                sectionTitles:
+                                    (optimizedData as any)?.sectionTitles
+                                    || (resumeData as any)?.sectionTitles
+                                    || {},
                                 sectionOrder: resumeData.sectionOrder || [
                                     "personalInfo",
                                     "summary",

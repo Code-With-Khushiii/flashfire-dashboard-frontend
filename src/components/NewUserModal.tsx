@@ -1502,6 +1502,7 @@ type FormData = {
   expectedSalaryRange: string;
   preferredLocations: string;
   targetCompanies: string;
+  employmentTypes: ("Full-time" | "Part-time" | "Contract" | "Internship")[];
   reasonForLeaving: string;
   linkedinUrl: string;
   githubUrl: string;
@@ -1548,6 +1549,7 @@ const initialData: FormData = {
   expectedSalaryRange: "",
   preferredLocations: "",
   targetCompanies: "",
+  employmentTypes: ["Full-time"],
   reasonForLeaving: "",
   linkedinUrl: "",
   githubUrl: "",
@@ -1570,6 +1572,7 @@ const initialData: FormData = {
 const VISA_OPTIONS = ["CPT", "F1", "F1 OPT", "F1 STEM OPT", "H1B", "Green Card", "U.S. Citizen", "Other"];
 const EXPERIENCE_OPTIONS = ["0-2 Years", "2-4 Years", "4-6 Years", "6-8 Years", "8+ Years"];
 const SALARY_OPTIONS = ["60k-100k", "100k-150k", "150k-200k", "Other"];
+const EMPLOYMENT_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship"] as const;
 const JOIN_TIME_OPTIONS = ["in 1 week", "in 2 weeks", "in 3 weeks", "in 4 weeks", "in 6-7 weeks"];
 
 /** ---------- UI Helpers ---------- */
@@ -1832,6 +1835,7 @@ const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const [data, setData] = useState<FormData>({ ...initialData });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const isLast = stepIndex === STEPS.length - 1;
   const ctx = useContext(UserContext);
   const set = (patch: Partial<FormData>) => setData((d) => ({ ...d, ...patch }));
@@ -1911,6 +1915,12 @@ useEffect(() => {
     expectedSalaryRange: p.expectedSalaryRange ?? "",
     preferredLocations: arrToLine(p.preferredLocations),
     targetCompanies: arrToLine(p.targetCompanies),
+    employmentTypes:
+      Array.isArray(p.employmentTypes) && p.employmentTypes.length
+        ? p.employmentTypes.filter((t: string) =>
+            (EMPLOYMENT_TYPE_OPTIONS as readonly string[]).includes(t)
+          )
+        : ["Full-time"],
     reasonForLeaving: p.reasonForLeaving ?? "",
     expectedSalaryNarrative: p.expectedSalaryNarrative ?? "",
     ssnNumber: p.ssnNumber ?? "",
@@ -2093,11 +2103,6 @@ useEffect(() => {
         }
       }
       
-      // If master's degree is provided, end date should also be provided
-      if (data.mastersUniDegree.trim() && !mastersEndValue) {
-        e.mastersEndDate = "Please provide end date (graduation) if you have a master's degree";
-      }
-      
       // If master's end date is provided, degree should also be provided
       if (mastersEndValue && !data.mastersUniDegree.trim()) {
         e.mastersUniDegree = "Please provide degree information if you have an end date";
@@ -2236,6 +2241,12 @@ useEffect(() => {
   useEffect(() => {
   setStepIndex(sectionToStep[startSection] ?? 0);
 }, [startSection]);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [stepIndex]);
 
 
   // replace your handleSubmit with this pair:
@@ -2434,7 +2445,7 @@ const handleSubmit = () => {
                     </div>
                     <div>
                       <DatePicker
-                        label="End Date (Graduation)"
+                        label="Graduation Date"
                         value={data.bachelorsEndDate || data.bachelorsGradMonthYear ? (data.bachelorsEndDate || (data.bachelorsGradMonthYear ? data.bachelorsGradMonthYear + '-01' : '')) : ''}
                         onChange={(value) => {
                           set({ bachelorsEndDate: value, bachelorsGradMonthYear: value ? value.slice(0, 7) : '' });
@@ -2503,7 +2514,7 @@ const handleSubmit = () => {
                     </div>
                     <div>
                       <DatePicker
-                        label="End Date (Graduation) (Optional)"
+                        label="End Date (Optional)"
                         value={data.mastersEndDate || data.mastersGradMonthYear ? (data.mastersEndDate || (data.mastersGradMonthYear ? data.mastersGradMonthYear + '-01' : '')) : ''}
                         onChange={(value) => {
                           set({ mastersEndDate: value, mastersGradMonthYear: value ? value.slice(0, 7) : '' });
@@ -2666,6 +2677,49 @@ const handleSubmit = () => {
                       ))}
                     </Select>
                     <ErrorText>{errors.expectedSalaryRange}</ErrorText>
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel required={false}>Employment Types</FieldLabel>
+                  <p className="text-sm text-gray-500 -mt-1 mb-3">
+                    Select every employment type you're open to. Used to filter the jobs we apply to for you.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {EMPLOYMENT_TYPE_OPTIONS.map((option) => {
+                      const checked = data.employmentTypes.includes(option);
+                      return (
+                        <label
+                          key={option}
+                          className={[
+                            "flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-all duration-200 select-none whitespace-nowrap",
+                            checked
+                              ? "border-orange-500 bg-orange-50 ring-2 ring-orange-500/20"
+                              : "border-gray-300 bg-white hover:border-gray-400",
+                          ].join(" ")}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              const nextChecked = e.target.checked;
+                              setData((d) => {
+                                const next = nextChecked
+                                  ? [...d.employmentTypes, option]
+                                  : d.employmentTypes.filter((t) => t !== option);
+                                // Never let the list go fully empty — keep the
+                                // last selection so the profile always has a value.
+                                return {
+                                  ...d,
+                                  employmentTypes: next.length ? next : d.employmentTypes,
+                                };
+                              });
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500/30"
+                          />
+                          <span className="text-base text-gray-900">{option}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -2985,57 +3039,54 @@ const handleSubmit = () => {
   // removed: if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2">
-      <div className="relative z-10 mx-auto w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/5 px-4 sm:px-6 py-5 max-h-[90vh] flex flex-col">
-        {/* Progress Bar Placeholder */}
-        {/* Slim Gradient Header with Icon and Badge */}
-        <div className="w-full flex items-center justify-between bg-gradient-to-r from-orange-500 to-rose-600 rounded-t-xl px-6 py-4 mb-2">
-          <div className="flex items-center gap-2">
-            <span className="bg-white/30 rounded-full p-1"><svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
-            <span className="text-white font-bold text-base">Step {stepIndex + 1} of 3</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="relative z-10 mx-auto w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 flex flex-col max-h-[92vh]">
+        {/* Gradient Header */}
+        <div className="w-full flex items-center justify-between bg-gradient-to-r from-orange-500 to-rose-600 px-8 py-5">
+          <div className="flex items-center gap-3">
+            <span className="bg-white/25 rounded-full p-1.5"><svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+            <div>
+              <p className="text-white/70 text-xs font-medium uppercase tracking-widest">Profile Setup</p>
+              <p className="text-white font-bold text-lg leading-tight">Step {stepIndex + 1} of 3</p>
+            </div>
           </div>
-          <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">All fields required</span>
+          <span className="bg-white/20 text-white text-xs font-semibold px-4 py-1.5 rounded-full">{STEPS[stepIndex].title}</span>
+        </div>
+        {/* Progress Bar */}
+        <div className="w-full flex gap-1.5 px-8 pt-4 pb-1">
+          <div className={`flex-1 h-1.5 rounded-full transition-colors duration-300 ${stepIndex >= 0 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
+          <div className={`flex-1 h-1.5 rounded-full transition-colors duration-300 ${stepIndex >= 1 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
+          <div className={`flex-1 h-1.5 rounded-full transition-colors duration-300 ${stepIndex >= 2 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
         </div>
         {/* Description */}
-        <div className="w-full text-center text-sm text-gray-700 mb-3">{STEPS[stepIndex].blurb}</div>
-        {/* Progress Bar/Stepper */}
-        <div className="w-full flex items-center gap-2 mb-4">
-          <div className={`flex-1 h-2 rounded-full ${stepIndex >= 0 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
-          <div className={`flex-1 h-2 rounded-full ${stepIndex >= 1 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
-          <div className={`flex-1 h-2 rounded-full ${stepIndex === 2 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
-        </div>
-        {/* Form Fields: Full width, icons, spacing */}
-        <div className="max-h-[48vh] overflow-y-auto overflow-x-hidden p-3 space-y-6 w-full box-border">
+        <div className="w-full text-center text-sm text-gray-500 px-8 pt-2 pb-3">{STEPS[stepIndex].blurb}</div>
+        {/* Form Fields */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-8 py-2 space-y-6 w-full box-border">
           {page}
         </div>
         {/* Footer Buttons */}
-        <div className="flex items-center justify-between gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 mt-auto">
+        <div className="flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/80 px-8 py-4 mt-auto">
           <div className="flex items-center gap-2">
             <button
               onClick={back}
               disabled={stepIndex === 0}
-              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-500 enabled:hover:bg-gray-50 disabled:opacity-40 transition-colors duration-200"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-600 enabled:hover:bg-gray-50 disabled:opacity-30 transition-colors duration-200"
             >
-              Back
-            </button>
-            <button
-              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-orange-500 hover:bg-orange-50 transition-colors duration-200"
-            >
-              Save & Continue Later
+              ← Back
             </button>
             {!isLast ? (
               <button
                 onClick={handleNextWithLog}
-                className="inline-flex items-center rounded bg-gradient-to-r from-orange-500 to-rose-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity duration-200"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-rose-600 px-6 py-2 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-opacity duration-200"
               >
-                Next
+                Next →
               </button>
             ) : (
               <button
                 onClick={handleSubmit}
-                className="inline-flex items-center rounded bg-gradient-to-r from-orange-500 to-rose-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity duration-200"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-rose-600 px-6 py-2 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-opacity duration-200"
               >
-                Submit
+                Submit ✓
               </button>
             )}
           </div>

@@ -26,7 +26,7 @@ import { ResumePreviewMedical } from "./components/ResumePreviewMedical";
 import { useJobsSessionStore } from "../../state_management/JobsSessionStore";
 import "./index.css"; //
 import { convertDoubleDashToHyphen, convertDoubleHyphenToHyphen } from "../../utils/generatehypesn";
-import { clearAdminOtpTrust, FLASHFIRE_OPTIMIZER_OTP_TRUST_KEY } from "../../utils/adminOtpTrustStorage";
+import { buildResumeOptimizationInstructionPrompt } from "../../utils/resumeOptimizationPrompt";
 
 // Type definitions remain the same
 interface WorkExperienceItem {
@@ -529,6 +529,9 @@ function App() {
         setShowPublications,
         sectionOrder,
         setSectionOrder,
+        sectionTitles,
+        setSectionTitle,
+        setSectionTitles,
         lastSelectedResumeId
     } = useResumeStore();
 
@@ -755,6 +758,17 @@ function App() {
                 finalHasPublications || (resumeData.checkboxStates.showPublications ?? false)
             );
 
+            // Hydrate operator-renamed section headers from the saved resume.
+            // Per-client field — MUST fully replace the in-memory map (not
+            // merge) so a previous client's renames don't bleed into this
+            // resume. Missing/older docs → reset to {} (defaults restored).
+            const savedTitles = (resumeData as any).sectionTitles;
+            setSectionTitles(
+                savedTitles && typeof savedTitles === "object" && !Array.isArray(savedTitles)
+                    ? (savedTitles as Record<string, string>)
+                    : {}
+            );
+
             // Handle sectionOrder if it exists; ensure publications is included (after education) for all resumes
             if (resumeData.sectionOrder && Array.isArray(resumeData.sectionOrder)) {
                 console.log("Found saved sectionOrder:", resumeData.sectionOrder);
@@ -913,7 +927,31 @@ function App() {
         const storedRole = localStorage.getItem("role");
         const storedEmail = localStorage.getItem("userEmail");
 
+        // Detect expired JWT before using it.  We decode the payload without
+        // verifying the signature (that is the server's job) just to read the
+        // `exp` claim.  If it is already past, clear the stale credentials so
+        // Login.tsx picks up the OTP trust token from localStorage and the
+        // user can re-authenticate without being asked for a new OTP.
+        function isJwtExpired(token: string): boolean {
+            try {
+                const payload = JSON.parse(atob(token.split(".")[1]));
+                return typeof payload.exp === "number" && Date.now() / 1000 > payload.exp;
+            } catch {
+                return true; // can't decode → treat as expired
+            }
+        }
+
         if (storedToken && storedRole) {
+            if (isJwtExpired(storedToken)) {
+                // JWT expired — wipe it so the Login component surfaces and the
+                // OTP trust token (kept intentionally) can skip the OTP step.
+                console.log("Stored JWT has expired — clearing for re-login via trust token");
+                localStorage.removeItem("jwt");
+                localStorage.removeItem("role");
+                // Keep userEmail and OTP trust token; Login will pre-use trust token
+                setIsInitializing(false);
+                return; // authView stays "login"
+            }
             setToken(storedToken);
             setUserRole(storedRole);
             setIsAuthenticated(true);
@@ -1300,7 +1338,8 @@ function App() {
         localStorage.removeItem("jwt");
         localStorage.removeItem("role");
         localStorage.removeItem("userEmail");
-        clearAdminOtpTrust(FLASHFIRE_OPTIMIZER_OTP_TRUST_KEY);
+        // Keep the OTP trust token — it stays valid for 30 days so the
+        // admin is not re-prompted for an OTP after a normal logout.
         setIsAuthenticated(false);
         setUserRole("");
         setToken("");
@@ -1480,6 +1519,10 @@ function App() {
                     showPublications: finalShowPublications,
                 },
                 sectionOrder: finalSectionOrder,
+                // Operator-renamed section headers. Sparse map keyed by
+                // section id. Always sent; older backends ignore unknown
+                // fields, so this is forward-compatible.
+                sectionTitles: sectionTitles || {},
                 createdBy: userRole === "admin" ? "admin" : "user",
             };
             console.log("Saving resume with data:", saveData);
@@ -2084,8 +2127,7 @@ function App() {
 
         try {
             // Get API URL from environment variables
-            const prompt: string =
-                "if you recieve any HTML tages please ignore it and optimize the resume according to the given JD. Make sure not to cut down or shorten any points in the Work Experience section. IN all fields please do not cut down or shorten any points or content. For example, if a role in the base resume has 6 points, the optimized version should also retain all 6 points. The content should be aligned with the JD but the number of points per role must remain the same. Do not touch or optimize publications if given to you.";
+            const prompt = buildResumeOptimizationInstructionPrompt(jobDescription);
             const apiUrl =
                 import.meta.env.VITE_API_URL || "https://resume-maker-backend-lf5z.onrender.com";
 
@@ -2496,7 +2538,9 @@ function App() {
                                             },
                                             {
                                                 id: "leadership",
-                                                title: "Leadership & Achievements",
+                                                // Custom heading overrides the default. Falls back to the
+                                                // hard-coded label so unrenamed resumes look unchanged.
+                                                title: sectionTitles?.leadership || "Leadership & Achievements",
                                                 component: showLeadership ? (
                                                     <Leadership
                                                         data={resumeData.leadership}
@@ -2506,6 +2550,7 @@ function App() {
                                                 isEnabled: showLeadership,
                                                 onToggle: (enabled: boolean) => setShowLeadership(enabled),
                                                 showToggle: true,
+                                                onTitleChange: (v: string) => setSectionTitle("leadership", v),
                                             },
                                             {
                                                 id: "skills",
@@ -2755,6 +2800,7 @@ function App() {
                                             }
                                             showPrintButtons={isOptimizeRoute}
                                             sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                         />
                                     ) : null}
 
@@ -2773,6 +2819,7 @@ function App() {
                                             }
                                             showPrintButtons={isOptimizeRoute}
                                             sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                         />
                                     ) : null}
 
@@ -2790,6 +2837,7 @@ function App() {
                                                     : changedFields
                                             }
                                             sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                         />
                                     ) : null}
                                     {/* <ResumePreview
@@ -2887,7 +2935,7 @@ function App() {
                                                             },
                                                             {
                                                                 id: "leadership",
-                                                                title: "Leadership & Achievements",
+                                                                title: sectionTitles?.leadership || "Leadership & Achievements",
                                                                 component: showLeadership ? (
                                                                     <Leadership
                                                                         data={optimizedData.leadership}
@@ -2897,6 +2945,7 @@ function App() {
                                                                 isEnabled: showLeadership,
                                                                 onToggle: (enabled: boolean) => setShowLeadership(enabled),
                                                                 showToggle: true,
+                                                                onTitleChange: (v: string) => setSectionTitle("leadership", v),
                                                             },
                                                             {
                                                                 id: "skills",
@@ -3014,6 +3063,7 @@ function App() {
                                                             }
                                                             showPrintButtons={isOptimizeRoute}
                                                             sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                                         />
                                                     )}
 
@@ -3038,6 +3088,7 @@ function App() {
                                                             }
                                                             showPrintButtons={isOptimizeRoute}
                                                             sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                                         />
                                                     )}
 
@@ -3061,6 +3112,7 @@ function App() {
                                                                 new Set()
                                                             }
                                                             sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                                         />
                                                     )}
                                                 </>
@@ -3111,6 +3163,7 @@ function App() {
                                                 showChanges={false}
                                                 changedFields={new Set()}
                                                 sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                             />
                                         ) : null}
                                         {versionV == 1 ? (
@@ -3123,6 +3176,7 @@ function App() {
                                                 showChanges={false}
                                                 changedFields={new Set()}
                                                 sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                             />
                                         ) : null}
                                         {versionV == 2 ? (
@@ -3133,6 +3187,7 @@ function App() {
                                                 showChanges={false}
                                                 changedFields={new Set()}
                                                 sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                             />
                                         ) : null}
                                     </div>
@@ -3152,6 +3207,7 @@ function App() {
                                                 showChanges={true}
                                                 changedFields={changedFields}
                                                 sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                             />
                                         ) : null}
                                         {versionV == 1 ? (
@@ -3164,6 +3220,7 @@ function App() {
                                                 showChanges={false}
                                                 changedFields={changedFields}
                                                 sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                             />
                                         ) : null}
                                         {versionV == 2 ? (
@@ -3174,6 +3231,7 @@ function App() {
                                                 showChanges={false}
                                                 changedFields={changedFields}
                                                 sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                             />
                                         ) : null}
                                     </div>
@@ -3218,6 +3276,7 @@ function App() {
                                     showChanges={false}
                                     changedFields={new Set()}
                                     sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                 />
                             ) : null}
 
@@ -3231,6 +3290,7 @@ function App() {
                                     showChanges={false}
                                     changedFields={new Set()}
                                     sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                 />
                             ) : null}
 
@@ -3244,6 +3304,7 @@ function App() {
                                     showChanges={false}
                                     changedFields={new Set()}
                                     sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                 />
                             ) : null}
                         </>
@@ -3259,6 +3320,7 @@ function App() {
                                     showChanges={false}
                                     changedFields={new Set()}
                                     sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                 />
                             ) : null}
 
@@ -3272,6 +3334,7 @@ function App() {
                                     showChanges={false}
                                     changedFields={new Set()}
                                     sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                 />
                             ) : null}
 
@@ -3284,6 +3347,7 @@ function App() {
                                     showPublications={showPublications}
                                     showPrintButtons={!isOptimizeRoute}
                                     sectionOrder={sectionOrder}
+                                            sectionTitles={sectionTitles}
                                 />
                             ) : null}
                         </>

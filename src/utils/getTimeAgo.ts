@@ -1,25 +1,40 @@
 export function getTimeAgo(dateString: string): string {
-  if (!dateString || typeof dateString !== "string") return "N/A";
+  const d = parseAddedDate(dateString);
+  if (!d) return "N/A";
+  return formatFromDate(d);
+}
+
+/**
+ * Parse a stored "added at" date string into a Date.
+ * Handles ISO, en-IN locale (DD/MM/YYYY, h:mm:ss am/pm), and native-parseable formats.
+ * Returns null if unparseable. Single source of truth for getTimeAgo + sort ordering.
+ */
+export function parseAddedDate(dateString: string | null | undefined): Date | null {
+  if (!dateString || typeof dateString !== "string") return null;
 
   try {
-    // Prefer proper ISO timestamps
     if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dateString)) {
       const iso = new Date(dateString);
-      if (!Number.isNaN(iso.getTime())) return formatFromDate(iso);
+      if (!Number.isNaN(iso.getTime())) return iso;
     }
 
-    // Existing DB stores DD/MM/YYYY, 12h time, in IST locale strings like:
-    // "07/10/2025, 9:15:02 PM"
     const istDate = parseIstLocaleString(dateString);
-    if (istDate) return formatFromDate(istDate);
+    if (istDate) return istDate;
 
-    // Fallback: try native parse
     const native = new Date(dateString);
-    if (!Number.isNaN(native.getTime())) return formatFromDate(native);
-    return "N/A";
+    if (!Number.isNaN(native.getTime())) return native;
+    return null;
   } catch {
-    return "N/A";
+    return null;
   }
+}
+
+/**
+ * Returns epoch ms for sorting. 0 when unparseable so callers can push to bottom.
+ */
+export function parseAddedTimestamp(dateString: string | null | undefined): number {
+  const d = parseAddedDate(dateString);
+  return d ? d.getTime() : 0;
 }
 
 

@@ -65,6 +65,28 @@ const extractDatePart = (dateString: string | undefined): string => {
   }
 };
 
+const validateUrl = (value: string) => {
+    if (!value.trim()) return false;
+    try {
+        if (!value.startsWith("http://") && !value.startsWith("https://")) {
+            return false;
+        }
+        new URL(value);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+function RowTitle({ title, required = false }: { title: string; required?: boolean }) {
+    return (
+        <>
+            {title}
+            {required && <span className="ml-1 text-red-500">*</span>}
+        </>
+    );
+}
+
 /* ---------------- Helper Components ----------------- */
 function Placeholder({ label }: { label?: string }) {
     return <span className="text-gray-400 italic">{label || "Not provided"}</span>;
@@ -106,34 +128,113 @@ function InfoRow({
     title,
     value,
     isEditing = false,
+    required = false,
+    error,
     onValueChange = () => { },
 }: {
     title: string;
     value?: string;
     isEditing?: boolean;
+    required?: boolean;
+    error?: string;
     onValueChange?: (value: string) => void;
 }) {
     return (
         <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100 last:border-b-0">
             <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-1 md:mb-0">
-                {title}
+                <RowTitle title={title} required={required} />
             </div>
-            <div className="w-full md:w-2/3 flex items-center">
+            <div className="w-full md:w-2/3 flex flex-col">
                 {isEditing ? (
                     <input
                         type="text"
                         value={value || ""}
                         onChange={(e) => onValueChange(e.target.value)}
-                        className="w-full text-sm border-b border-gray-300 px-2 py-1 focus:border-blue-500 focus:outline-none"
+                        required={required}
+                        aria-invalid={!!error}
+                        className={`w-full text-sm border-b px-2 py-1 focus:outline-none ${
+                            error
+                                ? "border-red-400 focus:border-red-500"
+                                : "border-gray-300 focus:border-blue-500"
+                        }`}
                         placeholder={`Enter ${title.toLowerCase()}`}
                     />
                 ) : (
-                    <>
+                    <div className="flex items-center">
                         <span className="flex-1 text-sm text-gray-900 break-words">
                             {value || <Placeholder />}
                         </span>
                         {value && <CopyButton value={value} title={title} />}
-                    </>
+                    </div>
+                )}
+                {error && <span className="mt-1 text-xs text-red-600">{error}</span>}
+            </div>
+        </div>
+    );
+}
+
+// CheckboxGroupRow — multi-select row with checkboxes (Profile UI's
+// employment-type field uses this). `value` is the currently-selected
+// option list; `options` defines the universe. Toggle fires
+// `onValueChange` with the new array.
+function CheckboxGroupRow({
+    title,
+    value,
+    options,
+    isEditing = false,
+    onValueChange = () => {},
+}: {
+    title: string;
+    value?: string[];
+    options: string[];
+    isEditing?: boolean;
+    onValueChange?: (value: string[]) => void;
+}) {
+    const list = Array.isArray(value) ? value : [];
+    const display = list.length ? list.join(", ") : "";
+    const toggle = (opt: string) => {
+        const next = list.includes(opt)
+            ? list.filter((v) => v !== opt)
+            : [...list, opt];
+        onValueChange(next);
+    };
+    return (
+        <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
+            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-1 md:mb-0 pt-1">
+                {title}
+            </div>
+            <div className="w-full md:w-2/3 flex flex-col gap-2">
+                {isEditing ? (
+                    <div className="flex flex-wrap gap-3">
+                        {options.map((opt) => {
+                            const checked = list.includes(opt);
+                            return (
+                                <label
+                                    key={opt}
+                                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition ${
+                                        checked
+                                            ? "bg-blue-50 border-blue-400 text-blue-900"
+                                            : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        className="accent-blue-600"
+                                        checked={checked}
+                                        onChange={() => toggle(opt)}
+                                    />
+                                    {opt}
+                                </label>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="flex items-center w-full">
+                        <span className="flex-1 text-sm text-gray-900 break-words">
+                            {display || <Placeholder />}
+                        </span>
+                        {display && <CopyButton value={display} title={title} />}
+                    </div>
                 )}
             </div>
         </div>
@@ -182,14 +283,19 @@ function FileUploadRow({
     title,
     currentFile,
     isEditing = false,
+    required = false,
+    error,
     onFileChange = () => { },
 }: {
     title: string;
     currentFile?: string;
     isEditing?: boolean;
+    required?: boolean;
+    error?: string;
     onFileChange?: (file: string) => void;
 }) {
     const [uploading, setUploading] = useState(false);
+    const missingRequired = required && !currentFile;
 
     const handleFileUpload = async (file: File) => {
         try {
@@ -243,25 +349,33 @@ function FileUploadRow({
     return (
         <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
             <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 pt-1 mb-1 md:mb-0">
-                {title}
+                <RowTitle title={title} required={required} />
             </div>
-            <div className="w-full md:w-2/3 flex items-center flex-wrap">
+            <div className="w-full md:w-2/3 flex flex-col">
                 {isEditing ? (
                     <div className="w-full">
                         <input
                             type="file"
                             accept=".pdf,.doc,.docx"
                             disabled={uploading}
+                            aria-invalid={!!error}
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
                                     handleFileUpload(file);
                                 }
                             }}
-                            className="block w-full text-sm text-gray-500"
+                            className={`block w-full text-sm ${
+                                error ? "text-red-600" : "text-gray-500"
+                            }`}
                         />
                         {uploading && (
                             <span className="text-xs text-orange-600 mt-1">Uploading...</span>
+                        )}
+                        {missingRequired && !uploading && (
+                            <span className="text-xs text-red-500 mt-1 block">
+                                {title} is required.
+                            </span>
                         )}
                     </div>
                 ) : currentFile ? (
@@ -279,6 +393,7 @@ function FileUploadRow({
                 ) : (
                     <Placeholder label="No file uploaded" />
                 )}
+                {error && <span className="mt-1 text-xs text-red-600">{error}</span>}
             </div>
         </div>
     );
@@ -350,6 +465,7 @@ export default function ProfilePage() {
     const ctx = useContext(UserContext);
     const [showSecretKeyModal, setShowSecretKeyModal] = useState(false);
     const [secretKeyError, setSecretKeyError] = useState<string>("");
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const { role } = useOperationsStore();
     const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
 
@@ -416,6 +532,7 @@ export default function ProfilePage() {
 
     const handleEditClick = (section: string) => {
         setEditingSection(section);
+        setValidationErrors({});
         // Convert array fields to strings for editing
         const editDataCopy = { ...data };
         if (Array.isArray(editDataCopy.preferredRoles)) {
@@ -430,7 +547,38 @@ export default function ProfilePage() {
         setEditData(editDataCopy);
     };
 
+    const validateLinksSection = () => {
+        const errors: Record<string, string> = {};
+        const linkedinUrl = editData.linkedinUrl?.trim() || "";
+        const resumeUrl = editData.resumeUrl?.trim() || "";
+
+        if (!linkedinUrl) {
+            errors.linkedinUrl = "LinkedIn URL is required";
+        } else if (!validateUrl(linkedinUrl)) {
+            errors.linkedinUrl = "Please enter a valid LinkedIn URL";
+        } else if (!linkedinUrl.includes("linkedin.com")) {
+            errors.linkedinUrl = "Please enter a valid LinkedIn profile URL";
+        }
+
+        if (!resumeUrl) {
+            errors.resumeUrl = "Resume upload is required";
+        }
+
+        setValidationErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            toastUtils.error("Please complete the required fields before saving.");
+            return false;
+        }
+
+        return true;
+    };
+
     const handleSaveClick = () => {
+        if (editingSection === "links" && !validateLinksSection()) {
+            return;
+        }
+
+
         if (role === "operations") {
             setSecretKeyError("");
             setShowSecretKeyModal(true);
@@ -501,6 +649,7 @@ export default function ProfilePage() {
     const handleCancel = () => {
         setEditingSection(null);
         setEditData({});
+        setValidationErrors({});
     };
 
     const fullName = useMemo(() => {
@@ -890,6 +1039,20 @@ export default function ProfilePage() {
                             setEditData({ ...editData, targetCompanies: v as any })
                         }
                     />
+                    <CheckboxGroupRow
+                        title="Employment Types"
+                        options={["Full-time", "Part-time", "Contract", "Internship"]}
+                        value={
+                            (editingSection === "professional"
+                                ? editData.employmentTypes
+                                : data.employmentTypes) as string[] | undefined
+                            ?? (data.employmentTypes ?? ["Full-time"])
+                        }
+                        isEditing={editingSection === "professional"}
+                        onValueChange={(v) =>
+                            setEditData({ ...editData, employmentTypes: v as any })
+                        }
+                    />
                     <TextAreaRow
                         title="Reason for Leaving"
                         value={
@@ -916,7 +1079,14 @@ export default function ProfilePage() {
                         title="LinkedIn"
                         value={editingSection === "links" ? editData.linkedinUrl : data.linkedinUrl}
                         isEditing={editingSection === "links"}
-                        onValueChange={(v) => setEditData({ ...editData, linkedinUrl: v })}
+                        required
+                        error={editingSection === "links" ? validationErrors.linkedinUrl : undefined}
+                        onValueChange={(v) => {
+                            setEditData({ ...editData, linkedinUrl: v });
+                            if (validationErrors.linkedinUrl) {
+                                setValidationErrors({ ...validationErrors, linkedinUrl: "" });
+                            }
+                        }}
                     />
                     <InfoRow
                         title="GitHub"
@@ -938,7 +1108,14 @@ export default function ProfilePage() {
                             editingSection === "links" ? editData.resumeUrl : data.resumeUrl
                         }
                         isEditing={editingSection === "links"}
-                        onFileChange={(v) => setEditData({ ...editData, resumeUrl: v })}
+                        required
+                        error={editingSection === "links" ? validationErrors.resumeUrl : undefined}
+                        onFileChange={(v) => {
+                            setEditData({ ...editData, resumeUrl: v });
+                            if (validationErrors.resumeUrl) {
+                                setValidationErrors({ ...validationErrors, resumeUrl: "" });
+                            }
+                        }}
                     />
                     <FileUploadRow
                         title="Cover Letter"
@@ -1019,7 +1196,7 @@ export default function ProfilePage() {
                         onValueChange={(v) => setEditData({ ...editData, disabilityStatus: v })}
                     />
                     <InfoRow
-                        title="Will you require a scholarship?"
+                        title="Will you require a sponsorship?"
                         value={editingSection === "additional" ? editData.scholarshipRequired : (data.scholarshipRequired || "No")}
                         isEditing={editingSection === "additional"}
                         onValueChange={(v) => setEditData({ ...editData, scholarshipRequired: v })}

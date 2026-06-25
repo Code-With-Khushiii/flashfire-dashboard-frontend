@@ -11,6 +11,7 @@ import AddignUser from './Operations/AddignUser';
 import OperationsDirectory from './Operations/OperationsDirectory';
 import RecruiterEmailGroups from './Operations/RecruiterEmailGroups';
 import AssignResumeModal from '../../Admin/AssignResumeModal';
+import ActivityMonitor from './ActivityMonitor';
 
 interface User {
   id: string;
@@ -86,7 +87,7 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
   const [extensionCodes, setExtensionCodes] = useState<ExtensionCodeItem[]>([]);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'history' | 'sessions' | 'Admin' | 'resume' | 'recruiters'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'history' | 'sessions' | 'Admin' | 'resume' | 'recruiters' | 'activity'>('overview');
   const [showAddUser, setShowAddUser] = useState(false);
   const [showGenerateSessionKey, setShowGenerateSessionKey] = useState(false);
   const [showAssignResumeModal, setShowAssignResumeModal] = useState(false);
@@ -598,11 +599,12 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                 { key: 'sessions', label: 'Session Management', icon: Shield },
                 { key: 'Admin', label: 'Operations management', icon: Shield },
                 { key: 'recruiters', label: 'Recruiter Email Groups', icon: Mail },
-                { key: 'resume', label: 'Resume Management', icon: FileText }
+                { key: 'resume', label: 'Resume Management', icon: FileText },
+                { key: 'activity', label: 'Activity Monitor', icon: Activity }
               ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
-                  onClick={() => setActiveTab(key as 'overview' | 'users' | 'history' | 'sessions' | 'Admin' | 'resume' | 'recruiters')}
+                  onClick={() => setActiveTab(key as 'overview' | 'users' | 'history' | 'sessions' | 'Admin' | 'resume' | 'recruiters' | 'activity')}
                   className={`flex items-center space-x-2 py-4 px-6 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === key
                     ? 'border-blue-500 text-blue-600 bg-blue-50/50'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/50'
@@ -1178,6 +1180,11 @@ export default function AdminDashboard({ token, onLogout, onSwitchToResumeBuilde
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Activity Monitor Tab */}
+            {activeTab === 'activity' && (
+              <ActivityMonitor apiBase={API_DASHBOARD} token={token} />
             )}
           </div>
         </div>

@@ -14,6 +14,7 @@ import Navigation from './components/Navigation.tsx';
 import NewUserModal from './components/NewUserModal.tsx';
 import ManagePage from './components/Operations/Manage.tsx';
 import Optimizer from './components/AiOprimizer/Optimizer.tsx';
+import Inbox from './components/Inbox.tsx';
 import { PostHogSessionControl } from './components/PostHogSessionControl.tsx';
 
 // Component to handle Profile page with proper navigation
@@ -37,6 +38,27 @@ function ProfileWithNavigation() {
             console.log("Profile completed callback triggered in App");
             setUserProfileFormVisibility(false);
           }}
+        />
+      )}
+    </div>
+  );
+}
+
+function InboxWithNavigation() {
+  const [activeTab, setActiveTab] = useState('inbox');
+  const [userProfileFormVisibility, setUserProfileFormVisibility] = useState(false);
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        setUserProfileFormVisibility={setUserProfileFormVisibility}
+      />
+      <Inbox />
+      {userProfileFormVisibility && (
+        <NewUserModal
+          setUserProfileFormVisibility={setUserProfileFormVisibility}
+          onProfileComplete={() => setUserProfileFormVisibility(false)}
         />
       )}
     </div>
@@ -148,6 +170,16 @@ function App() {
                           <UserJobsProvider>
                               <UserProfileProvider>
                                   <ProfileWithNavigation />
+                              </UserProfileProvider>
+                          </UserJobsProvider>
+                      }
+                  />
+                  <Route
+                      path="/inbox"
+                      element={
+                          <UserJobsProvider>
+                              <UserProfileProvider>
+                                  <InboxWithNavigation />
                               </UserProfileProvider>
                           </UserJobsProvider>
                       }

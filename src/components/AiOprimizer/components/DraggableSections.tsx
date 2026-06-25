@@ -1,5 +1,5 @@
 import React from "react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Pencil } from "lucide-react";
 import {
     DndContext,
     closestCenter,
@@ -25,6 +25,11 @@ interface DraggableSectionProps {
     isEnabled?: boolean;
     onToggle?: (enabled: boolean) => void;
     showToggle?: boolean;
+    // When supplied the section title becomes click-to-edit. Receives the
+    // trimmed new value; pass an empty string to clear back to the default.
+    // Caller decides what "default" means and resolves it via the `title`
+    // prop, so this component stays stateless.
+    onTitleChange?: (newTitle: string) => void;
 }
 
 const DraggableSection = ({
@@ -34,6 +39,7 @@ const DraggableSection = ({
     isEnabled = true,
     onToggle,
     showToggle = false,
+    onTitleChange,
 }: DraggableSectionProps) => {
     const {
         attributes,
@@ -49,6 +55,32 @@ const DraggableSection = ({
         transition,
     };
 
+    const editable = typeof onTitleChange === "function";
+    const [editing, setEditing] = React.useState(false);
+    const [draft, setDraft] = React.useState(title);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    // Keep draft in sync when parent re-renders with a different title.
+    React.useEffect(() => {
+        if (!editing) setDraft(title);
+    }, [title, editing]);
+
+    React.useEffect(() => {
+        if (editing) inputRef.current?.focus();
+    }, [editing]);
+
+    const commit = () => {
+        const next = draft.trim();
+        // Treat unchanged value as a no-op so we don't write spurious
+        // store entries that would mark the resume "dirty".
+        if (next !== title.trim()) onTitleChange?.(next);
+        setEditing(false);
+    };
+    const cancel = () => {
+        setDraft(title);
+        setEditing(false);
+    };
+
     return (
         <div
             ref={setNodeRef}
@@ -58,7 +90,7 @@ const DraggableSection = ({
             }`}
         >
             <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div
                         {...attributes}
                         {...listeners}
@@ -66,7 +98,39 @@ const DraggableSection = ({
                     >
                         <GripVertical size={20} />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-800">{title}</h3>
+                    {editable && editing ? (
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onBlur={commit}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); commit(); }
+                                else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+                            }}
+                            maxLength={60}
+                            className="text-lg font-medium text-gray-800 border-b border-blue-400 focus:outline-none focus:border-blue-600 bg-blue-50/40 px-1 py-0.5 min-w-0 flex-1"
+                            aria-label={`${title} section heading`}
+                        />
+                    ) : (
+                        <h3
+                            className={`text-lg font-medium text-gray-800 truncate ${
+                                editable ? "cursor-text hover:bg-gray-50 rounded px-1 -mx-1" : ""
+                            }`}
+                            title={editable ? "Click to rename this section heading" : undefined}
+                            onClick={() => editable && setEditing(true)}
+                        >
+                            {title}
+                            {editable && (
+                                <Pencil
+                                    size={12}
+                                    className="inline-block ml-1.5 -mt-0.5 text-gray-400"
+                                    aria-hidden="true"
+                                />
+                            )}
+                        </h3>
+                    )}
                 </div>
                 {showToggle && onToggle && (
                     <div className="flex items-center gap-3">
@@ -95,6 +159,7 @@ interface DraggableSectionsProps {
         isEnabled?: boolean;
         onToggle?: (enabled: boolean) => void;
         showToggle?: boolean;
+        onTitleChange?: (newTitle: string) => void;
     }>;
     onSectionOrderChange: (newOrder: string[]) => void;
 }
@@ -146,6 +211,7 @@ export const DraggableSections: React.FC<DraggableSectionsProps> = ({
                             isEnabled={section.isEnabled}
                             onToggle={section.onToggle}
                             showToggle={section.showToggle}
+                            onTitleChange={section.onTitleChange}
                         >
                             {section.component}
                         </DraggableSection>

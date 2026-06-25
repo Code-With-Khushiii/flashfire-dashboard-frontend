@@ -376,6 +376,8 @@ const statsData = [
   },
 ]
 
+const normalizeEmail = (value: string) => value.trim().toLowerCase()
+
 export default function Login() {
   const [email, setEmail] = useState<string>("")
   const [password, setPassword] = useState<string>("")
@@ -399,13 +401,14 @@ export default function Login() {
 
   const requestOtp = async () => {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+    const normalizedEmail = normalizeEmail(email)
     setSendingOtp(true)
     const loadingToast = toastUtils.loading('Sending OTP...')
     try {
       const res = await fetch(`${API_BASE_URL}/operations/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase(), password })
+        body: JSON.stringify({ email: normalizedEmail, password })
       })
       const data = await res.json()
       toastUtils.dismissToast(loadingToast)
@@ -425,12 +428,13 @@ export default function Login() {
 
   const verifyOtp = async () => {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+    const normalizedEmail = normalizeEmail(email)
     const loadingToast = toastUtils.loading('Verifying OTP...')
     try {
       const res = await fetch(`${API_BASE_URL}/operations/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase(), otp: otpInput })
+        body: JSON.stringify({ email: normalizedEmail, otp: otpInput })
       })
       const data = await res.json()
       if (res.ok && data?.success) {
@@ -439,7 +443,7 @@ export default function Login() {
         if (data?.trustToken) {
           if (rememberFor30Days) {
             localStorage.setItem('opsOtpTrust', JSON.stringify({
-              email: email.toLowerCase(),
+              email: normalizedEmail,
               trustToken: data.trustToken,
               verifiedAt: Date.now(),
             }))
@@ -463,19 +467,20 @@ export default function Login() {
 
   const verifySessionKey = async () => {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+    const normalizedEmail = normalizeEmail(email)
     const loadingToast = toastUtils.loading('Verifying session key...')
     try {
       const res = await fetch(`${API_BASE_URL}/operations/verify-session-key`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase(), sessionKey: sessionKeyInput })
+        body: JSON.stringify({ email: normalizedEmail, sessionKey: sessionKeyInput })
       })
       const data = await res.json()
       if (res.ok) {
         toastUtils.dismissToast(loadingToast)
         toastUtils.success('Verified. Welcome to Operations Dashboard!')
         // persist key for future logins (store lowercase email)
-        localStorage.setItem('opsSessionKey', JSON.stringify({ email: email.toLowerCase(), sessionKey: sessionKeyInput, verifiedAt: Date.now() }))
+        localStorage.setItem('opsSessionKey', JSON.stringify({ email: normalizedEmail, sessionKey: sessionKeyInput, verifiedAt: Date.now() }))
         setRequireSessionKey(false)
         setSessionKeyInput("")
         navigate('/manage')
@@ -511,20 +516,22 @@ export default function Login() {
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email)
+    if (!normalizedEmail || !password) {
       toastUtils.error("Email and Password are required!")
       return
     }
+    setEmail(normalizedEmail)
 
     setIsLoading(true)
     const loadingToast = toastUtils.loading(toastMessages.loggingIn)
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-      const loginEndpoint = email.toLowerCase().includes("@flashfirehq") ? "/operations/login" : "/login"
+      const loginEndpoint = normalizedEmail.includes("@flashfirehq") ? "/operations/login" : "/login"
       const res = await fetch(`${API_BASE_URL}${loginEndpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
       })
       const data: LoginResponse = await res.json()
       setResponse(data)
@@ -547,7 +554,7 @@ export default function Login() {
             })
             .catch(() => {})
           toastUtils.dismissToast(loadingToast)
-          const operatorEmail = (data?.user?.email || email || '').toLowerCase()
+          const operatorEmail = normalizeEmail(data?.user?.email || normalizedEmail || '')
 
           const storedSessionKey = localStorage.getItem('opsSessionKey')
           if (storedSessionKey) {
@@ -958,7 +965,7 @@ export default function Login() {
                   type="email"
                   placeholder="example@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(normalizeEmail(e.target.value))}
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all text-sm"
                 />
               </div>
@@ -1158,4 +1165,3 @@ function SessionKeyModal({
     </div>
   )
 }
-

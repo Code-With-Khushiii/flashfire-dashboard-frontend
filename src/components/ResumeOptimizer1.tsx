@@ -703,6 +703,7 @@ type Entry = {
   jobID?: string;
   hasResume?: boolean;
   isJobBased?: boolean;
+  isAttached?: boolean;
   name: string;
   title?: string;
   version?: number;
@@ -719,9 +720,87 @@ type Entry = {
 // Cloudinary sometimes serves PDFs under `image/upload`.
 // For preview (iframe), use `/raw/upload/`
 // For download, add `/fl_attachment/`
+// Turn an arbitrary label into a safe, readable file name (no extension).
+function sanitizeFileName(name?: string): string {
+  return (name || "document")
+    .trim()
+    .replace(/\.pdf$/i, "")
+    .replace(/[^a-zA-Z0-9-_]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 80) || "document";
+}
+
+// Build a friendly download name for a document entry, e.g. "Manav_Patel_Cover_Letter".
+// Placeholder names that carry no real identity — treat these as "no name" so
+// we fall back to the client's name (e.g. an entry literally named "Cover_Letter").
+const GENERIC_DOC_NAMES = new Set([
+  "",
+  "document",
+  "cover_letter",
+  "coverletter",
+  "transcript",
+  "resume",
+  "untitled",
+  "untitled_resume",
+  "unnamed",
+]);
+
+function buildDownloadName(
+  it: { name?: string; jobRole?: string; companyName?: string; title?: string },
+  category: "Resume" | "Cover Letter" | "Base" | "Transcript",
+  clientName?: string
+): string {
+  const suffix =
+    category === "Cover Letter"
+      ? "Cover_Letter"
+      : category === "Transcript"
+      ? "Transcript"
+      : "Resume";
+
+  const client = sanitizeFileName(clientName || "");
+  const clientIsReal = client && !GENERIC_DOC_NAMES.has(client.toLowerCase());
+
+  // The entry's own label, ignored when it's just a generic placeholder.
+  const rawEntry =
+    it?.name?.trim() ||
+    it?.title?.trim() ||
+    [it?.jobRole, it?.companyName].filter(Boolean).join("_") ||
+    "";
+  let entry = sanitizeFileName(rawEntry);
+  if (GENERIC_DOC_NAMES.has(entry.toLowerCase())) entry = "";
+
+  // Prefer the client name as the identity. Keep a meaningful entry label too
+  // (e.g. a job-specific resume), prefixed with the client name when it isn't
+  // already part of it.
+  let base: string;
+  if (clientIsReal && entry && !entry.toLowerCase().includes(client.toLowerCase())) {
+    base = `${client}_${entry}`;
+  } else {
+    base = entry || client || "document";
+  }
+
+  // Avoid doubling the suffix (e.g. an entry already ending in "_Cover_Letter").
+  if (base.toLowerCase().endsWith(suffix.toLowerCase())) {
+    return base;
+  }
+  return `${base}_${suffix}`;
+}
+
+// Build a same-backend proxy URL that serves the PDF with a friendly
+// Content-Disposition filename. The browser's built-in PDF viewer uses that
+// header for its own download button, so previews saved from the inline viewer
+// get the client name instead of the raw Cloudinary id. `dl` forces download.
+function toDocProxyUrl(rawUrl: string, fileName: string, dl = false): string {
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBase || !rawUrl) return rawUrl;
+  const q = `url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent(sanitizeFileName(fileName))}${dl ? "&dl=1" : ""}`;
+  return `${apiBase}/doc-proxy?${q}`;
+}
+
 function toRawPdfUrl(
   resume: string | { url?: string; link?: string },
-  opts: { download?: boolean } = {}
+  opts: { download?: boolean; fileName?: string } = {}
 ) {
   let pdfUrl = "";
 
@@ -734,7 +813,10 @@ function toRawPdfUrl(
   if (!pdfUrl) return "";
 
   if (opts.download) {
-    return pdfUrl.replace("/upload/", "/upload/fl_attachment/");
+    const flag = opts.fileName
+      ? `fl_attachment:${sanitizeFileName(opts.fileName)}`
+      : "fl_attachment";
+    return pdfUrl.replace("/upload/", `/upload/${flag}/`);
   }
   return pdfUrl.replace("/upload/", "/upload/"); // ✅ preview inline
 }
@@ -763,7 +845,27 @@ export default function DocumentUpload() {
   const [activeTab, setActiveTab] = useState<DocumentTabId | null>(null);
   // const [fileNamePrompt, setFileNamePrompt] = useState<string>("");
   const context = useContext(UserContext);
+  // Friendly download name for a doc, falling back to the viewed client's name
+  // when the entry itself carries no stored name.
+  const dlName = (
+    it: any,
+    category: "Resume" | "Cover Letter" | "Base" | "Transcript"
+  ) => {
+    let clientName = context?.userDetails?.name || "";
+    if (!clientName) {
+      try {
+        clientName = JSON.parse(localStorage.getItem("userAuth") || "{}")?.userDetails?.name || "";
+      } catch {
+        clientName = "";
+      }
+    }
+    return buildDownloadName(it || {}, category, clientName);
+  };
   const [baseResume, setBaseResume] = useState<any[]>([]);
+  // Structured "attached" base resume (parsed JSON assigned via ResumeIndex).
+  // When present we show a "Base Resume" row that opens the same structured
+  // preview (ResumePreview / ResumePreviewMedical) used for optimized resumes.
+  const [baseResumeData, setBaseResumeData] = useState<any>(null);
   const [optimizedList, setOptimizedList] = useState<Entry[]>([]);
   const [coverList, setCoverList] = useState<Entry[]>([]);
   const [transcriptList, setTranscriptList] = useState<any[]>([]);
@@ -781,6 +883,11 @@ export default function DocumentUpload() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredResumes, setFilteredResumes] = useState<Entry[]>([]);
 
+  // Pagination for the optimized resumes list (sort logic unchanged; we only
+  // slice the already-sorted list per page so latest still shows on top).
+  const OPTIMIZED_PAGE_SIZE = 10;
+  const [optimizedPage, setOptimizedPage] = useState(1);
+
   // const [showMetaModal, setShowMetaModal] = useState<PendingType>(null);
   // const [pendingUploadType, setPendingUploadType] = useState<PendingType>(null);
   // const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -792,7 +899,34 @@ export default function DocumentUpload() {
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(
     null
   );
+  // Friendly name used when downloading the currently-previewed document.
+  const [activePreviewName, setActivePreviewName] = useState<string>("document");
+  // Whether the backend `/doc-proxy` route is available. null = still probing.
+  // When unavailable (older backend / unreachable), we load PDFs straight from
+  // Cloudinary so previews never break — only the friendly-download naming is lost.
+  const [proxyAvailable, setProxyAvailable] = useState<boolean | null>(null);
   const [iframeError, setIframeError] = useState<string | null>(null);
+
+  // Probe once whether the backend exposes /doc-proxy. If not (older deploy or
+  // unreachable), previews fall back to direct Cloudinary URLs.
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL;
+    if (!apiBase) {
+      setProxyAvailable(false);
+      return;
+    }
+    let cancelled = false;
+    fetch(`${apiBase}/doc-proxy?probe=1`)
+      .then((r) => {
+        if (!cancelled) setProxyAvailable(r.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setProxyAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ---- helpers ----
   const readAuth = () => {
@@ -1042,6 +1176,7 @@ export default function DocumentUpload() {
   // Effect to filter resumes when search term changes
   useEffect(() => {
     filterResumes(searchTerm);
+    setOptimizedPage(1); // reset to first page on new search / list change
   }, [searchTerm, optimizedList]);
 
   useEffect(() => {
@@ -1098,6 +1233,41 @@ export default function DocumentUpload() {
     }
   };
 
+  // Load the structured "attached" base resume once (per user). Decides whether
+  // to show the "Base Resume" row that opens the structured preview.
+  useEffect(() => {
+    const email = context?.userDetails?.email;
+    if (!email) {
+      setBaseResumeData(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/get-base-resume-data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({ email }),
+        });
+        if (!response.ok) {
+          if (!cancelled) setBaseResumeData(null);
+          return;
+        }
+        const data = await response.json();
+        if (!cancelled) setBaseResumeData(data?.success && data?.resumeData ? data : null);
+      } catch (err) {
+        console.error('load base resume data error:', err);
+        if (!cancelled) setBaseResumeData(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [context?.userDetails?.email]);
+
   // Default preview per tab (only when in preview mode AND no preview selected yet)
   useEffect(() => {
     if (!previewMode) return;
@@ -1105,16 +1275,21 @@ export default function DocumentUpload() {
     setIframeError(null);
 
     let defaultUrl: string | null = null;
+    let defaultEntry: any = null;
+    let defaultCategory: "Resume" | "Cover Letter" | "Base" | "Transcript" = "Resume";
     if (activeTab === "base") {
       const last = Array.isArray(baseResume) && baseResume.length > 0 ? baseResume[baseResume.length - 1] : null;
       defaultUrl = (last?.link || last?.url) ?? null;
+      defaultEntry = last;
+      defaultCategory = "Base";
     }
-    else if (activeTab === "optimized") defaultUrl = optimizedList[0]?.url || null;
-    else if (activeTab === "cover") defaultUrl = coverList[0]?.url || null;
-    else if (activeTab === "transcript") defaultUrl = transcriptList[0]?.url || null;
+    else if (activeTab === "optimized") { defaultEntry = optimizedList[0]; defaultUrl = optimizedList[0]?.url || null; defaultCategory = "Resume"; }
+    else if (activeTab === "cover") { defaultEntry = coverList[0]; defaultUrl = coverList[0]?.url || null; defaultCategory = "Cover Letter"; }
+    else if (activeTab === "transcript") { defaultEntry = transcriptList[0]; defaultUrl = transcriptList[0]?.url || null; defaultCategory = "Transcript"; }
 
     if (defaultUrl) {
       setActivePreviewUrl(toRawPdfUrl(defaultUrl));
+      setActivePreviewName(dlName(defaultEntry || {}, defaultCategory));
     }
   }, [
     activeTab,
@@ -1235,6 +1410,7 @@ export default function DocumentUpload() {
       // 7. Update preview
       setPreviewMode(true);
       setActivePreviewUrl(toRawPdfUrl(uploadedURL));
+      setActivePreviewName(dlName({ name }, "Resume"));
       setIframeError(null);
 
       alert("✅ Optimized resume uploaded successfully!");
@@ -1292,6 +1468,7 @@ export default function DocumentUpload() {
       // 7. Update preview
       setPreviewMode(true);
       setActivePreviewUrl(toRawPdfUrl(uploadedURL));
+      setActivePreviewName(dlName({ name }, "Cover Letter"));
       setIframeError(null);
 
       alert("✅ Cover letter uploaded successfully!");
@@ -1336,6 +1513,7 @@ export default function DocumentUpload() {
 
       setPreviewMode(true);
       setActivePreviewUrl(toRawPdfUrl(uploadedURL));
+      setActivePreviewName(dlName({ name }, "Transcript"));
       setIframeError(null);
 
       alert("✅ Transcript uploaded successfully!");
@@ -1757,9 +1935,17 @@ export default function DocumentUpload() {
 
                 {/* Actions */}
                 <div className="col-span-1 flex justify-end gap-2 whitespace-nowrap">
-                  {!it.isJobBased && (
+                  {/* No file to download for the structured "attached" base row.
+                      Base downloads are operator-only; normal users get view only. */}
+                  {!it.isJobBased && !it.isAttached &&
+                    !(category === "Base" && role !== "operations") && (
                     <a
-                      href={toRawPdfUrl(it.link || it.url) || it.link || it.url}
+                      href={
+                        proxyAvailable === true
+                          ? toDocProxyUrl(it.link || it.url || "", dlName(it, category), true)
+                          : toRawPdfUrl(it.link || it.url || "", { download: true, fileName: dlName(it, category) }) || it.link || it.url
+                      }
+                      download={`${dlName(it, category)}.pdf`}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
@@ -1782,19 +1968,32 @@ export default function DocumentUpload() {
   // ---- Reusable Preview Panel (iframe) ----
   const PreviewPanel = ({
     url,
+    downloadName,
     onChange,
   }: {
     url: string;
+    downloadName?: string;
     onChange: () => void;
   }) => {
     if (!url) return null;
-    const src = `${url}#toolbar=1&navpanes=0&scrollbar=1`; // tweak viewer UI
+    const name = downloadName || "document";
+    // Preview + download go through our backend proxy so the PDF carries a
+    // proper Content-Disposition filename — the browser PDF viewer's own
+    // download button then saves it as the client name, not the Cloudinary id.
+    // Only use the proxy once we've confirmed it's reachable; otherwise load
+    // straight from Cloudinary so the preview always works.
+    const useProxy = proxyAvailable === true;
+    const previewSrc = useProxy ? toDocProxyUrl(url, name, false) : url;
+    const src = `${previewSrc}#toolbar=1&navpanes=0&scrollbar=1`; // tweak viewer UI
+    const downloadUrl = useProxy
+      ? toDocProxyUrl(url, name, true)
+      : toRawPdfUrl(url, { download: true, fileName: name });
 
     return (
       <div className="flex flex-col items-center">
         <div className="border shadow mb-4 w-full h-[70vh] md:h-[80vh] bg-gray-50">
           <iframe
-            key={url} // force reload when URL changes
+            key={src} // force reload when URL changes
             title="pdf-preview"
             src={src}
             className="w-full h-full"
@@ -1811,7 +2010,8 @@ export default function DocumentUpload() {
 
         <div className="flex gap-2">
           <a
-            href={url}
+            href={downloadUrl}
+            download={`${name}.pdf`}
             target="_blank"
             rel="noreferrer"
             className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -1874,7 +2074,12 @@ export default function DocumentUpload() {
               <h3 className="text-lg font-semibold">Base Resume</h3>
               {baseResume && previewMode && (
                 <button
-                  onClick={() => setPreviewMode(false)}
+                  onClick={() => {
+                    setPreviewMode(false);
+                    // Drop the structured-preview payload so a re-open refetches.
+                    setResumeData(null);
+                    setActivePreviewUrl(null);
+                  }}
                   className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
                 >
                   <ArrowLeftCircle className="w-4 h-4" /> View All Docs
@@ -1883,17 +2088,71 @@ export default function DocumentUpload() {
             </div>
 
             {baseResume && previewMode ? (
-              <PreviewPanel
-                url={toRawPdfUrl(activePreviewUrl || '') || ''}
-                onChange={() => setPreviewMode(true)}
-              />
+              resumeLoading ? (
+                <div className="flex items-center justify-center py-12 text-sm text-gray-500">
+                  Loading base resume preview…
+                </div>
+              ) : resumeData && resumeData.resumeData ? (
+                // Structured preview — same components used for optimized resumes.
+                // version 2 = medical template, otherwise normal. Download/print
+                // buttons are gated to operators (normal users get view only).
+                <div className="resume-preview-container">
+                  {resumeData.version === 2 ? (
+                    <ResumePreviewMedical
+                      data={resumeData.resumeData}
+                      showLeadership={resumeData.showLeadership}
+                      showProjects={resumeData.showProjects}
+                      showSummary={resumeData.showSummary}
+                      showPublications={resumeData.showPublications}
+                      showPrintButtons={role === "operations"}
+                      sectionOrder={resumeData.sectionOrder}
+                    />
+                  ) : (
+                    <ResumePreview
+                      data={resumeData.resumeData}
+                      showLeadership={resumeData.showLeadership}
+                      showProjects={resumeData.showProjects}
+                      showSummary={resumeData.showSummary}
+                      showPublications={resumeData.showPublications}
+                      showChanges={false}
+                      changedFields={new Set()}
+                      showPrintButtons={role === "operations"}
+                      sectionOrder={resumeData.sectionOrder}
+                    />
+                  )}
+                </div>
+              ) : (
+                // Fallback: no parsed JSON for this user → render raw PDF.
+                <PreviewPanel
+                  url={toRawPdfUrl(activePreviewUrl || '') || ''}
+                  downloadName={activePreviewName}
+                  onChange={() => setPreviewMode(true)}
+                />
+              )
             ) : (
               <>
                 <DocsTable
-                  items={Array.isArray(baseResume) ? baseResume : [baseResume]}
+                  items={[
+                    // Attached/parsed resume → structured preview (like optimized).
+                    ...(baseResumeData
+                      ? [{ name: "Base Resume", isAttached: true } as Entry]
+                      : []),
+                    ...(Array.isArray(baseResume) ? baseResume : baseResume ? [baseResume] : []),
+                  ]}
                   category="Base"
-                  onPick={(it) => {
+                  onPick={async (it) => {
+                    if (it.isAttached) {
+                      // Structured preview from already-loaded attached resume.
+                      setResumeData(baseResumeData);
+                      setActivePreviewUrl(null);
+                      setActivePreviewName(dlName(it, "Base"));
+                      setPreviewMode(true);
+                      return;
+                    }
+                    // Uploaded PDF row → raw PDF iframe.
+                    setResumeData(null);
                     setActivePreviewUrl(toRawPdfUrl(it.link || it.url)!);
+                    setActivePreviewName(dlName(it, "Base"));
                     setPreviewMode(true);
                   }}
                 />
@@ -2055,6 +2314,15 @@ export default function DocumentUpload() {
                     });
                   }
 
+                  // Paginate the already-sorted optimized list (display only;
+                  // sort order untouched so latest stays on top).
+                  const totalPages = Math.max(1, Math.ceil(list.length / OPTIMIZED_PAGE_SIZE));
+                  const safePage = Math.min(Math.max(1, optimizedPage), totalPages);
+                  const pagedList =
+                    tab === "optimized"
+                      ? list.slice((safePage - 1) * OPTIMIZED_PAGE_SIZE, safePage * OPTIMIZED_PAGE_SIZE)
+                      : list;
+
                   if (tab === "optimized") {
                     return fetchingResumes ? (
                       <div className="flex items-center justify-center py-8">
@@ -2129,6 +2397,7 @@ export default function DocumentUpload() {
                     ) : previewMode && activePreviewUrl ? (
                       <PreviewPanel
                         url={toRawPdfUrl(activePreviewUrl) as string}
+                        downloadName={activePreviewName}
                         onChange={() => setPreviewMode(false)}
                       />
                     ) : resumeLoading ? (
@@ -2145,7 +2414,7 @@ export default function DocumentUpload() {
                           </div>
                         )}
                         <DocsTable
-                          items={list}
+                          items={pagedList}
                           category="Resume"
                           onPick={(it) => {
                           // For job-specific optimized resumes, show resume data directly
@@ -2167,11 +2436,60 @@ export default function DocumentUpload() {
                           } else {
                             // Fallback to preview for legacy resumes (Cloudinary links)
                             setActivePreviewUrl(toRawPdfUrl(it.url || it.link || '')!);
+                            setActivePreviewName(dlName(it, "Resume"));
                             setPreviewMode(true);
                             setIframeError(null);
                           }
                         }}
                         />
+
+                        {totalPages > 1 && (
+                          <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
+                            <p className="text-sm text-gray-500">
+                              Page {safePage} of {totalPages} • {list.length} resumes
+                            </p>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setOptimizedPage((p) => Math.max(1, p - 1))}
+                                disabled={safePage <= 1}
+                                className="px-3 py-1.5 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Prev
+                              </button>
+                              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                .filter(
+                                  (p) =>
+                                    p === 1 ||
+                                    p === totalPages ||
+                                    Math.abs(p - safePage) <= 1
+                                )
+                                .map((p, idx, arr) => (
+                                  <React.Fragment key={p}>
+                                    {idx > 0 && p - arr[idx - 1] > 1 && (
+                                      <span className="px-1 text-gray-400">…</span>
+                                    )}
+                                    <button
+                                      onClick={() => setOptimizedPage(p)}
+                                      className={`px-3 py-1.5 text-sm rounded border ${
+                                        p === safePage
+                                          ? "bg-blue-600 text-white border-blue-600"
+                                          : "border-gray-300 hover:bg-gray-50"
+                                      }`}
+                                    >
+                                      {p}
+                                    </button>
+                                  </React.Fragment>
+                                ))}
+                              <button
+                                onClick={() => setOptimizedPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={safePage >= totalPages}
+                                className="px-3 py-1.5 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   } else {
@@ -2180,6 +2498,7 @@ export default function DocumentUpload() {
                     ) : previewMode && activePreviewUrl ? (
                       <PreviewPanel
                         url={toRawPdfUrl(activePreviewUrl) || ''}
+                        downloadName={activePreviewName}
                         onChange={() => setPreviewMode(false)}
                       />
                     ) : (
@@ -2192,6 +2511,9 @@ export default function DocumentUpload() {
                         }
                         onPick={(it) => {
                           setActivePreviewUrl(toRawPdfUrl(it.url)!);
+                          setActivePreviewName(
+                            dlName(it, tab === "cover" ? "Cover Letter" : "Transcript")
+                          );
                           setPreviewMode(true);
                         }}
                       />

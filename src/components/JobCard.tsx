@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import { Calendar, Sparkles } from 'lucide-react';
+import { Calendar, Sparkles, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { Job } from '../types';
 import { getTimeAgo } from '../utils/getTimeAgo';
 import { useDownloadHighlightStore } from '../state_management/DownloadHighlightStore.ts';
@@ -109,6 +109,18 @@ const JobCard: React.FC<JobCardProps> = ({
   const autoOptProcessing = isOps && autoOptStatus === 'processing';
   const autoOptUnknown = isOps && !autoOptStatus && !autoOptCompleted && !!job.jobDescription?.trim();
   const autoOptError = job.autoOptimization?.error?.trim();
+
+  // Second-stage screening (operator-only). The backend re-judges the real
+  // employer-site text; 'failed' jobs are moved to the removed column.
+  const sjStatus = job.secondJudge?.status;
+  const sjScore = job.secondJudge?.score;
+  const sjReason = job.secondJudge?.reason?.trim();
+  const sjPassed = isOps && sjStatus === 'passed';
+  const sjFailed = isOps && sjStatus === 'failed';
+  const sjPending = isOps && sjStatus === 'pending';
+  const sjProcessing = isOps && sjStatus === 'processing';
+  const sjSkipped = isOps && sjStatus === 'skipped';
+  const sjScoreLabel = (sjScore !== null && sjScore !== undefined) ? ` (score ${sjScore})` : '';
   const sanitizeCompanyDomain = (name) => {
   if (!name) return "example.com";
 
@@ -149,6 +161,15 @@ const JobCard: React.FC<JobCardProps> = ({
             <h4 className="line-clamp-2 break-words text-sm font-semibold leading-5 text-gray-900 sm:text-base">{job.jobTitle}</h4>
             {autoOptCompleted && !job.optimizedResumeSeen && (
               <Sparkles className="w-3.5 h-3.5 text-green-600 flex-shrink-0" title="Resume auto optimized" />
+            )}
+            {sjPassed && (
+              <ShieldCheck className="w-3.5 h-3.5 text-green-600 flex-shrink-0" title={`Second-stage screening passed${sjScoreLabel}`} />
+            )}
+            {sjFailed && (
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" title={`Flagged in second-stage screening${sjScoreLabel} — review`} />
+            )}
+            {(sjPending || sjProcessing) && (
+              <ShieldQuestion className="w-3.5 h-3.5 text-blue-500 flex-shrink-0 animate-pulse" title="Second-stage screening in progress" />
             )}
           </div>
           <div className="mt-1 flex min-w-0 items-center text-sm text-gray-600">
@@ -213,6 +234,28 @@ const JobCard: React.FC<JobCardProps> = ({
           )}
           {autoOptUnknown && (
             <p className="text-xs font-medium text-gray-600">Resume auto-optimization status unavailable. Please refresh.</p>
+          )}
+        </div>
+      )}
+
+      {isOps && (sjPassed || sjFailed || sjPending || sjProcessing || sjSkipped) && (
+        <div className="mb-2">
+          {sjPassed && (
+            <p className="text-xs font-medium text-green-600">Second-stage screening passed{sjScoreLabel}.</p>
+          )}
+          {sjFailed && (
+            <p className="text-xs font-medium text-amber-700">
+              ⚠️ AI flag{sjScoreLabel}{sjReason ? ` — ${sjReason}` : ''}. Kept — review and decide.
+            </p>
+          )}
+          {sjPending && (
+            <p className="text-xs font-medium text-blue-600">Second-stage screening queued.</p>
+          )}
+          {sjProcessing && (
+            <p className="text-xs font-medium text-blue-600">Second-stage screening in progress.</p>
+          )}
+          {sjSkipped && (
+            <p className="text-xs font-medium text-amber-700">{sjReason || 'Second-stage screening skipped — job kept.'}</p>
           )}
         </div>
       )}

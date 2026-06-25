@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { CheckCircle2, Circle, Plus, Trash2, Calendar, Lock, X, ChevronDown, ChevronUp, Edit2, Mail, Paperclip, Send, MessageSquare, Link2, Loader2, ChevronLeft, ChevronRight, Puzzle } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Trash2, Calendar, Lock, X, ChevronDown, ChevronUp, Edit2, Mail, Paperclip, Send, MessageSquare, Link2, Loader2, ChevronLeft, ChevronRight, Puzzle, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { ExclusionListEditor } from './Operations/ExclusionListEditor.tsx';
 import { UserContext } from '../state_management/UserContext.tsx';
 import { toastUtils, toastMessages } from '../utils/toast.ts';
@@ -95,29 +95,31 @@ const OperationsManagement = () => {
   const [whatsappUnlocked, setWhatsappUnlocked] = useState(false);
   const [showWhatsappSecretModal, setShowWhatsappSecretModal] = useState(false);
   const [whatsappSecretError, setWhatsappSecretError] = useState('');
-  const [emailUnlocked, setEmailUnlocked] = useState(false);
-  const [showEmailSecretModal, setShowEmailSecretModal] = useState(false);
-  const [emailSecretError, setEmailSecretError] = useState('');
   const [emailGroups, setEmailGroups] = useState<{ id: string; name: string; category: string }[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<{ id: string; name: string; subject: string }[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [automationGroupId, setAutomationGroupId] = useState<string>('');
-  const [automationDailyLimit, setAutomationDailyLimit] = useState<string>('0');
+  const [automationDailyLimit, setAutomationDailyLimit] = useState<string>('5');
   const [automationEnabled, setAutomationEnabled] = useState<boolean>(false);
+  const [skipThreshold, setSkipThreshold] = useState<boolean>(false);
   const [loadingAutomation, setLoadingAutomation] = useState(false);
   const [savingAutomation, setSavingAutomation] = useState(false);
   const [togglingAutomation, setTogglingAutomation] = useState(false);
+  const [togglingSkipThreshold, setTogglingSkipThreshold] = useState(false);
+  const [sendingNow, setSendingNow] = useState(false);
   const [hasExistingAutomationConfig, setHasExistingAutomationConfig] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [selectedTemplateIdForEdit, setSelectedTemplateIdForEdit] = useState<string | null>(null);
   const [loadingTemplateForEdit, setLoadingTemplateForEdit] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const [emailLogs, setEmailLogs] = useState<{ id: string; fromEmail: string; toEmail: string; subject: string; status: string; errorMessage: string | null; source: string; sentAt: string }[]>([]);
   const [emailLogsTotal, setEmailLogsTotal] = useState(0);
   const [emailLogsPage, setEmailLogsPage] = useState(1);
   const [emailLogsLimit, setEmailLogsLimit] = useState(20);
   const [emailLogsTotalPages, setEmailLogsTotalPages] = useState(0);
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
+  const [resendingLogId, setResendingLogId] = useState<string | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
@@ -251,7 +253,16 @@ const OperationsManagement = () => {
         if (groupsRes.ok) {
           const data = await groupsRes.json();
           const list = Array.isArray(data.groups) ? data.groups : [];
-          setEmailGroups(list.map((g: any) => ({ id: g.id, name: g.name, category: g.category })));
+          const normalizedGroups = list.map((g: any) => ({ id: g.id, name: g.name, category: g.category }));
+          setEmailGroups(normalizedGroups);
+          if (!automationGroupId) {
+            const techGroup = normalizedGroups.find((g: any) => {
+              const name = String(g.name || "").trim().toLowerCase();
+              const category = String(g.category || "").trim().toLowerCase();
+              return name === "technical" || name === "tech" || category === "tech";
+            });
+            if (techGroup?.id) setAutomationGroupId(techGroup.id);
+          }
         }
         if (templatesRes.ok) {
           const data = await templatesRes.json();
@@ -263,21 +274,23 @@ const OperationsManagement = () => {
           if (data.config) {
             setAutomationGroupId(data.config.groupId || '');
             setSelectedTemplateId(data.config.templateId || '');
-            setAutomationDailyLimit(String(data.config.dailyLimit || '0'));
+            // Clamp to 5 in case Mongo still holds a legacy 20.
+            setAutomationDailyLimit(String(Math.min(5, Number(data.config.dailyLimit) || 5)));
             setAutomationEnabled(!!data.config.enabled);
+            setSkipThreshold(!!data.config.skipThreshold);
             setHasExistingAutomationConfig(!!(data.config.groupId && data.config.templateId));
           } else {
             setHasExistingAutomationConfig(false);
+            setSkipThreshold(false);
+            setAutomationDailyLimit("5");
           }
         }
       } finally {
         setLoadingAutomation(false);
       }
     };
-    if (gmailStatus === "connected") {
-      loadEmailMetadata();
-    }
-  }, [API_BASE_URL, gmailStatus, userDetails?.email, operationsSessionUnlocked]);
+    loadEmailMetadata();
+  }, [API_BASE_URL, userDetails?.email, operationsSessionUnlocked, automationGroupId]);
 
   // Auto-save function with debouncing
   const autoSave = useCallback(async () => {
@@ -524,6 +537,66 @@ const OperationsManagement = () => {
     }
   };
 
+  const handleAiGenerateTemplate = async () => {
+    if (!userDetails?.email) {
+      toastUtils.error("Missing client email");
+      return;
+    }
+    try {
+      setAiGenerating(true);
+      const res = await fetch(`${API_BASE_URL}/gmail/automation/template/ai-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ownerEmail: userDetails.email,
+          linkToAutomation: true
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === "no_resume_assigned") {
+          toastUtils.error("No resume assigned to this client. Assign one first.");
+        } else if (data.error === "OPENAI key not configured") {
+          toastUtils.error("OpenAI key missing. Set it in admin settings.");
+        } else {
+          toastUtils.error(data.error || "AI generation failed");
+        }
+        return;
+      }
+      const tpl = data?.template;
+      if (tpl?.id) {
+        setEmailTemplates((prev) => {
+          const exists = prev.find((t) => t.id === tpl.id);
+          if (exists) {
+            return prev.map((t) =>
+              t.id === tpl.id ? { ...t, name: tpl.name, subject: tpl.subject } : t
+            );
+          }
+          return [{ id: tpl.id, name: tpl.name, subject: tpl.subject }, ...prev];
+        });
+        setSelectedTemplateId(tpl.id);
+      }
+      if (data?.automation) {
+        setAutomationGroupId(data.automation.groupId || automationGroupId);
+        setSelectedTemplateId(data.automation.templateId || tpl?.id || selectedTemplateId);
+        setAutomationDailyLimit(String(Math.min(5, Number(data.automation.dailyLimit) || 5)));
+        setAutomationEnabled(!!data.automation.enabled);
+        setHasExistingAutomationConfig(!!(data.automation.groupId && data.automation.templateId));
+      } else {
+        setAutomationDailyLimit(prev => (Number(prev) > 0 ? prev : "5"));
+      }
+      if (data?.warning) {
+        toastUtils.error(data.warning);
+      } else {
+        toastUtils.success("AI template generated and linked");
+      }
+    } catch (error) {
+      toastUtils.error("AI generation failed");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const handleSaveAutomation = async () => {
     if (!userDetails?.email) {
       toastUtils.error("Missing client email");
@@ -603,6 +676,73 @@ const OperationsManagement = () => {
     }
   };
 
+  const handleSkipThresholdToggle = async () => {
+    if (!userDetails?.email) return;
+    if (!hasExistingAutomationConfig) {
+      toastUtils.error("Save group, template and limit first, then skip the limit.");
+      return;
+    }
+    const nextSkip = !skipThreshold;
+    setSkipThreshold(nextSkip);
+    try {
+      setTogglingSkipThreshold(true);
+      const res = await fetch(`${API_BASE_URL}/gmail/automation/config`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerEmail: userDetails.email, skipThreshold: nextSkip })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSkipThreshold(!nextSkip);
+        toastUtils.error(data.error || "Failed to update 200-limit skip");
+        return;
+      }
+      toastUtils.success(
+        nextSkip
+          ? "200-application limit skipped for this user — emails will send regardless"
+          : "200-application limit re-enabled for this user"
+      );
+    } catch (error) {
+      setSkipThreshold(!nextSkip);
+      toastUtils.error("Failed to update 200-limit skip");
+    } finally {
+      setTogglingSkipThreshold(false);
+    }
+  };
+
+  const handleRunNow = async () => {
+    if (!userDetails?.email) return;
+    if (!hasExistingAutomationConfig) {
+      toastUtils.error("Save group, template and limit first.");
+      return;
+    }
+    if (!automationEnabled) {
+      toastUtils.error("Turn automation on first.");
+      return;
+    }
+    try {
+      setSendingNow(true);
+      const res = await fetch(`${API_BASE_URL}/gmail/automation/run-now`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerEmail: userDetails.email })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && data.status === "sent") {
+        toastUtils.success(`Sent ${data.sent} recruiter email${data.sent === 1 ? "" : "s"} now.`);
+        fetchEmailLogs(1);
+      } else if (data.status === "already_sent_today") {
+        toastUtils.error(data.message || "Today's emails were already sent for this user.");
+      } else {
+        toastUtils.error(data.error || data.message || "Could not send today's emails.");
+      }
+    } catch (error) {
+      toastUtils.error("Failed to send today's emails");
+    } finally {
+      setSendingNow(false);
+    }
+  };
+
   const fetchEmailLogs = useCallback(async (overridePage?: number) => {
     if (!userDetails?.email) return;
     const page = overridePage ?? emailLogsPage;
@@ -632,6 +772,30 @@ const OperationsManagement = () => {
       setLoadingEmailLogs(false);
     }
   }, [API_BASE_URL, userDetails?.email, emailLogsPage, emailLogsLimit]);
+
+  const handleResend = async (logId: string) => {
+    if (!logId || resendingLogId) return;
+    try {
+      setResendingLogId(logId);
+      const res = await fetch(`${API_BASE_URL}/gmail/automation/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logId })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && data.status === "sent") {
+        toastUtils.success(`Resent to ${data.toEmail || "recipient"}.`);
+      } else {
+        toastUtils.error(data.error || "Resend failed.");
+      }
+      // Refresh so the new attempt (success or fail) shows in the log.
+      fetchEmailLogs();
+    } catch {
+      toastUtils.error("Resend failed.");
+    } finally {
+      setResendingLogId(null);
+    }
+  };
 
   useEffect(() => {
     if (activeSection === "email" && userDetails?.email) {
@@ -947,12 +1111,7 @@ const OperationsManagement = () => {
             <span>TODOs & Lock Periods</span>
           </button>
           <button
-            onClick={() => {
-              setActiveSection("email");
-              if (!emailUnlocked) {
-                setShowEmailSecretModal(true);
-              }
-            }}
+            onClick={() => setActiveSection("email")}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeSection === "email"
                 ? "bg-indigo-600 text-white shadow-md"
@@ -961,9 +1120,6 @@ const OperationsManagement = () => {
           >
             <Mail className="w-4 h-4" />
             <span>Send Emails to Recruiters</span>
-            {!emailUnlocked && (
-              <Lock className="w-3 h-3 text-gray-500" />
-            )}
           </button>
           <button
             onClick={() => {
@@ -1416,30 +1572,7 @@ const OperationsManagement = () => {
           </>
         )}
 
-        {activeSection === "email" && !emailUnlocked && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 mb-6">
-                <Lock className="h-8 w-8 text-indigo-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                Send Emails to Recruiters Locked
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Enter the secret key to access recruiter email sending
-              </p>
-              <button
-                onClick={() => setShowEmailSecretModal(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-sm font-semibold text-white hover:opacity-90 transition-all shadow-md"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Unlock Send Emails</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeSection === "email" && emailUnlocked && (
+        {activeSection === "email" && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div>
@@ -1451,7 +1584,7 @@ const OperationsManagement = () => {
                   Use the client&apos;s connected Gmail accounts to send personalized outreach.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {gmailStatus === "connected" && availableAccounts.length > 0 && (
                   <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 border border-emerald-200">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -1464,6 +1597,41 @@ const OperationsManagement = () => {
                     Client has not connected Gmail yet
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open("/inbox", "_blank", "noopener,noreferrer");
+                  }}
+                  disabled={gmailStatus !== "connected" || availableAccounts.length === 0}
+                  title={
+                    gmailStatus !== "connected"
+                      ? "Client must connect a Gmail account first"
+                      : "Open the live inbox in a new tab"
+                  }
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm transition-colors ${
+                    gmailStatus !== "connected" || availableAccounts.length === 0
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-gray-900 hover:bg-black text-white"
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Open inbox
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M14 3h7v7" />
+                    <path d="M10 14L21 3" />
+                    <path d="M21 14v7H3V3h7" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -1639,11 +1807,73 @@ const OperationsManagement = () => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Skip the 200-application limit for this user only */}
+                  <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Skip 200 limit</p>
+                      <p className="text-xs text-gray-500">
+                        Send recruiter emails for this user even with fewer than 200 applications.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          skipThreshold
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {skipThreshold ? "Limit skipped" : "200 limit on"}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={togglingSkipThreshold || loadingAutomation}
+                        onClick={handleSkipThresholdToggle}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 ${
+                          skipThreshold ? "bg-indigo-500" : "bg-gray-300"
+                        }`}
+                        aria-label={skipThreshold ? "Re-enable 200 limit" : "Skip 200 limit"}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            skipThreshold ? "translate-x-5" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
                   {!automationEnabled && (
                     <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
                       Automation is off. No emails will be sent at 11 PM IST until you turn it on and save settings.
                     </p>
                   )}
+                  {skipThreshold && (
+                    <p className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2">
+                      200-application limit is skipped for this user. Recruiter emails will send at 11 PM IST regardless of application count (Executive plan and an enabled config still required).
+                    </p>
+                  )}
+
+                  {/* Send today's emails right now instead of waiting for 11 PM IST.
+                      Backend enforces one batch per day, so this won't double-send. */}
+                  <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Send today's emails now</p>
+                      <p className="text-xs text-gray-500">
+                        Sends this user's batch immediately. Runs once per day — repeat clicks won't send again.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={sendingNow || loadingAutomation || !automationEnabled || !hasExistingAutomationConfig}
+                      onClick={handleRunNow}
+                      className="shrink-0 px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {sendingNow ? "Sending…" : "Send now"}
+                    </button>
+                  </div>
+
                   {loadingAutomation ? (
                     <p className="text-xs text-gray-500">Loading automation data...</p>
                   ) : (
@@ -1669,31 +1899,101 @@ const OperationsManagement = () => {
                         <label className="block text-xs font-medium text-gray-700">
                           Select template
                         </label>
-                        <select
-                          value={selectedTemplateId}
-                          onChange={(e) => setSelectedTemplateId(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          <option value="">Choose template</option>
-                          {emailTemplates.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex gap-2">
+                          <select
+                            value={selectedTemplateId}
+                            onChange={(e) => setSelectedTemplateId(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">Choose template</option>
+                            {emailTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleAiGenerateTemplate}
+                            disabled={aiGenerating}
+                            title="Generate a personalised subject + body from this client's resume + profile using GPT-4o, save it as a template, and link it here."
+                            className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                              aiGenerating
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-sm"
+                            }`}
+                          >
+                            {aiGenerating ? (
+                              <>
+                                <span className="inline-block h-3 w-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>✨ Generate with AI</>
+                            )}
+                          </button>
+                          {/* Automation Template — loads the template the */}
+                          {/* automation worker is ACTUALLY sending into the */}
+                          {/* editor so ops can verify / tweak the live copy. */}
+                          {/* Disabled when no template linked to automation. */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!selectedTemplateId) {
+                                toastUtils.error("No template linked to automation yet. Generate with AI or pick one above.");
+                                return;
+                              }
+                              loadTemplateForEdit(selectedTemplateId);
+                            }}
+                            disabled={loadingTemplateForEdit || !selectedTemplateId}
+                            title="Load the template the automation worker is currently sending — useful when AI-generated output looks fine but the actual sends look wrong."
+                            className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                              loadingTemplateForEdit || !selectedTemplateId
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                            }`}
+                          >
+                            {loadingTemplateForEdit ? (
+                              <>
+                                <span className="inline-block h-3 w-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                Loading...
+                              </>
+                            ) : (
+                              <>📨 Automation Template</>
+                            )}
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          AI will pull this client's resume + profile and write a professional recruiter
+                          outreach email (subject + body), then save it as a reusable template.
+                        </p>
                       </div>
                       <div className="space-y-1">
                         <label className="block text-xs font-medium text-gray-700">
-                          How many emails per day
+                          How many emails per day <span className="text-gray-400">(max 5)</span>
                         </label>
                         <input
                           type="number"
-                          min={0}
+                          min={1}
+                          max={5}
                           value={automationDailyLimit}
-                          onChange={(e) => setAutomationDailyLimit(e.target.value)}
+                          onChange={(e) => {
+                            // Clamp 1..5 on every keystroke — UI must never
+                            // hint a value above the backend hard cap.
+                            const raw = Math.floor(Number(e.target.value) || 0);
+                            if (e.target.value === "") {
+                              setAutomationDailyLimit("");
+                            } else {
+                              const clamped = Math.max(1, Math.min(5, raw));
+                              setAutomationDailyLimit(String(clamped));
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Example: 25"
+                          placeholder="1-5"
                         />
+                        <p className="text-[11px] text-gray-500">
+                          Gmail rate-limits the workflow sender; sends past 5/day get bounced ("You have reached a limit for sending mail"). Cap enforced server-side too.
+                        </p>
                       </div>
                       <div className="pt-1">
                         <button
@@ -1815,12 +2115,13 @@ const OperationsManagement = () => {
                           <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
                           <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                           <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Error</th>
+                          <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {emailLogs.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">
                               No send logs yet for this client.
                             </td>
                           </tr>
@@ -1839,12 +2140,33 @@ const OperationsManagement = () => {
                                 </span>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap">
-                                <span className={`inline-flex items-center text-xs font-medium px-2 py-1 rounded-full ${log.status === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${log.status === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                                  {log.status === "success" ? (
+                                    <Check className="w-3 h-3" />
+                                  ) : (
+                                    <AlertCircle className="w-3 h-3" />
+                                  )}
                                   {log.status === "success" ? "Success" : "Failed"}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm text-red-600 max-w-[200px] truncate" title={log.errorMessage || ""}>
                                 {log.errorMessage || "—"}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-right">
+                                {log.status === "failed" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResend(log.id)}
+                                    disabled={resendingLogId !== null}
+                                    title="Resend this email"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <RefreshCw className={`w-3 h-3 ${resendingLogId === log.id ? "animate-spin" : ""}`} />
+                                    {resendingLogId === log.id ? "Sending…" : "Send again"}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-400">—</span>
+                                )}
                               </td>
                             </tr>
                           ))
@@ -2056,26 +2378,8 @@ const OperationsManagement = () => {
         }}
         error={whatsappSecretError}
       />
-      <SecretKeyModal
-        isOpen={showEmailSecretModal}
-        onClose={() => {
-          setShowEmailSecretModal(false);
-          setEmailSecretError('');
-        }}
-        onConfirm={(secretKey) => {
-          if (secretKey !== "flashfire@2025") {
-            setEmailSecretError("Incorrect secret key. Please try again.");
-            return;
-          }
-          setEmailUnlocked(true);
-          setShowEmailSecretModal(false);
-          setEmailSecretError('');
-        }}
-        error={emailSecretError}
-      />
     </div>
   );
 };
 
 export default OperationsManagement;
-

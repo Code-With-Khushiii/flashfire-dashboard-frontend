@@ -26,3 +26,10 @@ dist-ssr
 .env.example
  
 /.omc
+/graphify-out
+.graphify_semantic.json
+.graphify_python
+.graphify_extract.json
+.graphify_detect.json
+.graphify_ast.json
+.graphify_analysis.json

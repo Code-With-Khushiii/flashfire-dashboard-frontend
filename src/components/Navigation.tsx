@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useRef, useContext, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -50,6 +51,10 @@ const Navigation: React.FC<NavigationProps> = ({
   const [removedJobsCount, setRemovedJobsCount] = useState<number | null>(null);
   const [removedJobsLoading, setRemovedJobsLoading] = useState(false);
   const [removedJobsError, setRemovedJobsError] = useState<string | null>(null);
+  const [removalLimit, setRemovalLimit] = useState<number>(100);
+  const [extraInput, setExtraInput] = useState<string>("");
+  const [savingLimit, setSavingLimit] = useState(false);
+  const [limitSaveMsg, setLimitSaveMsg] = useState<string | null>(null);
   const [showReferAndEarnCard, setShowReferAndEarnCard] = useState(false);
 
   // Refs
@@ -60,6 +65,7 @@ const Navigation: React.FC<NavigationProps> = ({
   const { userProfile } = useUserProfile();
   const { role, reset: resetOperationsStore } = useOperationsStore();
   const { triggerHighlight } = useDownloadHighlightStore();
+  const isOpsRole = role === "operations" || role === "operator";
   const hasProfile = !!userProfile?.email;
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTargetRef = useRef<string | null>(null);
@@ -81,6 +87,7 @@ const Navigation: React.FC<NavigationProps> = ({
     setRemovedJobsLoading(true);
     setRemovedJobsError(null);
     setRemovedJobsCount(null);
+    setLimitSaveMsg(null);
 
     try {
       const res = await fetch(`${API_BASE}/get-removed-jobs-count`, {
@@ -94,11 +101,53 @@ const Navigation: React.FC<NavigationProps> = ({
         throw new Error(data?.message || `Request failed (${res.status})`);
       }
 
+      const extra = Number(data?.extraRemovalLimit ?? 0);
       setRemovedJobsCount(Number(data?.removedJobsCount ?? 0));
+      setRemovalLimit(Number(data?.removalLimit ?? 100 + extra));
+      setExtraInput(extra ? String(extra) : "");
     } catch (e: any) {
       setRemovedJobsError(e?.message || "Failed to load removed jobs count.");
     } finally {
       setRemovedJobsLoading(false);
+    }
+  };
+
+  const saveRemovalLimit = async () => {
+    const email = userDetails?.email;
+    if (!email || !API_BASE) {
+      setLimitSaveMsg("User email or API URL not available.");
+      return;
+    }
+
+    const bonus = Number(extraInput);
+    if (!Number.isFinite(bonus) || bonus < 0) {
+      setLimitSaveMsg("Enter a valid non-negative number.");
+      return;
+    }
+
+    setSavingLimit(true);
+    setLimitSaveMsg(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/update-removal-limit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, extraRemovalLimit: Math.floor(bonus) }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || `Request failed (${res.status})`);
+      }
+
+      const extra = Number(data?.extraRemovalLimit ?? Math.floor(bonus));
+      setRemovalLimit(Number(data?.removalLimit ?? 100 + extra));
+      setExtraInput(extra ? String(extra) : "");
+      setLimitSaveMsg("Saved.");
+    } catch (e: any) {
+      setLimitSaveMsg(e?.message || "Failed to update removal limit.");
+    } finally {
+      setSavingLimit(false);
     }
   };
   
@@ -139,7 +188,10 @@ const Navigation: React.FC<NavigationProps> = ({
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "jobs", label: "Job Tracker", icon: Briefcase },
     { id: "optimizer", label: "Documents", icon: FileText },
-    ...(role === "operations" || role === "operator"
+    ...(isOpsRole
+      ? [{ id: "mail", label: "Mail", icon: Mail }]
+      : []),
+    ...(isOpsRole
       ? [{ id: "operations", label: "Operations", icon: Settings }]
       : []),
   ];
@@ -214,16 +266,17 @@ const Navigation: React.FC<NavigationProps> = ({
 
   return (
     <nav className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
-      {/* Operations-only: long-press Documents modal */}
-      {showRemovedJobsModal && role === "operations" && (
+      {/* Operations-only: long-press Documents modal — portaled to body so the
+          nav's backdrop-blur containing block doesn't break fixed centering. */}
+      {showRemovedJobsModal && role === "operations" && createPortal(
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowRemovedJobsModal(false);
           }}
         >
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="w-full max-w-md max-h-[90vh] flex flex-col rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+            <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="font-semibold text-gray-900">Removed Jobs</div>
               <button
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -233,7 +286,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-            <div className="px-5 py-4">
+            <div className="px-5 py-4 overflow-y-auto">
               <div className="text-sm text-gray-600 mb-3">
                 {userDetails?.email ? (
                   <span>
@@ -249,16 +302,65 @@ const Navigation: React.FC<NavigationProps> = ({
               ) : removedJobsError ? (
                 <div className="text-sm text-red-600">{removedJobsError}</div>
               ) : (
-                <div className="text-sm text-gray-800">
-                  User removed{" "}
-                  <span className="font-bold text-gray-900">
-                    {removedJobsCount ?? 0}
-                  </span>{" "}
-                  jobs.
-                </div>
+                <>
+                  <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3 text-sm text-gray-800">
+                    User removed{" "}
+                    <span className="font-bold text-gray-900 text-base">
+                      {removedJobsCount ?? 0}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-bold text-gray-900 text-base">{removalLimit}</span>{" "}
+                    allowed.
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Extra removals (on top of base 100)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={extraInput}
+                        onChange={(e) => {
+                          setExtraInput(e.target.value);
+                          setLimitSaveMsg(null);
+                        }}
+                        placeholder="e.g. 50"
+                        className="w-32 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400"
+                      />
+                      <button
+                        type="button"
+                        disabled={savingLimit}
+                        onClick={saveRemovalLimit}
+                        className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                      >
+                        {savingLimit ? "Saving…" : "Set cap"}
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">
+                      New cap will be{" "}
+                      <span className="font-semibold text-gray-700">
+                        {100 + (Number(extraInput) > 0 ? Math.floor(Number(extraInput)) : 0)}
+                      </span>{" "}
+                      removals.
+                    </div>
+                    {limitSaveMsg && (
+                      <div
+                        className={`mt-2 text-xs ${
+                          limitSaveMsg === "Saved."
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {limitSaveMsg}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
-            <div className="px-5 py-4 border-t border-gray-100 flex justify-end">
+            <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 flex justify-end">
               <button
                 className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
                 onClick={() => setShowRemovedJobsModal(false)}
@@ -267,7 +369,8 @@ const Navigation: React.FC<NavigationProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">

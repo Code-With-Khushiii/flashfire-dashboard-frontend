@@ -167,7 +167,7 @@ export const UserJobsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const id = setInterval(() => {
       fetchJobsInBackground(true);
-    }, 60 * 1000);
+    }, 2 * 60 * 1000);
 
     return () => clearInterval(id);
   }, [userDetails?.email, fetchJobsInBackground]);

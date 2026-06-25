@@ -21,7 +21,7 @@ import {
 const Login: React.FC<{
     onLogin: (token: string, role?: string, userEmail?: string) => void;
 }> = ({ onLogin }) => {
-    const [username, setUsername] = useState("");
+    const [username, setUsername] = useState(localStorage.getItem("userEmail") || "");
     const [password, setPassword] = useState("");
     const [sessionKey, setSessionKey] = useState("");
     const [error, setError] = useState("");
@@ -33,7 +33,8 @@ const Login: React.FC<{
     const [otpSent, setOtpSent] = useState(false);
     const [otpInput, setOtpInput] = useState("");
     const [sendingOtp, setSendingOtp] = useState(false);
-    const [remember30Days, setRemember30Days] = useState(false);
+    // Always remember device for 30 days after OTP verify; user does not see/toggle this.
+    const [remember30Days] = useState(true);
     const [checkingStoredKey, setCheckingStoredKey] = useState(true);
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -554,20 +555,8 @@ const Login: React.FC<{
                                                     className="w-full pl-4 pr-4 py-4 border border-orange-300 rounded-2xl focus:ring-orange-200 text-center text-xl tracking-widest bg-orange-50"
                                                 />
                                             </div>
-                                            <label className="flex items-start gap-2 cursor-pointer text-sm text-orange-800">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
-                                                    checked={remember30Days}
-                                                    onChange={(e) => setRemember30Days(e.target.checked)}
-                                                />
-                                                <span>
-                                                    Remember this device for <strong>30 days</strong> (skip OTP). If
-                                                    unchecked, OTP is skipped for <strong>7 days</strong> only.
-                                                </span>
-                                            </label>
                                             <p className="text-xs text-orange-700">
-                                                Logging out clears remembered OTP on this device.
+                                                This device will be remembered for <strong>30 days</strong> — you won't be asked for an OTP again until then.
                                             </p>
                                             <button
                                                 type="submit"
@@ -584,7 +573,6 @@ const Login: React.FC<{
                                             setRequireOtpStep(false);
                                             setOtpSent(false);
                                             setOtpInput("");
-                                            setRemember30Days(false);
                                             setError("");
                                         }}
                                         className="w-full text-gray-600 py-2 text-sm hover:text-gray-800"

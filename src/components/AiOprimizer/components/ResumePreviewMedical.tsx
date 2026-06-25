@@ -77,6 +77,7 @@ interface ResumePreviewProps {
     showPrintButtons?: boolean;
     showDirectPdfButton?: boolean;
     sectionOrder?: string[]; // Add section order prop
+    sectionTitles?: Record<string, string>;
     onDownloadClick?: () => void;
 }
 
@@ -89,8 +90,17 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
     showPrintButtons = true,
     showDirectPdfButton = true,
     sectionOrder = ["personalInfo", "summary", "workExperience", "projects", "leadership", "skills", "education", "publications"],
+    sectionTitles = {},
     onDownloadClick,
 }) => {
+    // The top-toolbar "Download PDF" button is only useful on the /optimize/:jobId
+    // route. Hide it in the portal (everywhere else).
+    const isOptimizeRoute =
+        typeof window !== "undefined" && window.location.pathname.startsWith("/optimize");
+    const headingFor = (id: string, def: string): string => {
+        const raw = (sectionTitles?.[id] || "").trim();
+        return (raw || def).toUpperCase();
+    };
     const parseCustomLinkContent = (raw: string) => {
         const content = (raw || "").trim();
         if (!content) return { label: "", href: "" };
@@ -530,7 +540,7 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
                                 fontWeight: "bold",
                             }}
                         >
-                            LEADERSHIP & ACHIEVEMENTS
+                            {headingFor("leadership", "Leadership & Achievements")}
                         </div>
                         {data.leadership.map((item) => (
                             <div
@@ -925,6 +935,7 @@ export const ResumePreviewMedical: React.FC<ResumePreviewProps> = ({
                     showLeadership: showLeadership,
                     showPublications: finalShowPublications,
                 },
+                sectionTitles: sectionTitles || {},
                 sectionOrder: finalSectionOrder,
                 scale: selectedScale,
                 overrideAutoScale: overrideAutoScale,
@@ -1012,6 +1023,7 @@ Tip: For medical resumes, make sure the PDF is exactly ${REQUIRED_MEDICAL_PDF_PA
                     showLeadership: showLeadership,
                     showPublications: finalShowPublications,
                 },
+                sectionTitles: sectionTitles || {},
                 sectionOrder: finalSectionOrder,
                 scale: scale,
                 overrideAutoScale: overrideAutoScale,
@@ -1280,6 +1292,7 @@ Tip: For medical resumes, make sure the PDF is exactly ${REQUIRED_MEDICAL_PDF_PA
                     showLeadership: showLeadership,
                     showPublications: finalShowPublications,
                 },
+                sectionTitles: sectionTitles || {},
                 sectionOrder: finalSectionOrder,
                 overrideAutoScale: overrideAutoScale,
                 selectedScale: selectedScale,
@@ -1858,7 +1871,9 @@ Tip: For medical resumes, make sure the PDF is exactly ${REQUIRED_MEDICAL_PDF_PA
                     >
                         In-House Scaling
                     </button> */}
-                    {showDirectPdfButton && (
+                    {/* "Download PDF" toolbar button — only shown on /optimize routes,
+                        hidden in the portal (of no use there). */}
+                    {showDirectPdfButton && isOptimizeRoute && (
                         <button
                             onClick={handlePrint}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
