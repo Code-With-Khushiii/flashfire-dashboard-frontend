@@ -619,7 +619,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* LEFT PANEL */}
-      <div className="flex flex-1 flex-col justify-between px-6 sm:px-10 lg:px-16 py-8 lg:py-10 bg-white">
+      <div className="flex flex-col justify-between px-6 sm:px-10 lg:px-16 py-8 lg:py-10 bg-white min-h-screen lg:min-h-0 lg:flex-1">
         {/* Logo */}
         <div className="flex items-center gap-0.5">
           <img src="/logo2.png" alt="Flashfire Logo" className="w-8 h-8" />
@@ -664,12 +664,12 @@ export default function Login() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="w-full lg:w-[480px] xl:w-[520px] flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-10 bg-gray-100">
+      <div className="w-full lg:w-[480px] xl:w-[520px] flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-10 bg-gray-100 min-h-screen lg:min-h-0">
         <h3 className="text-3xl font-bold text-gray-900 mb-1">Welcome back</h3>
         <p className="text-gray-500 text-sm mb-8">Sign in to your Flashfire account</p>
 
         {/* Google Login Button */}
-        <div className="w-full mb-6" id="google-button-wrapper">
+        <div className="w-full mb-6 overflow-hidden" id="google-button-wrapper">
           <style>{`
             #google-button-wrapper > div > div,
             #google-button-wrapper > div {
@@ -696,6 +696,16 @@ export default function Login() {
             #google-button-wrapper div[role="button"] > div {
               justify-content: center !important;
               width: 100% !important;
+            }
+            #google-button-wrapper > div:empty,
+            #google-button-wrapper > div > div:empty {
+              display: none !important;
+              height: 0 !important;
+            }
+            #google-button-wrapper > div[style*="display: none"],
+            #google-button-wrapper iframe[style*="display: none"] {
+              display: none !important;
+              height: 0 !important;
             }
           `}</style>
           <GoogleLogin
