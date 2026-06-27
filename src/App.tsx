@@ -25,21 +25,23 @@ function ProfileWithNavigation() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-        setUserProfileFormVisibility={setUserProfileFormVisibility} 
+      <Navigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        setUserProfileFormVisibility={setUserProfileFormVisibility}
       />
-      <ProfilePage />
-      {userProfileFormVisibility && (
-        <NewUserModal 
-          setUserProfileFormVisibility={setUserProfileFormVisibility}
-          onProfileComplete={() => {
-            console.log("Profile completed callback triggered in App");
-            setUserProfileFormVisibility(false);
-          }}
-        />
-      )}
+      <div className="md:ml-56">
+        <ProfilePage />
+        {userProfileFormVisibility && (
+          <NewUserModal
+            setUserProfileFormVisibility={setUserProfileFormVisibility}
+            onProfileComplete={() => {
+              console.log("Profile completed callback triggered in App");
+              setUserProfileFormVisibility(false);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -54,13 +56,15 @@ function InboxWithNavigation() {
         onTabChange={setActiveTab}
         setUserProfileFormVisibility={setUserProfileFormVisibility}
       />
-      <Inbox />
-      {userProfileFormVisibility && (
-        <NewUserModal
-          setUserProfileFormVisibility={setUserProfileFormVisibility}
-          onProfileComplete={() => setUserProfileFormVisibility(false)}
-        />
-      )}
+      <div className="md:ml-56">
+        <Inbox />
+        {userProfileFormVisibility && (
+          <NewUserModal
+            setUserProfileFormVisibility={setUserProfileFormVisibility}
+            onProfileComplete={() => setUserProfileFormVisibility(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

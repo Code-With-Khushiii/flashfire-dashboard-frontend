@@ -190,8 +190,8 @@ useEffect(() => {
     <div className="min-h-screen bg-gray-50">
        <Suspense fallback={<LoadingScreen />}>
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-        </Suspense> 
-        <main>
+        </Suspense>
+        <main className="md:ml-56">
           {/* Dashboard now manages its own profile modal */}
           {activeTab === 'dashboard' && <Suspense fallback={<LoadingScreen />}><Dashboard /></Suspense>}
           

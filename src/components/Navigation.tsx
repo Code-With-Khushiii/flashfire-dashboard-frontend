@@ -8,14 +8,11 @@ import {
   FileText,
   User,
   LogOut,
-  ChevronDown,
-  Edit2Icon,
-  Mail,
-  CreditCard,
   Menu,
   X,
   Settings,
   Gift,
+  Mail,
 } from "lucide-react";
 import { UserContext } from "../state_management/UserContext.tsx";
 import { useUserProfile } from "../state_management/ProfileContext.tsx";
@@ -27,7 +24,7 @@ import ReferAndEarnCard from "./ReferAndEarnCard.tsx";
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  setUserProfileFormVisibility?: any; // Optional now
+  setUserProfileFormVisibility?: any;
 }
 
 interface TabItem {
@@ -45,7 +42,6 @@ const Navigation: React.FC<NavigationProps> = ({
   const ctx = useContext(UserContext);
   const userDetails = ctx?.userDetails;
   const [user, setUser] = useState(userDetails?.name || "");
-  const [profileDropDown, setProfileDropDown] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showRemovedJobsModal, setShowRemovedJobsModal] = useState(false);
   const [removedJobsCount, setRemovedJobsCount] = useState<number | null>(null);
@@ -57,16 +53,12 @@ const Navigation: React.FC<NavigationProps> = ({
   const [limitSaveMsg, setLimitSaveMsg] = useState<string | null>(null);
   const [showReferAndEarnCard, setShowReferAndEarnCard] = useState(false);
 
-  // Refs
-  const desktopDropdownRef = useRef<HTMLDivElement>(null);   // desktop profile dropdown area
-  const mobileProfileRef = useRef<HTMLDivElement>(null);      // mobile profile dropdown container
-  const mobileMenuRef = useRef<HTMLDivElement>(null);         // mobile menu dropdown container
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const { userProfile } = useUserProfile();
   const { role, reset: resetOperationsStore } = useOperationsStore();
   const { triggerHighlight } = useDownloadHighlightStore();
   const isOpsRole = role === "operations" || role === "operator";
-  const hasProfile = !!userProfile?.email;
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTargetRef = useRef<string | null>(null);
 
@@ -74,7 +66,6 @@ const Navigation: React.FC<NavigationProps> = ({
 
   const openRemovedJobsModal = async () => {
     if (role !== "operations") return;
-
     const email = userDetails?.email;
     if (!email || !API_BASE) {
       setRemovedJobsError("User email or API URL not available.");
@@ -82,25 +73,19 @@ const Navigation: React.FC<NavigationProps> = ({
       setShowRemovedJobsModal(true);
       return;
     }
-
     setShowRemovedJobsModal(true);
     setRemovedJobsLoading(true);
     setRemovedJobsError(null);
     setRemovedJobsCount(null);
     setLimitSaveMsg(null);
-
     try {
       const res = await fetch(`${API_BASE}/get-removed-jobs-count`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.message || `Request failed (${res.status})`);
-      }
-
+      if (!res.ok) throw new Error(data?.message || `Request failed (${res.status})`);
       const extra = Number(data?.extraRemovalLimit ?? 0);
       setRemovedJobsCount(Number(data?.removedJobsCount ?? 0));
       setRemovalLimit(Number(data?.removalLimit ?? 100 + extra));
@@ -114,32 +99,19 @@ const Navigation: React.FC<NavigationProps> = ({
 
   const saveRemovalLimit = async () => {
     const email = userDetails?.email;
-    if (!email || !API_BASE) {
-      setLimitSaveMsg("User email or API URL not available.");
-      return;
-    }
-
+    if (!email || !API_BASE) { setLimitSaveMsg("User email or API URL not available."); return; }
     const bonus = Number(extraInput);
-    if (!Number.isFinite(bonus) || bonus < 0) {
-      setLimitSaveMsg("Enter a valid non-negative number.");
-      return;
-    }
-
+    if (!Number.isFinite(bonus) || bonus < 0) { setLimitSaveMsg("Enter a valid non-negative number."); return; }
     setSavingLimit(true);
     setLimitSaveMsg(null);
-
     try {
       const res = await fetch(`${API_BASE}/update-removal-limit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, extraRemovalLimit: Math.floor(bonus) }),
       });
-
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.message || `Request failed (${res.status})`);
-      }
-
+      if (!res.ok) throw new Error(data?.message || `Request failed (${res.status})`);
       const extra = Number(data?.extraRemovalLimit ?? Math.floor(bonus));
       setRemovalLimit(Number(data?.removalLimit ?? 100 + extra));
       setExtraInput(extra ? String(extra) : "");
@@ -150,86 +122,44 @@ const Navigation: React.FC<NavigationProps> = ({
       setSavingLimit(false);
     }
   };
-  
+
   const handleLongPressStart = (tabId: string) => {
     if (tabId === "jobs" && (role === "operator" || role === "operations")) {
       longPressTargetRef.current = tabId;
-      longPressTimerRef.current = setTimeout(() => {
-        triggerHighlight();
-        longPressTargetRef.current = null;
-      }, 1500);
+      longPressTimerRef.current = setTimeout(() => { triggerHighlight(); longPressTargetRef.current = null; }, 1500);
     }
     if (tabId === "optimizer" && role === "operations") {
       longPressTargetRef.current = tabId;
-      longPressTimerRef.current = setTimeout(() => {
-        openRemovedJobsModal();
-        longPressTargetRef.current = null;
-      }, 1500);
+      longPressTimerRef.current = setTimeout(() => { openRemovedJobsModal(); longPressTargetRef.current = null; }, 1500);
     }
   };
-  
+
   const handleLongPressEnd = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
+    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
     longPressTargetRef.current = null;
   };
-  
+
   useEffect(() => {
-    return () => {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-      }
-    };
+    return () => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); };
   }, []);
 
   const tabs: TabItem[] = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "jobs", label: "Job Tracker", icon: Briefcase },
-    { id: "optimizer", label: "Documents", icon: FileText },
-    ...(isOpsRole
-      ? [{ id: "mail", label: "Mail", icon: Mail }]
-      : []),
-    ...(isOpsRole
-      ? [{ id: "operations", label: "Operations", icon: Settings }]
-      : []),
+    { id: "dashboard", label: "Overview", icon: Home },
+    { id: "jobs", label: "Job tracker", icon: Briefcase },
+    { id: "optimizer", label: "Document", icon: FileText },
+    ...(isOpsRole ? [{ id: "mail", label: "Mail", icon: Mail }] : []),
+    ...(isOpsRole ? [{ id: "operations", label: "Operations", icon: Settings }] : []),
   ];
 
-  useEffect(() => {
-    setUser(userDetails?.name || "");
-  }, [userDetails]);
+  useEffect(() => { setUser(userDetails?.name || ""); }, [userDetails]);
 
-  // CLICK-OUTSIDE: keep dropdowns open when clicking inside them or on triggers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-
-      const clickedInsideDesktop =
-        !!desktopDropdownRef.current &&
-        desktopDropdownRef.current.contains(target);
-
-      const clickedInsideMobileProfile =
-        !!mobileProfileRef.current &&
-        mobileProfileRef.current.contains(target);
-
-      const clickedInsideMobileMenu =
-        !!mobileMenuRef.current &&
-        mobileMenuRef.current.contains(target);
-
+      const clickedInsideMobileMenu = !!mobileMenuRef.current && mobileMenuRef.current.contains(target);
       const clickedOnTrigger = !!target.closest("[data-nav-trigger]");
-
-      if (
-        !clickedInsideDesktop &&
-        !clickedInsideMobileProfile &&
-        !clickedInsideMobileMenu &&
-        !clickedOnTrigger
-      ) {
-        setProfileDropDown(false);
-        setMenuOpen(false);
-      }
+      if (!clickedInsideMobileMenu && !clickedOnTrigger) setMenuOpen(false);
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -251,52 +181,27 @@ const Navigation: React.FC<NavigationProps> = ({
 
   const handleLogin = () => navigate("/login");
 
-  const getInitials = (name: string) => {
-    if (!name || typeof name !== 'string') return "U";
-    const trimmed = name.trim();
-    if (!trimmed) return "U";
-    const parts = trimmed.split(" ");
-    if (parts.length === 1) {
-      return parts[0] && parts[0][0] ? parts[0][0].toUpperCase() : "U";
-    }
-    const first = parts[0] && parts[0][0] ? parts[0][0].toUpperCase() : "";
-    const second = parts[1] && parts[1][0] ? parts[1][0].toUpperCase() : "";
-    return first + second || "U";
-  };
-
   return (
-    <nav className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
-      {/* Operations-only: long-press Documents modal — portaled to body so the
-          nav's backdrop-blur containing block doesn't break fixed centering. */}
+    <>
+      {/* Removed Jobs Modal (ops only) */}
       {showRemovedJobsModal && role === "operations" && createPortal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowRemovedJobsModal(false);
-          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowRemovedJobsModal(false); }}
         >
-          <div className="w-full max-w-md max-h-[90vh] flex flex-col rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+          <div className="w-full max-w-md max-h-[90vh] flex flex-col bg-white shadow-xl border border-gray-200 overflow-hidden">
             <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="font-semibold text-gray-900">Removed Jobs</div>
-              <button
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                onClick={() => setShowRemovedJobsModal(false)}
-                aria-label="Close"
-              >
+              <button className="p-2 hover:bg-gray-100 transition-colors" onClick={() => setShowRemovedJobsModal(false)}>
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
             <div className="px-5 py-4 overflow-y-auto">
               <div className="text-sm text-gray-600 mb-3">
-                {userDetails?.email ? (
-                  <span>
-                    User: <span className="font-medium text-gray-900">{userDetails.email}</span>
-                  </span>
-                ) : (
-                  <span>User: <span className="font-medium text-gray-900">Unknown</span></span>
-                )}
+                {userDetails?.email
+                  ? <span>User: <span className="font-medium text-gray-900">{userDetails.email}</span></span>
+                  : <span>User: <span className="font-medium text-gray-900">Unknown</span></span>}
               </div>
-
               {removedJobsLoading ? (
                 <div className="text-sm text-gray-700">Loading…</div>
               ) : removedJobsError ? (
@@ -305,36 +210,21 @@ const Navigation: React.FC<NavigationProps> = ({
                 <>
                   <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3 text-sm text-gray-800">
                     User removed{" "}
-                    <span className="font-bold text-gray-900 text-base">
-                      {removedJobsCount ?? 0}
-                    </span>{" "}
+                    <span className="font-bold text-gray-900 text-base">{removedJobsCount ?? 0}</span>{" "}
                     of{" "}
-                    <span className="font-bold text-gray-900 text-base">{removalLimit}</span>{" "}
-                    allowed.
+                    <span className="font-bold text-gray-900 text-base">{removalLimit}</span> allowed.
                   </div>
-
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Extra removals (on top of base 100)
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Extra removals (on top of base 100)</label>
                     <div className="flex items-center gap-2">
                       <input
-                        type="number"
-                        min={0}
-                        value={extraInput}
-                        onChange={(e) => {
-                          setExtraInput(e.target.value);
-                          setLimitSaveMsg(null);
-                        }}
+                        type="number" min={0} value={extraInput}
+                        onChange={(e) => { setExtraInput(e.target.value); setLimitSaveMsg(null); }}
                         placeholder="e.g. 50"
-                        className="w-32 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400"
+                        className="w-32 px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400"
                       />
-                      <button
-                        type="button"
-                        disabled={savingLimit}
-                        onClick={saveRemovalLimit}
-                        className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-                      >
+                      <button type="button" disabled={savingLimit} onClick={saveRemovalLimit}
+                        className="px-3 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50">
                         {savingLimit ? "Saving…" : "Set cap"}
                       </button>
                     </div>
@@ -342,17 +232,10 @@ const Navigation: React.FC<NavigationProps> = ({
                       New cap will be{" "}
                       <span className="font-semibold text-gray-700">
                         {100 + (Number(extraInput) > 0 ? Math.floor(Number(extraInput)) : 0)}
-                      </span>{" "}
-                      removals.
+                      </span> removals.
                     </div>
                     {limitSaveMsg && (
-                      <div
-                        className={`mt-2 text-xs ${
-                          limitSaveMsg === "Saved."
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
+                      <div className={`mt-2 text-xs ${limitSaveMsg === "Saved." ? "text-green-600" : "text-red-600"}`}>
                         {limitSaveMsg}
                       </div>
                     )}
@@ -361,10 +244,7 @@ const Navigation: React.FC<NavigationProps> = ({
               )}
             </div>
             <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 flex justify-end">
-              <button
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
-                onClick={() => setShowRemovedJobsModal(false)}
-              >
+              <button className="px-4 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors" onClick={() => setShowRemovedJobsModal(false)}>
                 OK
               </button>
             </div>
@@ -372,389 +252,157 @@ const Navigation: React.FC<NavigationProps> = ({
         </div>,
         document.body
       )}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-           <div className="flex min-w-0 items-center space-x-2 sm:space-x-4">
-            <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg sm:h-12 sm:w-12">
-              {/* <FileText className="w-7 h-7 text-white" /> */}
-              <img src="./Logo.png" alt="" className='rounded-xl' />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent sm:text-2xl">
-                FLASHFIRE
-              </h1>
-              <p className="hidden text-xs text-gray-500 font-medium -mt-1 sm:block">Your Dream. Our Passion</p>
-            </div>
-          </div>
-          {/* Desktop Tabs */}
-          <div className="hidden md:flex items-center gap-4">
-            {tabs.map(({ id, label, icon: Icon }) => (
-              <Link
-                key={id}
-                to="/"
-                onClick={() => {
-                  onTabChange(id);
-                }}
-                onMouseDown={() => handleLongPressStart(id)}
-                onMouseUp={handleLongPressEnd}
-                onMouseLeave={handleLongPressEnd}
-                onTouchStart={() => handleLongPressStart(id)}
-                onTouchEnd={handleLongPressEnd}
-                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 overflow-hidden group ${
-                  activeTab === id
-                    ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border shadow-md"
-                    : " text-gray-700 hover:text-gray-900 hover:bg-gray-200  hover:shadow hover:scale-[1.02] active:scale-[0.98]"
-                }`}
-              >
-                <Icon
-                  className={`w-4 h-4 relative z-10 ${
-                    activeTab === id ? "text-gray" : "group-hover:text-gray"
-                  }`}
-                />
-                <span
-                  className={`hidden sm:block relative z-10 ${
-                    activeTab === id ? "text-gray" : "group-hover:text-gray"
-                  }`}
-                >
-                  {label}
-                </span>
-              </Link>
-            ))}
-          </div>
 
-          {/* Right Section */}
-          <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
-            {/* Refer and Earn Button - Desktop */}
-            {user && (
-              <button
-                onClick={() => {
-                  setShowReferAndEarnCard(true);
-                  setProfileDropDown(false);
-                  setMenuOpen(false);
-                }}
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-                title="Refer and Earn"
-              >
-                <Gift className="w-4 h-4" />
-                <span className="hidden lg:inline">Refer & Earn</span>
-              </button>
-            )}
-
-            {/* Mobile Buttons */}
-            <div className="flex md:hidden items-center gap-2">
-              {/* Refer and Earn Button - Mobile */}
-              {user && (
-                <button
-                  onClick={() => {
-                    setShowReferAndEarnCard(true);
-                    setProfileDropDown(false);
-                    setMenuOpen(false);
-                  }}
-                  className="p-2 rounded-md bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200"
-                  title="Refer and Earn"
-                >
-                  <Gift className="w-5 h-5" />
-                </button>
-              )}
-
-              <button
-                data-nav-trigger
-                onClick={() => {
-                  setMenuOpen(!menuOpen);
-                  setProfileDropDown(false);
-                }}
-                className="p-2 rounded-md border border-border/50 hover:bg-orange-50 transition-all duration-200"
-              >
-                {menuOpen ? (
-                  <X className="w-5 h-5 text-gray-700" />
-                ) : (
-                  <Menu className="w-5 h-5 text-gray-700" />
-                )}
-              </button>
-
-              {user && (
-                <button
-                  data-nav-trigger
-                  onClick={() => {
-                    setProfileDropDown(!profileDropDown);
-                    setMenuOpen(false);
-                  }}
-                  className="w-9 h-9 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow hover:opacity-90 transition-all"
-                >
-                  {getInitials(user)}
-                </button>
-              )}
-            </div>
-
-            {/* Desktop Profile Section */}
-            {user ? (
-              <div className="relative hidden md:block" ref={desktopDropdownRef}>
-                <button
-                  onClick={() => setProfileDropDown(!profileDropDown)}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200 border border-gray-200"
-                >
-                  <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center shadow">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="hidden md:block text-left">
-                    <p className="text-sm font-semibold text-gray-700">{user}</p>
-                    <p className="text-xs text-gray-500">Account</p>
-                  </div>
-                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${profileDropDown ? 'rotate-180' : ''}`} />
-                </button>
-
-                {profileDropDown && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 py-6 px-6 z-50">
-                    {/* Arrow */}
-                    <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
-                    
-                    {/* User Header */}
-                    <Link to="/profile" target="_blank" rel="noopener noreferrer">
-                    <div className="flex items-center space-x-4 pb-6 border-b border-gray-100">
-                      <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
-                        <User className="w-7 h-7 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-lg font-bold text-gray-900">{user}</p>
-                        <p className="text-sm text-gray-500 underline">View Profile</p>
-                      </div>
-                    </div>
-                    </Link>
-                    {/* User Details */}
-                    <div className="py-6 space-y-4">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                          Email Address
-                        </p>
-                        <p className="text-sm text-gray-900 font-medium bg-gray-50 px-3 py-2 rounded-lg">
-                          {userDetails?.email}
-                        </p>
-                      </div>
-                      {/* <div className='flex justify-between'> */}
-                      {!hasProfile && (
-                        <div
-                          className="w-fit"
-                          onClick={() => {
-                            if (setUserProfileFormVisibility) {
-                              setUserProfileFormVisibility(true);
-                            } else {
-                              navigate('/profile');
-                            }
-                          }}
-                        >
-                          <div className="hover:cursor-pointer inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-50 to-yellow-200 text-amber-700 border-2 border-amber-200">
-                            <Edit2Icon className="h-3 w-3 m-2" />{" "}
-                            Edit/ Setup Profile
-                          </div>
-                        </div>
-                      )}
-                      {/* <Link to="/profile" target="_blank" rel="noopener noreferrer">
-  <h1><User2Icon /></h1>
-</Link> */}
-
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                          Current Plan
-                        </p>
-                        <div className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border-2 border-amber-200">
-                          <div className="w-2 h-2 bg-amber-500 rounded-full mr-3"></div>
-                          {userDetails?.planType ||
-                            "Free"}
-                        </div>
-                      </div>
-
-                      {/* Dashboard Manager Dropdown - HIDDEN */}
-                      {/* {role == "operations" ? null : (
-                        <div className="space-y-3">
-                          Dashboard Manager section is now hidden
-                        </div>
-                      )} */}
-                    </div>
-
-                    {/* Action Buttons */}
-                    {role == "operations" ? (
-                      <div className="pt-6 border-t border-gray-100 space-y-2">
-                        <button
-                          onClick={handleSwitchUser}
-                          className="flex items-center space-x-3 w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>Switch Client</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="pt-6 border-t border-gray-100 space-y-2">
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-3 w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>Sign Out</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={handleLogin}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-semibold transition-all duration-200 shadow"
-              >
-                <User className="w-4 h-4" />
-                <span>Sign In</span>
-              </button>
-            )}
-          </div>
+      {/* ========== DESKTOP SIDEBAR ========== */}
+      <aside className="hidden md:flex fixed inset-y-0 left-0 w-56 bg-white border-r border-gray-200 flex-col z-40">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-100">
+          <img src="./logo2.png" alt="FlashFire" className="w-8 h-8 object-contain flex-shrink-0" />
+          <span className="text-base font-extrabold text-orange-500 tracking-wide">FLASHFIRE</span>
         </div>
-      </div>
 
-      {/* Absolute Mobile Menu */}
-      {menuOpen && (
-        <div
-          ref={mobileMenuRef}
-          className="absolute top-16 right-3 w-48 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl shadow-lg border border-gray-200 z-50 animate-fade-in md:hidden"
-        >
+        {/* Nav Items */}
+        <nav className="flex-1 px-3 pt-4 space-y-0.5 overflow-y-auto">
           {tabs.map(({ id, label, icon: Icon }) => (
-            <button
+            <Link
               key={id}
-              onClick={() => {
-                onTabChange(id);
-                setMenuOpen(false);
-              }}
+              to="/"
+              onClick={() => onTabChange(id)}
               onMouseDown={() => handleLongPressStart(id)}
               onMouseUp={handleLongPressEnd}
               onMouseLeave={handleLongPressEnd}
               onTouchStart={() => handleLongPressStart(id)}
               onTouchEnd={handleLongPressEnd}
-              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-all ${
+              className={`flex items-center gap-3 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === id
-                  ? "bg-gradient-to-r from-orange-100 to-red-100 text-gray-900"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "border-2 border-orange-500 bg-orange-50 text-orange-600 px-3"
+                  : "px-3 text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4 flex-shrink-0" />
               {label}
-            </button>
+            </Link>
           ))}
+          <Link
+            to="/profile"
+            className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+          >
+            <User className="w-4 h-4 flex-shrink-0" />
+            Profile
+          </Link>
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="px-3 pb-5 space-y-1">
           {user && (
             <button
-              onClick={() => {
-                setShowReferAndEarnCard(true);
-                setMenuOpen(false);
-              }}
-              className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-all text-gray-600 hover:bg-gray-50 border-t border-gray-200"
+              onClick={() => setShowReferAndEarnCard(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white border border-orange-500 hover:border-orange-400 transition-colors"
             >
-              <Gift className="w-4 h-4" />
-              Refer & Earn
+              <Gift className="w-4 h-4 flex-shrink-0" />
+              Refer n Earn
+            </button>
+          )}
+          {user ? (
+            role === "operations" ? (
+              <button
+                onClick={handleSwitchUser}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+              >
+                <LogOut className="w-4 h-4 flex-shrink-0" />
+                Switch Client
+              </button>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+              >
+                <LogOut className="w-4 h-4 flex-shrink-0" />
+                Logout
+              </button>
+            )
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+            >
+              <User className="w-4 h-4 flex-shrink-0" />
+              Sign In
             </button>
           )}
         </div>
-      )}
+      </aside>
 
-      {/* Refer and Earn Card */}
-      <ReferAndEarnCard
-        isOpen={showReferAndEarnCard}
-        onClose={() => setShowReferAndEarnCard(false)}
-      />
+      {/* ========== MOBILE TOP NAV ========== */}
+      <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="flex items-center justify-between h-14 px-4">
+          <div className="flex items-center gap-2">
+            <img src="./logo2.png" alt="FlashFire" className="w-8 h-8 object-contain" />
+            <span className="text-base font-extrabold text-orange-500">FLASHFIRE</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {user && (
+              <button
+                onClick={() => { setShowReferAndEarnCard(true); setMenuOpen(false); }}
+                className="p-2 bg-orange-500 text-white"
+                title="Refer & Earn"
+              >
+                <Gift className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              data-nav-trigger
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-colors"
+            >
+              {menuOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
+            </button>
+          </div>
+        </div>
 
-      {/* Absolute Mobile Profile Dropdown */}
-      {profileDropDown && (
-        <div
-          ref={mobileProfileRef}
-          className="absolute top-16 right-3 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-in p-4 space-y-5 md:hidden sm:p-5"
-        >
-         <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
-                    
-         <Link to="/profile" target="_blank" rel="noopener noreferrer">
-                    <div className="flex items-center space-x-4 pb-6 border-b border-gray-100">
-                      <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
-                        <User className="w-7 h-7 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-lg font-bold text-gray-900">{user}</p>
-                        <p className="text-sm text-gray-500 underline">View Profile</p>
-                      </div>
-                    </div>
-                    </Link>
-                    {/* User Details */}
-                    <div className="py-6 space-y-4">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                          Email Address
-                        </p>
-                        <p className="text-sm text-gray-900 font-medium bg-gray-50 px-3 py-2 rounded-lg">
-                          {userDetails?.email}
-                        </p>
-                      </div>
-                      {/* <div className='flex justify-between'> */}
-                      {!hasProfile && (
-                        <div
-                          className="w-fit"
-                          onClick={() => {
-                            // Navigate to profile page or trigger modal
-                            if (setUserProfileFormVisibility) {
-                              setUserProfileFormVisibility(true);
-                            } else {
-                              navigate('/profile');
-                            }
-                          }}
-                        >
-                          <div className="hover:cursor-pointer inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-50 to-yellow-200 text-amber-700 border-2 border-amber-200">
-                            <Edit2Icon className="h-3 w-3 m-2" />{" "}
-                            Edit/ Setup Profile
-                          </div>
-                        </div>
-                      )}
-                      {/* <Link to="/profile" target="_blank" rel="noopener noreferrer">
-  <h1><User2Icon /></h1>
-</Link> */}
+        {menuOpen && (
+          <div ref={mobileMenuRef} className="absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => { onTabChange(id); setMenuOpen(false); }}
+                onMouseDown={() => handleLongPressStart(id)}
+                onMouseUp={handleLongPressEnd}
+                onTouchStart={() => handleLongPressStart(id)}
+                onTouchEnd={handleLongPressEnd}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-colors ${
+                  activeTab === id
+                    ? "border-2 border-orange-500 bg-orange-50 text-orange-600"
+                    : "text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+            <Link
+              to="/profile"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+            >
+              <User className="w-4 h-4" />
+              Profile
+            </Link>
+            {user && (
+              <button
+                onClick={() => { handleLogout(); setMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-600 border-t border-gray-100 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            )}
+          </div>
+        )}
+      </nav>
 
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                          Current Plan
-                        </p>
-                        <div className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border-2 border-amber-200">
-                          <div className="w-2 h-2 bg-amber-500 rounded-full mr-3"></div>
-                          {userDetails?.planType ||
-                            "Free"}
-                        </div>
-                      </div>
-
-                      {/* Dashboard Manager Dropdown - HIDDEN */}
-                      {/* {role == "operations" ? null : (
-                        <div className="space-y-3">
-                          Dashboard Manager section is now hidden
-                        </div>
-                      )} */}
-                    </div>
-
-                    {/* Action Buttons */}
-                    {role == "operations" ? (
-                      <div className="pt-6 border-t border-gray-100 space-y-2">
-                        <button
-                          onClick={handleSwitchUser}
-                          className="flex items-center space-x-3 w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>Switch Client</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="pt-6 border-t border-gray-100 space-y-2">
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-3 w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>Sign Out</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-      )}
-    </nav>
+      <ReferAndEarnCard isOpen={showReferAndEarnCard} onClose={() => setShowReferAndEarnCard(false)} />
+    </>
   );
 };
 
