@@ -158,7 +158,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Header bar */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="bg-white border-b border-gray-300 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">
             Welcome, <span className="text-orange-500">{fullName}</span>
@@ -177,7 +177,7 @@ const Dashboard: React.FC = () => {
             <input
               type="text"
               placeholder="Search"
-              className="pl-9 pr-4 py-2 border border-gray-200 text-sm focus:outline-none focus:border-orange-400 w-40 sm:w-48 bg-gray-50"
+              className="pl-9 pr-4 py-2 border border-gray-300 text-sm focus:outline-none focus:border-orange-400 w-40 sm:w-48 bg-gray-50"
             />
           </div>
           <button
@@ -193,7 +193,7 @@ const Dashboard: React.FC = () => {
       {/* Main content */}
       <main className="px-5 py-6">
         {/* Overview heading */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-5">Overview</h2>
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-5">Overview</h2>
 
         {/* Empty state */}
         {uniqueJobs.length === 0 && (
@@ -211,7 +211,7 @@ const Dashboard: React.FC = () => {
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 p-5">
+          <div className="bg-white border border-gray-300 p-5">
             <div className="w-10 h-10 bg-blue-100 flex items-center justify-center mb-4">
               <FileText className="w-5 h-5 text-blue-500" />
             </div>
@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
             <p className="text-gray-500 text-sm">Total Applications</p>
           </div>
 
-          <div className="bg-white border border-gray-200 p-5">
+          <div className="bg-white border border-gray-300 p-5">
             <div className="w-10 h-10 bg-orange-100 flex items-center justify-center mb-4">
               <Users className="w-5 h-5 text-orange-500" />
             </div>
@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
             <p className="text-gray-500 text-sm">Active Interviews</p>
           </div>
 
-          <div className="bg-white border border-gray-200 p-5">
+          <div className="bg-white border border-gray-300 p-5">
             <div className="w-10 h-10 bg-green-100 flex items-center justify-center mb-4">
               <Clock className="w-5 h-5 text-green-500" />
             </div>
@@ -235,7 +235,7 @@ const Dashboard: React.FC = () => {
             <p className="text-gray-500 text-sm">Offers Received</p>
           </div>
 
-          <div className="bg-white border border-gray-200 p-5">
+          <div className="bg-white border border-gray-300 p-5">
             <div className="w-10 h-10 bg-purple-100 flex items-center justify-center mb-4">
               <TrendingUp className="w-5 h-5 text-purple-500" />
             </div>
@@ -267,7 +267,7 @@ const statusBadgeClass = (status: string): string => {
   if (key.startsWith("interviewing")) return "bg-blue-50 text-blue-700 border border-blue-200";
   if (key.startsWith("offer")) return "bg-green-50 text-green-700 border border-green-200";
   if (key.startsWith("rejected")) return "bg-red-50 text-red-700 border border-red-200";
-  return "bg-white text-gray-600 border border-gray-200";
+  return "bg-white text-gray-600 border border-gray-300";
 };
 
 const statusIcon = (status: string) => {
@@ -280,35 +280,39 @@ const statusIcon = (status: string) => {
 };
 
 const RecentActivity = React.memo(({ recentJobs }: { recentJobs: any[] }) => (
-  <div className="bg-white border border-gray-200 p-5">
-    <div className="flex items-center justify-between mb-1">
-      <h2 className="text-base font-bold text-gray-900">Recent Activites</h2>
-      <button className="text-sm text-gray-400 hover:text-gray-600 transition-colors">View all</button>
+  <div className="bg-white border border-gray-300 p-6">
+    {/* Header */}
+    <div className="flex items-start justify-between mb-1">
+      <div>
+        <h2 className="text-lg font-bold text-gray-900">Recent Activites</h2>
+        <p className="text-sm text-gray-400 mt-0.5">Track your recent application activities</p>
+      </div>
+      <button className="text-sm text-gray-400 hover:text-gray-600 transition-colors mt-1">View all</button>
     </div>
-    <p className="text-sm text-gray-400 mb-5">Track your recent application activities</p>
 
-    <div className="overflow-x-auto">
+    {/* Table */}
+    <div className="overflow-x-auto mt-8">
       <table className="w-full min-w-[420px]">
         <thead>
-          <tr className="border-b border-gray-100">
-            <th className="text-left text-xs font-semibold text-gray-500 pb-3 w-1/2">Role</th>
-            <th className="text-left text-xs font-semibold text-gray-500 pb-3 w-1/4">Company</th>
-            <th className="text-left text-xs font-semibold text-gray-500 pb-3 w-1/4">Status</th>
+          <tr>
+            <th className="text-left text-sm font-normal text-gray-500 pb-3 w-1/2">Role</th>
+            <th className="text-left text-sm font-normal text-gray-500 pb-3 w-1/4">Company</th>
+            <th className="text-left text-sm font-normal text-gray-500 pb-3 w-1/4">Status</th>
           </tr>
         </thead>
         <tbody>
           {recentJobs.map((job) => (
-            <tr key={job.jobID} className="border-b border-gray-50 last:border-0">
-              <td className="py-3 pr-4">
+            <tr key={job.jobID} className="border-t border-gray-200">
+              <td className="py-3.5 pr-4">
                 <div className="flex items-center gap-2.5">
-                  {statusIcon(job.currentStatus || "saved")}
-                  <span className="text-sm text-gray-700 truncate max-w-[200px]">{job.jobTitle}</span>
+                  <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span className="text-sm text-gray-800 truncate max-w-[240px]">{job.jobTitle}</span>
                 </div>
               </td>
-              <td className="py-3 pr-4 text-sm text-gray-500 truncate max-w-[120px]">{job.companyName}</td>
-              <td className="py-3">
-                <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium ${statusBadgeClass(job.currentStatus || "saved")}`}>
-                  {job.currentStatus}
+              <td className="py-3.5 pr-4 text-sm text-gray-500">{job.companyName}</td>
+              <td className="py-3.5">
+                <span className={`inline-flex items-center px-2.5 py-1 text-xs ${statusBadgeClass(job.currentStatus || "saved")}`}>
+                  {(job.currentStatus || "saved").toLowerCase()}
                 </span>
               </td>
             </tr>
