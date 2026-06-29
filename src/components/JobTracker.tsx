@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useContext, Suspense, lazy, useRef } from "react";
-import { Search, Plus, MessageSquare, Loader2, Clock, Filter, Home, Briefcase, FileText, Gift, ChevronDown } from "lucide-react";
+import { Search, Plus, MessageSquare, Loader2, Clock, Filter, Home, Briefcase, FileText, Gift, ChevronDown, Menu, X } from "lucide-react";
 import ReferAndEarnCard from "./ReferAndEarnCard.tsx";
 import { Job, JobStatus } from "../types/index.ts";
 const JobForm = lazy(() => import("./JobForm.tsx"));
@@ -109,7 +109,9 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
 
     const [showReferAndEarn, setShowReferAndEarn] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement | null>(null);
+    const mobileMenuRef = useRef<HTMLDivElement | null>(null);
 
     const initials = (() => {
         const n = userDetails?.name || (userProfile ? `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() : "");
@@ -126,6 +128,10 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
         const handler = (e: MouseEvent) => {
             if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
                 setShowUserMenu(false);
+            }
+            const target = e.target as HTMLElement;
+            if (mobileMenuRef.current && !mobileMenuRef.current.contains(target) && !target.closest("[data-mobile-trigger]")) {
+                setMobileMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handler);
@@ -1059,15 +1065,16 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
     return (
         <div className="min-h-screen">
             {/* Top Navbar */}
+            <div className="relative">
             <div className="bg-white border-b border-gray-200 flex items-center px-5 h-14">
                 {/* Logo */}
-                <div className="flex items-center gap-2 mr-8 flex-shrink-0">
+                <div className="flex items-center gap-2 mr-6 flex-shrink-0">
                     <img src="./logo2.png" alt="FlashFire" className="w-7 h-7 object-contain flex-shrink-0" />
                     <span className="text-base font-extrabold text-orange-500 tracking-wide">FLASHFIRE</span>
                 </div>
 
-                {/* Nav tabs — centered */}
-                <div className="flex-1 flex justify-center">
+                {/* Nav tabs — centered, desktop only */}
+                <div className="hidden sm:flex flex-1 justify-center">
                     <div className="flex items-center gap-1">
                         {navTabs.map(({ id, label, icon: Icon }) => (
                             <button
@@ -1087,7 +1094,8 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
                 </div>
 
                 {/* Right side */}
-                <div className="flex items-center gap-3">
+                <div className="ml-auto flex items-center gap-3">
+                    {/* Refer and earn — desktop */}
                     {userDetails?.name && (
                         <button
                             onClick={() => setShowReferAndEarn(true)}
@@ -1096,7 +1104,9 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
                             Refer and earn <Gift className="w-4 h-4" />
                         </button>
                     )}
-                    <div className="relative" ref={userMenuRef}>
+
+                    {/* User avatar — desktop */}
+                    <div className="hidden sm:block relative" ref={userMenuRef}>
                         <button
                             onClick={() => setShowUserMenu((v) => !v)}
                             className="flex items-center gap-1"
@@ -1107,7 +1117,7 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
                             <ChevronDown className="w-4 h-4 text-gray-500" />
                         </button>
                         {showUserMenu && (
-                            <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 shadow-lg z-50">
+                            <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 shadow-lg z-50">
                                 <button
                                     onClick={() => { setShowUserMenu(false); setShowReferAndEarn(true); }}
                                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -1118,8 +1128,47 @@ const JobTracker = ({ onTabChange, activeTab: activeTabProp }: JobTrackerProps) 
                             </div>
                         )}
                     </div>
+
+                    {/* Hamburger — mobile only */}
+                    <button
+                        data-mobile-trigger
+                        onClick={() => setMobileMenuOpen((v) => !v)}
+                        className="sm:hidden p-2 border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-colors"
+                    >
+                        {mobileMenuOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile dropdown menu */}
+            {mobileMenuOpen && (
+                <div ref={mobileMenuRef} className="sm:hidden absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+                    {navTabs.map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            onClick={() => { onTabChange?.(id); setMobileMenuOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-colors ${
+                                (activeTabProp ?? "jobs") === id
+                                    ? "bg-orange-500 text-white"
+                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {label}
+                        </button>
+                    ))}
+                    {userDetails?.name && (
+                        <button
+                            onClick={() => { setShowReferAndEarn(true); setMobileMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-orange-500 hover:bg-orange-50 transition-colors border-t border-gray-100"
+                        >
+                            <Gift className="w-4 h-4" />
+                            Refer and earn
+                        </button>
+                    )}
+                </div>
+            )}
+            </div>{/* end navbar wrapper */}
 
             <ReferAndEarnCard isOpen={showReferAndEarn} onClose={() => setShowReferAndEarn(false)} />
 

@@ -155,18 +155,16 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Header bar */}
-      <div className="bg-white border-b border-gray-200 border-t-4 border-t-orange-500 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold text-gray-900 leading-tight">
-            Welcome, <span className="text-orange-500">{fullName}</span>
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Track your applications here, success starts today</p>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="hidden sm:block">
-            <DashboardManagerDisplay />
+      <div className="bg-white border-b border-gray-200 border-t-4 border-t-orange-500 px-5 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              Welcome, <span className="text-orange-500">{fullName}</span>
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">Track your applications here, success starts today</p>
           </div>
-          <div className="hidden sm:block">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <DashboardManagerDisplay />
             <ReferralBenefitsDisplay />
           </div>
         </div>
