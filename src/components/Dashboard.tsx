@@ -1,13 +1,10 @@
 import {
-  Briefcase,
   FileText,
   TrendingUp,
   Users,
   CheckCircle,
   XCircle,
   Clock,
-  Search,
-  Plus,
 } from "lucide-react";
 import React, { useEffect, useContext, useState, Suspense, lazy, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -158,7 +155,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Header bar */}
-      <div className="bg-white border-b border-gray-300 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="bg-white border-b border-gray-200 border-t-4 border-t-orange-500 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">
             Welcome, <span className="text-orange-500">{fullName}</span>
@@ -172,21 +169,6 @@ const Dashboard: React.FC = () => {
           <div className="hidden sm:block">
             <ReferralBenefitsDisplay />
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              className="pl-9 pr-4 py-2 border border-gray-300 text-sm focus:outline-none focus:border-orange-400 w-40 sm:w-48 bg-gray-50"
-            />
-          </div>
-          <button
-            onClick={() => setShowJobForm(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            Add Jobs
-          </button>
         </div>
       </div>
 

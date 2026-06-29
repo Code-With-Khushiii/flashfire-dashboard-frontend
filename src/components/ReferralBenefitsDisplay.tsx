@@ -12,7 +12,6 @@ const ReferralBenefitsDisplay: React.FC = () => {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-  // Fetch referral statistics
   useEffect(() => {
     const fetchReferralStats = async () => {
       const email = userDetails?.email;
@@ -23,12 +22,9 @@ const ReferralBenefitsDisplay: React.FC = () => {
 
       try {
         setLoading(true);
-        // Try to fetch referral stats from API
         const res = await fetch(`${API_BASE}/get-referral-stats`, {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
 
@@ -39,8 +35,6 @@ const ReferralBenefitsDisplay: React.FC = () => {
           }
         }
       } catch (error) {
-        // Silently fail - API endpoint might not exist yet
-        // Use userDetails if available
         if (userDetails?.referralApplicationsAdded) {
           setReferralApplications(Number(userDetails.referralApplicationsAdded));
         }
@@ -52,7 +46,6 @@ const ReferralBenefitsDisplay: React.FC = () => {
     fetchReferralStats();
   }, [userDetails?.email, API_BASE, role, userDetails?.referralApplicationsAdded]);
 
-  // Don't show for operations role
   if (role === "operations") {
     return null;
   }
@@ -61,31 +54,22 @@ const ReferralBenefitsDisplay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
-        <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
-        <div className="flex min-w-0 flex-col">
-          <div className="h-3 bg-gray-200 rounded animate-pulse w-24 mb-1"></div>
-          <div className="h-2 bg-gray-200 rounded animate-pulse w-20"></div>
+      <div className="flex items-center gap-3 border border-green-500 bg-green-50 px-3 py-2">
+        <div className="w-6 h-6 bg-gray-200 animate-pulse flex-shrink-0"></div>
+        <div className="flex flex-col gap-1">
+          <div className="h-3 bg-gray-200 animate-pulse w-24"></div>
+          <div className="h-2 bg-gray-200 animate-pulse w-20"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-center space-x-2 rounded-xl border border-white/20 bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm sm:w-auto sm:flex-none sm:space-x-3 sm:px-4">
-      {/* Gift Icon */}
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow">
-        <Gift className="w-4 h-4 text-white" />
-      </div>
-
-      {/* Referral Info */}
-      <div className="flex min-w-0 flex-col items-start">
-        <span className="max-w-full truncate text-xs font-medium text-gray-900 sm:text-sm">
-          + {applicationsCount}  Applications
-        </span>
-        <span className="text-xs text-gray-500">
-          From Referrals
-        </span>
+    <div className="flex items-center gap-3 border border-green-500 bg-green-50 px-3 py-2">
+      <Gift className="w-6 h-6 text-green-500 flex-shrink-0" />
+      <div className="flex flex-col items-start">
+        <span className="text-sm font-semibold text-gray-900">{applicationsCount}+ Applications</span>
+        <span className="text-xs text-gray-500">From Referral</span>
       </div>
     </div>
   );
