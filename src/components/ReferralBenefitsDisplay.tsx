@@ -54,8 +54,8 @@ const ReferralBenefitsDisplay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 border border-green-500 bg-green-50 px-3 py-2">
-        <div className="w-6 h-6 bg-gray-200 animate-pulse flex-shrink-0"></div>
+      <div className="flex items-center gap-3 h-full min-w-0 md:min-w-[200px] border border-green-200 border-l-4 border-l-green-500 bg-green-50 px-3 py-2.5">
+        <div className="w-9 h-9 bg-gray-200 animate-pulse flex-shrink-0"></div>
         <div className="flex flex-col gap-1">
           <div className="h-3 bg-gray-200 animate-pulse w-24"></div>
           <div className="h-2 bg-gray-200 animate-pulse w-20"></div>
@@ -65,9 +65,11 @@ const ReferralBenefitsDisplay: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center gap-3 border border-green-500 bg-green-50 px-3 py-2">
-      <Gift className="w-6 h-6 text-green-500 flex-shrink-0" />
-      <div className="flex flex-col items-start">
+    <div className="flex items-center gap-3 h-full min-w-0 md:min-w-[200px] border border-green-200 border-l-4 border-l-green-500 bg-green-50 px-3 py-2.5">
+      <div className="w-9 h-9 bg-green-500 text-white flex items-center justify-center flex-shrink-0">
+        <Gift className="w-[18px] h-[18px]" />
+      </div>
+      <div className="flex flex-col items-start min-w-0">
         <span className="text-sm font-semibold text-gray-900">{applicationsCount}+ Applications</span>
         <span className="text-xs text-gray-500">From Referral</span>
       </div>

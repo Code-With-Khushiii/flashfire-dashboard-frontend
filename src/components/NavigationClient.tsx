@@ -331,7 +331,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
                     className={`flex items-center gap-3 py-2.5 text-sm font-medium transition-colors ${
                       docActive && !isProfileRoute
                         ? "border-2 border-orange-500 bg-orange-50 text-orange-600 px-3"
-                        : "px-3 text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                        : "px-3 text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
@@ -372,7 +372,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
                 className={`flex items-center gap-3 py-2.5 text-sm font-medium transition-colors ${
                   activeTab === id && !isProfileRoute
                     ? "border-2 border-orange-500 bg-orange-50 text-orange-600 px-3"
-                    : "px-3 text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                    : "px-3 text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
                 }`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
@@ -385,7 +385,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
             className={`flex items-center gap-3 py-2.5 text-sm font-medium transition-colors ${
               isProfileRoute
                 ? "border-2 border-orange-500 bg-orange-50 text-orange-600 px-3"
-                : "px-3 text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                : "px-3 text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
             }`}
           >
             <CircleUserRound className="w-4 h-4 flex-shrink-0" />
@@ -436,7 +436,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
             role === "operations" ? (
               <button
                 onClick={handleSwitchUser}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
               >
                 <Users className="w-4 h-4 flex-shrink-0" />
                 Switch Client
@@ -444,7 +444,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
             ) : (
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
               >
                 <DoorOpen className="w-4 h-4 flex-shrink-0" />
                 Logout
@@ -453,7 +453,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
           ) : (
             <button
               onClick={handleLogin}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors"
             >
               <CircleUserRound className="w-4 h-4 flex-shrink-0" />
               Sign In
@@ -524,7 +524,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
                       className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-colors ${
                         docActive && !isProfileRoute
                           ? "border-2 border-orange-500 bg-orange-50 text-orange-600"
-                          : "text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                          : "text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -564,7 +564,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
                   className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-left transition-colors ${
                     activeTab === id && !isProfileRoute
                       ? "border-2 border-orange-500 bg-orange-50 text-orange-600"
-                      : "text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                      : "text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -578,7 +578,7 @@ const NavigationClient: React.FC<NavigationProps> = ({
               className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
                 isProfileRoute
                   ? "border-2 border-orange-500 bg-orange-50 text-orange-600"
-                  : "text-gray-600 border border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                  : "text-gray-600 border-2 border-transparent hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
               }`}
             >
               <CircleUserRound className="w-4 h-4" />

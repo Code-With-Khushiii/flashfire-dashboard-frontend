@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Pencil, Save, X, Copy, Check } from "lucide-react";
+import { Pencil, Save, X, Copy, Check, Mail, Crown } from "lucide-react";
 import { useUserProfile, UserProfile } from "../state_management/ProfileContext";
 import { UserContext } from "../state_management/UserContext";
 import { toastUtils, toastMessages } from "../utils/toast";
@@ -110,13 +110,14 @@ function CopyButton({ value, title }: { value: string; title: string }) {
     return (
         <button
             onClick={handleCopy}
-            className="ml-2 p-1 rounded hover:bg-gray-100 transition-colors"
+            className="ml-2 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
             title={`Copy ${title}`}
+            aria-label={`Copy ${title}`}
         >
             {copied ? (
-                <Check size={16} className="text-green-600" />
+                <Check size={15} className="text-green-600" />
             ) : (
-                <Copy size={16} className="text-gray-500" />
+                <Copy size={15} />
             )}
         </button>
     );
@@ -139,8 +140,8 @@ function InfoRow({
     onValueChange?: (value: string) => void;
 }) {
     return (
-        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100 last:border-b-0">
-            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-1 md:mb-0">
+        <div className="group flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100 last:border-b-0">
+            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">
                 <RowTitle title={title} required={required} />
             </div>
             <div className="w-full md:w-2/3 flex flex-col">
@@ -151,10 +152,10 @@ function InfoRow({
                         onChange={(e) => onValueChange(e.target.value)}
                         required={required}
                         aria-invalid={!!error}
-                        className={`w-full text-sm border-b px-2 py-1 focus:outline-none ${
+                        className={`w-full text-sm text-gray-900 bg-white border px-3 py-2 focus:outline-none focus:ring-1 ${
                             error
-                                ? "border-red-400 focus:border-red-500"
-                                : "border-gray-300 focus:border-orange-500"
+                                ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+                                : "border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                         }`}
                         placeholder={`Enter ${title.toLowerCase()}`}
                     />
@@ -198,13 +199,13 @@ function CheckboxGroupRow({
         onValueChange(next);
     };
     return (
-        <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
-            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-1 md:mb-0 pt-1">
+        <div className="group flex flex-col md:flex-row md:items-start gap-1 md:gap-4 py-3.5 border-b border-gray-100 last:border-b-0">
+            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500 md:pt-1.5">
                 {title}
             </div>
             <div className="w-full md:w-2/3 flex flex-col gap-2">
                 {isEditing ? (
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2">
                         {options.map((opt) => {
                             const checked = list.includes(opt);
                             return (
@@ -252,22 +253,22 @@ function TextAreaRow({
     onValueChange?: (value: string) => void;
 }) {
     return (
-        <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
-            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 pt-1 mb-1 md:mb-0">
+        <div className="group flex flex-col md:flex-row md:items-start gap-1 md:gap-4 py-3.5 border-b border-gray-100 last:border-b-0">
+            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500 md:pt-0.5">
                 {title}
             </div>
-            <div className="w-full md:w-2/3 flex items-center">
+            <div className="w-full md:w-2/3 flex items-start">
                 {isEditing ? (
                     <textarea
                         value={value || ""}
                         onChange={(e) => onValueChange(e.target.value)}
-                        className="w-full text-sm border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none"
+                        className="w-full text-sm text-gray-900 bg-white border px-3 py-2 focus:outline-none focus:ring-1 border-gray-300 focus:border-orange-500 focus:ring-orange-500 resize-y"
                         rows={3}
                         placeholder={`Enter ${title.toLowerCase()}`}
                     />
                 ) : (
                     <>
-                        <span className="flex-1 text-sm text-gray-900 break-words">
+                        <span className="flex-1 text-sm text-gray-900 break-words whitespace-pre-line leading-relaxed">
                             {value || <Placeholder />}
                         </span>
                         {value && <CopyButton value={value} title={title} />}
@@ -346,8 +347,8 @@ function FileUploadRow({
     };
 
     return (
-        <div className="flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 last:border-b-0">
-            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 pt-1 mb-1 md:mb-0">
+        <div className="group flex flex-col md:flex-row md:items-start gap-1 md:gap-4 py-3.5 border-b border-gray-100 last:border-b-0">
+            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500 md:pt-0.5">
                 <RowTitle title={title} required={required} />
             </div>
             <div className="w-full md:w-2/3 flex flex-col">
@@ -364,12 +365,12 @@ function FileUploadRow({
                                     handleFileUpload(file);
                                 }
                             }}
-                            className={`block w-full text-sm ${
+                            className={`block w-full text-sm file:mr-3 file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50 file:cursor-pointer disabled:opacity-60 ${
                                 error ? "text-red-600" : "text-gray-500"
                             }`}
                         />
                         {uploading && (
-                            <span className="text-xs text-orange-600 mt-1">Uploading...</span>
+                            <span className="text-xs text-orange-600 mt-1 block">Uploading...</span>
                         )}
                         {missingRequired && !uploading && (
                             <span className="text-xs text-red-500 mt-1 block">
@@ -378,9 +379,9 @@ function FileUploadRow({
                         )}
                     </div>
                 ) : currentFile ? (
-                    <>
+                    <div className="flex items-center">
                         <a
-                            className="text-orange-600 underline text-sm break-words hover:text-orange-800"
+                            className="text-orange-600 underline underline-offset-2 text-sm font-medium break-words hover:text-orange-700"
                             href={currentFile}
                             target="_blank"
                             rel="noreferrer"
@@ -388,7 +389,7 @@ function FileUploadRow({
                             View File
                         </a>
                         <CopyButton value={currentFile} title={title} />
-                    </>
+                    </div>
                 ) : (
                     <Placeholder label="No file uploaded" />
                 )}
@@ -415,33 +416,33 @@ function Card({
     onCancel?: () => void;
 }) {
     return (
-        <div className="bg-white border border-gray-300 p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-0">
+        <div className={`bg-white border p-4 sm:p-6 transition-colors ${isEditing ? "border-orange-400 ring-1 ring-orange-400" : "border-gray-300"}`}>
+            <div className="flex items-center justify-between gap-3 pb-4 mb-1 border-b border-gray-200">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 border-l-4 border-orange-500 pl-3 leading-tight">
                     {title}
                 </h3>
                 {isEditing ? (
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                             onClick={onSave}
-                            className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors"
+                            className="inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors"
                         >
-                            <Save size={16} /> Save
+                            <Save size={15} /> Save
                         </button>
                         <button
                             onClick={onCancel}
-                            className="inline-flex items-center gap-2 border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                         >
-                            <X size={16} /> Cancel
+                            <X size={15} /> Cancel
                         </button>
                     </div>
                 ) : (
                     onEdit && (
                         <button
                             onClick={onEdit}
-                            className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors"
+                            className="inline-flex items-center gap-1.5 border border-orange-500 bg-white px-3.5 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-500 hover:text-white transition-colors flex-shrink-0"
                         >
-                            <Pencil size={16} /> Edit
+                            <Pencil size={14} /> Edit
                         </button>
                     )
                 )}
@@ -528,6 +529,9 @@ export default function ProfilePage() {
     };
 
     const data = userProfile ?? ({} as UserProfile);
+    const displayName =
+        `${userProfile?.firstName || ""} ${userProfile?.lastName || ""}`.trim() ||
+        (ctx?.userDetails?.name || "").trim();
 
     const handleEditClick = (section: string) => {
         setEditingSection(section);
@@ -684,20 +688,34 @@ export default function ProfilePage() {
                 button and title line up with the cards instead of hugging the
                 viewport edge. */}
             <div className="bg-white border-b border-gray-200 border-t-4 border-t-orange-500">
-                <div className="mx-auto max-w-5xl px-3 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                        <p className="text-sm text-gray-500">
-                            {ctx?.userDetails?.email}
-                            {ctx?.userDetails?.planType && (
-                                <>
-                                    {" "}
-                                    <span className="text-gray-300">|</span>{" "}
-                                    <span className="font-medium text-orange-500">
-                                        {ctx.userDetails.planType}
-                                    </span>
-                                </>
-                            )}
-                        </p>
+                <div className="mx-auto max-w-5xl px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full sm:justify-between">
+                        <div className="flex items-center gap-4 min-w-0">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-orange-500 text-white flex items-center justify-center text-xl sm:text-2xl font-bold uppercase flex-shrink-0">
+                                {(displayName || ctx?.userDetails?.email || "?").charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                                {displayName && (
+                                    <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight truncate">
+                                        {displayName}
+                                    </h1>
+                                )}
+                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                                    {ctx?.userDetails?.email && (
+                                        <span className="inline-flex items-center gap-1.5 text-sm text-gray-500 min-w-0">
+                                            <Mail size={14} className="flex-shrink-0 text-gray-400" />
+                                            <span className="break-all">{ctx.userDetails.email}</span>
+                                        </span>
+                                    )}
+                                    {ctx?.userDetails?.planType && (
+                                        <span className="inline-flex items-center gap-1 bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-semibold text-orange-700">
+                                            <Crown size={12} />
+                                            {ctx.userDetails.planType}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
 
                         {gmailConnected !== null && role === 'operations' && (
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -732,7 +750,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Sections */}
-            <div className="mx-auto max-w-5xl px-3 sm:px-6 py-8 sm:py-12 space-y-6 sm:space-y-10">
+            <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-6">
                 {/* Personal */}
                 <Card
                     title="Personal Details"
@@ -760,8 +778,8 @@ export default function ProfilePage() {
                         onValueChange={(v) => setEditData({ ...editData, contactNumber: v })}
                     />
                     {editingSection === "personal" ? (
-                        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100">
-                            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-1 md:mb-0">Date of Birth</div>
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100">
+                            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">Date of Birth</div>
                             <div className="w-full md:w-2/3">
                                 <DatePicker
                                     value={editData.dob ? editData.dob.split('T')[0] : ""}
@@ -824,8 +842,8 @@ export default function ProfilePage() {
                         onValueChange={(v) => setEditData({ ...editData, bachelorsUniDegree: v })}
                     />
                     {editingSection === "education" ? (
-                        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100">
-                            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-2 md:mb-0">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100">
+                            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">
                                 Bachelor's Start Date
                             </div>
                             <div className="w-full md:w-2/3">
@@ -843,8 +861,8 @@ export default function ProfilePage() {
                         />
                     )}
                     {editingSection === "education" ? (
-                        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100">
-                            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-2 md:mb-0">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100">
+                            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">
                                 Bachelor's End Date (Graduation)
                             </div>
                             <div className="w-full md:w-2/3">
@@ -906,8 +924,8 @@ export default function ProfilePage() {
                         onValueChange={(v) => setEditData({ ...editData, mastersUniDegree: v })}
                     />
                     {editingSection === "education" ? (
-                        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100">
-                            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-2 md:mb-0">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100">
+                            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">
                                 Master's Start Date (Optional)
                             </div>
                             <div className="w-full md:w-2/3">
@@ -926,8 +944,8 @@ export default function ProfilePage() {
                         />
                     )}
                     {editingSection === "education" ? (
-                        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100">
-                            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-2 md:mb-0">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100">
+                            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">
                                 Master's End Date (Graduation) (Optional)
                             </div>
                             <div className="w-full md:w-2/3">
@@ -1028,13 +1046,13 @@ export default function ProfilePage() {
                         }
                     />
                     {editingSection === "professional" ? (
-                        <div className="flex flex-col md:flex-row md:items-center py-3 border-b border-gray-100">
-                            <div className="w-full md:w-1/3 text-sm font-semibold text-gray-700 mb-1 md:mb-0">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 py-3.5 border-b border-gray-100">
+                            <div className="w-full md:w-1/3 text-sm font-medium text-gray-500">
                                 Expected Base Salary
                             </div>
                             <div className="w-full md:w-2/3">
                                 <div className="relative flex items-center">
-                                    <span className="absolute left-2 text-gray-500 text-sm pointer-events-none select-none">
+                                    <span className="absolute left-3 text-gray-500 text-sm pointer-events-none select-none">
                                         {(() => {
                                             const amt = String(ctx?.userDetails?.amountPaid || '');
                                             const sym = amt.match(/^([^0-9]+)/)?.[1];
@@ -1052,8 +1070,8 @@ export default function ProfilePage() {
                                         onChange={(e) =>
                                             setEditData({ ...editData, expectedSalaryRange: e.target.value })
                                         }
-                                        className="w-full text-sm border-b border-gray-300 focus:border-orange-500 focus:outline-none py-1 pr-2"
-                                        style={{ paddingLeft: '1.75rem' }}
+                                        className="w-full text-sm text-gray-900 bg-white border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none py-2 pr-3"
+                                        style={{ paddingLeft: '2.25rem' }}
                                         placeholder="e.g. 60,000"
                                     />
                                 </div>
@@ -1317,9 +1335,9 @@ export default function ProfilePage() {
 
                 {/* Credentials */}
                 <Card title="Account Access Credentials">
-                    <div className="bg-orange-50 border border-orange-200 p-4 mb-6">
+                    <div className="bg-orange-50 border border-orange-200 border-l-4 border-l-orange-500 p-4 mt-4 mb-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-orange-500"></div>
                             <span className="text-sm font-semibold text-orange-800">
                                 Account Credentials
                             </span>
@@ -1334,7 +1352,7 @@ export default function ProfilePage() {
                         value={ctx?.userDetails?.email || "Not available"}
                     />
                     <InfoRow title="Password" value="Flashfire@1357" />
-                    <div className="mt-6 p-4 bg-gray-50 border border-gray-200">
+                    <div className="mt-4 p-4 bg-gray-50 border border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">
                             Important Notes:
                         </h4>

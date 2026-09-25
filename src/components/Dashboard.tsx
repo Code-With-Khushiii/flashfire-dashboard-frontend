@@ -1,8 +1,12 @@
 import {
+  ArrowRight,
+  Award,
+  Briefcase,
   FileText,
+  Plus,
+  Sparkles,
   TrendingUp,
   Users,
-  Clock,
 } from "lucide-react";
 import React, { useEffect, useContext, useState, Suspense, lazy, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -161,6 +165,12 @@ const Dashboard: React.FC = () => {
     refreshJobs(true);
   }, [refreshJobs]);
 
+  // MainContent only reads ?tab= on mount, so a full navigation is needed to
+  // actually switch tabs.
+  const goToJobTracker = useCallback(() => {
+    window.location.href = "/?tab=jobs";
+  }, []);
+
   const handleProfileComplete = useCallback(() => {
     sessionStorage.setItem('hasProfile', 'true');
     setShowProfileModal(false);
@@ -172,6 +182,13 @@ const Dashboard: React.FC = () => {
   const fullName = userProfile
     ? `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim()
     : userDetails?.name || "User";
+
+  const statCards = [
+    { label: "Total Applications", value: stats.total, icon: FileText, accent: "border-l-blue-500", iconClass: "bg-blue-50 text-blue-600" },
+    { label: "Active Interviews", value: stats.interviewing, icon: Users, accent: "border-l-orange-500", iconClass: "bg-orange-50 text-orange-600" },
+    { label: "Offers Received", value: stats.offer, icon: Award, accent: "border-l-green-500", iconClass: "bg-green-50 text-green-600" },
+    { label: "Success Rate", value: `${successRate}%`, icon: TrendingUp, accent: "border-l-purple-500", iconClass: "bg-purple-50 text-purple-600" },
+  ];
 
   return (
     <div className="relative min-h-dvh text-zinc-900 bg-gray-50">
@@ -196,14 +213,19 @@ const Dashboard: React.FC = () => {
 
       {/* Header bar */}
       <div className={PAGE_HEADER_BAR}>
-        <div className={`${PAGE_HEADER_INNER} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`}>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">
-              Welcome, <span className="text-orange-500">{fullName}</span>
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Track your applications here, success starts today</p>
+        <div className={`${PAGE_HEADER_INNER} flex flex-col md:flex-row md:items-center md:justify-between gap-4`}>
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-orange-500 text-white flex items-center justify-center text-xl sm:text-2xl font-bold uppercase flex-shrink-0">
+              {(fullName || "U").charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight truncate">
+                Welcome, <span className="text-orange-500">{fullName}</span>
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">Track your applications here, success starts today</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-stretch gap-3 [&>*]:min-w-0">
             <DashboardManagerDisplay />
             <ReferralBenefitsDisplay />
           </div>
@@ -212,70 +234,56 @@ const Dashboard: React.FC = () => {
 
       {/* Main content */}
       <main className={PAGE_MAIN}>
-        {/* Overview heading */}
-        <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Overview</h2>
+        <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-5 border-l-4 border-orange-500 pl-3 leading-tight">Overview</h2>
 
-        {/* Empty state */}
+        {/* Empty state / welcome for new users */}
         {uniqueJobs.length === 0 && (
-          <div className="mb-6 border border-dashed border-gray-300 bg-white p-5">
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No jobs yet</h3>
-            <p className="text-gray-500 text-sm mb-3">Add your first job application to start tracking.</p>
-            <button
-              onClick={() => setShowJobForm(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 text-sm font-medium transition-colors"
-            >
-              Add Your First Job
-            </button>
+          <div className="mb-8 bg-gradient-to-r from-orange-500 to-orange-600 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 bg-white/15 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold mb-1">Welcome aboard, {userName}!</h3>
+                <p className="text-orange-100 text-sm max-w-2xl">
+                  Our team will now begin working on your resume, and we'll share a draft here for your review once it's ready. It usually takes around 2-3 days to create a resume from scratch.
+                </p>
+              </div>
+            </div>
+            <div className="flex-shrink-0 md:text-right">
+              <p className="text-sm font-semibold">No jobs yet</p>
+              <p className="text-orange-100 text-xs mb-3">Add your first job application to start tracking.</p>
+              <button
+                onClick={() => setShowJobForm(true)}
+                className="inline-flex w-full md:w-auto items-center justify-center gap-2 bg-white text-orange-600 hover:bg-orange-50 px-5 py-2.5 text-sm font-semibold transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Your First Job
+              </button>
+            </div>
           </div>
         )}
 
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <div className="bg-white border border-gray-300 p-6">
-            <div className="w-10 h-10 bg-blue-100 flex items-center justify-center mb-4">
-              <FileText className="w-5 h-5 text-blue-500" />
+          {statCards.map(({ label, value, icon: Icon, accent, iconClass }) => (
+            <div
+              key={label}
+              className={`bg-white border border-gray-200 border-l-4 ${accent} p-5 transition-shadow hover:shadow-md`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-medium text-gray-500">{label}</p>
+                <div className={`w-9 h-9 flex items-center justify-center flex-shrink-0 ${iconClass}`}>
+                  <Icon className="w-[18px] h-[18px]" />
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-gray-900 mt-2 tabular-nums">{value}</p>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.total}</h3>
-            <p className="text-gray-500 text-sm">Total Applications</p>
-          </div>
-
-          <div className="bg-white border border-gray-300 p-6">
-            <div className="w-10 h-10 bg-orange-100 flex items-center justify-center mb-4">
-              <Users className="w-5 h-5 text-orange-500" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.interviewing}</h3>
-            <p className="text-gray-500 text-sm">Active Interviews</p>
-          </div>
-
-          <div className="bg-white border border-gray-300 p-6">
-            <div className="w-10 h-10 bg-green-100 flex items-center justify-center mb-4">
-              <Clock className="w-5 h-5 text-green-500" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.offer}</h3>
-            <p className="text-gray-500 text-sm">Offers Received</p>
-          </div>
-
-          <div className="bg-white border border-gray-300 p-6">
-            <div className="w-10 h-10 bg-purple-100 flex items-center justify-center mb-4">
-              <TrendingUp className="w-5 h-5 text-purple-500" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">{successRate}%</h3>
-            <p className="text-gray-500 text-sm">Success Rate</p>
-          </div>
+          ))}
         </div>
 
         {/* Recent Activities */}
-        {recentJobs.length > 0 && <RecentActivity recentJobs={recentJobs} />}
-
-        {/* Welcome message for new users */}
-        {uniqueJobs.length === 0 && (
-          <div className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 p-5 text-white">
-            <h3 className="text-base font-bold mb-1">Welcome aboard, {userName}!</h3>
-            <p className="text-orange-100 text-sm">
-              Our team will now begin working on your resume, and we'll share a draft here for your review once it's ready. It usually takes around 2-3 days to create a resume from scratch.
-            </p>
-          </div>
-        )}
+        {recentJobs.length > 0 && <RecentActivity recentJobs={recentJobs} onViewAll={goToJobTracker} />}
       </main>
     </div>
   );
@@ -288,6 +296,15 @@ const statusBadgeClass = (status: string): string => {
   if (key.startsWith("offer")) return "bg-green-50 text-green-700 border border-green-200";
   if (key.startsWith("rejected")) return "bg-red-50 text-red-700 border border-red-200";
   return "bg-white text-gray-600 border border-gray-300";
+};
+
+const statusDotClass = (status: string): string => {
+  const key = status.toLowerCase();
+  if (key.startsWith("applied")) return "bg-yellow-500";
+  if (key.startsWith("interviewing")) return "bg-blue-500";
+  if (key.startsWith("offer")) return "bg-green-500";
+  if (key.startsWith("rejected")) return "bg-red-500";
+  return "bg-gray-400";
 };
 
 // Client-facing status text.
@@ -305,52 +322,44 @@ const clientStatusLabel = (status: string | undefined): string => {
   return stripped || "saved";
 };
 
-const RecentActivity = React.memo(({ recentJobs }: { recentJobs: any[] }) => (
-  <div className="bg-white border border-gray-300 p-6">
+const RecentActivity = React.memo(({ recentJobs, onViewAll }: { recentJobs: any[]; onViewAll: () => void }) => (
+  <div className="bg-white border border-gray-200">
     {/* Header */}
-    <div className="flex items-start justify-between mb-1">
+    <div className="flex items-start justify-between gap-4 px-4 sm:px-6 pt-5 sm:pt-6 pb-4">
       <div>
         <h2 className="text-lg font-bold text-gray-900">Recent Activities</h2>
         <p className="text-sm text-gray-400 mt-0.5">Track your recent application activities</p>
       </div>
       <button
-        onClick={() => { window.location.href = "/?tab=jobs"; }}
-        className="text-sm text-gray-600 hover:text-gray-800 transition-colors mt-1"
+        onClick={onViewAll}
+        className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors mt-1 flex-shrink-0"
       >
         View all
+        <ArrowRight className="w-4 h-4" />
       </button>
     </div>
 
-    {/* Table */}
-    <div className="overflow-x-auto mt-8">
-      <table className="w-full min-w-[420px]">
-        <thead>
-          <tr>
-            <th className="text-left text-sm font-normal text-gray-500 pb-3 w-1/3">Role</th>
-            <th className="text-left text-sm font-normal text-gray-500 pb-3 w-1/3">Company</th>
-            <th className="text-left text-sm font-normal text-gray-500 pb-3 w-1/3">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recentJobs.map((job) => (
-            <tr key={job.jobID} className="border-t border-gray-200">
-              <td className="py-3.5 pr-4">
-                <div className="flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-800 truncate max-w-[240px]">{job.jobTitle}</span>
-                </div>
-              </td>
-              <td className="py-3.5 pr-4 text-sm text-gray-500">{job.companyName}</td>
-              <td className="py-3.5">
-                <span className={`inline-flex items-center px-2.5 py-1 text-xs ${statusBadgeClass(job.currentStatus || "saved")}`}>
-                  {clientStatusLabel(job.currentStatus)}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="divide-y divide-gray-100 border-t border-gray-100">
+      {recentJobs.map((job) => {
+        const label = clientStatusLabel(job.currentStatus);
+        const company = String(job.companyName || "").trim();
+        return (
+          <li key={job.jobID} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3.5 hover:bg-gray-50 transition-colors">
+            <div className="w-9 h-9 bg-orange-50 text-orange-600 border border-orange-100 flex items-center justify-center text-sm font-bold uppercase flex-shrink-0">
+              {company ? company[0] : <Briefcase className="w-4 h-4" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-900 truncate" title={job.jobTitle}>{job.jobTitle}</p>
+              <p className="text-xs text-gray-500 truncate">{job.companyName}</p>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium capitalize flex-shrink-0 ${statusBadgeClass(label)}`}>
+              <span className={`w-1.5 h-1.5 ${statusDotClass(label)}`} />
+              {label}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   </div>
 ));
 

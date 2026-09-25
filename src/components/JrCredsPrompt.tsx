@@ -133,7 +133,7 @@ export default function JrCredsPrompt({ operatorEmail, clientEmail, role }: Prop
       aria-modal="true"
       aria-labelledby="jr-creds-title"
     >
-      <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200">
         {/* Accent bar — the dashboard's orange/red gradient. */}
         <div className="h-1.5 bg-gradient-to-r from-orange-500 to-red-500" />
 

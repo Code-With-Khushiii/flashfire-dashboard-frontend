@@ -21,7 +21,7 @@ const getApiBaseUrl = () => {
   return "";
 };
 
-const cardClass = "flex items-center gap-3 border border-gray-200 bg-white px-3 py-2";
+const cardClass = "flex items-center gap-3 h-full min-w-0 md:min-w-[200px] border border-gray-200 border-l-4 border-l-orange-500 bg-white px-3 py-2.5";
 
 const DashboardManagerDisplay: React.FC = () => {
   const { userProfile } = useUserProfile();
@@ -119,8 +119,8 @@ const DashboardManagerDisplay: React.FC = () => {
         <div className="w-9 h-9 overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
           <span className="text-gray-500 text-sm">?</span>
         </div>
-        <div className="flex flex-col items-start">
-          <span className="text-sm font-semibold text-gray-900">No Manager Assigned</span>
+        <div className="flex flex-col items-start min-w-0">
+          <span className="text-sm font-semibold text-gray-900 truncate max-w-full">No Manager Assigned</span>
           <span className="text-xs text-gray-500">Contact Support</span>
         </div>
       </div>
@@ -153,8 +153,8 @@ const DashboardManagerDisplay: React.FC = () => {
         <div className="w-9 h-9 overflow-hidden bg-orange-500 text-white flex-shrink-0 flex items-center justify-center text-xs font-semibold">
           {initials || '?'}
         </div>
-        <div className="flex flex-col items-start">
-          <span className="text-sm font-semibold text-gray-900">{effectiveManagerName}</span>
+        <div className="flex flex-col items-start min-w-0">
+          <span className="text-sm font-semibold text-gray-900 truncate max-w-full">{effectiveManagerName}</span>
           <span className="text-xs text-gray-500">Dashboard manager</span>
         </div>
       </div>
@@ -190,8 +190,8 @@ const DashboardManagerDisplay: React.FC = () => {
           />
         )}
       </div>
-      <div className="flex flex-col items-start">
-        <span className="text-sm font-semibold text-gray-900">{managerData.fullName}</span>
+      <div className="flex flex-col items-start min-w-0">
+        <span className="text-sm font-semibold text-gray-900 truncate max-w-full">{managerData.fullName}</span>
         <span className="text-xs text-gray-500">Dashboard manager</span>
       </div>
     </div>

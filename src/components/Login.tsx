@@ -965,11 +965,11 @@ function SessionKeyModal({
   if (!visible) return null
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md transform transition-all">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all">
         <div className="p-6 border-b border-gray-100">
           <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700">🔑</span>
-            <span>Verify access for {email}</span>
+            <span className="inline-flex flex-shrink-0 items-center justify-center w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700">🔑</span>
+            <span className="min-w-0 break-words">Verify access for {email}</span>
           </h3>
           <p className="text-sm text-gray-500 mt-1">Use OTP (sent to your email) or session key as backup.</p>
         </div>

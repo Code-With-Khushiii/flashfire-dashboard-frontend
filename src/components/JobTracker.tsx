@@ -364,11 +364,9 @@ const JobTracker = () => {
         e.preventDefault();
         // Enhanced visual feedback for drop zones
         const target = e.currentTarget as HTMLElement;
-        target.style.borderColor = '#3b82f6';
-        target.style.borderWidth = '3px';
-        target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-        target.style.transform = 'scale(1.02)';
-        target.style.boxShadow = '0 10px 25px -5px rgba(59, 130, 246, 0.2)';
+        target.style.borderColor = '#f97316';
+        target.style.backgroundColor = 'rgba(249, 115, 22, 0.06)';
+        target.style.boxShadow = 'inset 0 0 0 1px #f97316';
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
@@ -898,19 +896,19 @@ const JobTracker = () => {
     };
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-gray-50">
             {/* Deliberately not width-capped like the other pages: the board
                 below is a horizontally scrolling kanban, so narrowing it to a
                 centred column would waste a wide monitor and force scrolling
                 that is otherwise unnecessary. Gutter matches PAGE_CONTAINER. */}
-            <div className="px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-                <div className="flex flex-col justify-around items-start w-full">
-                    <h2 className="text-2xl sm:text-4xl font-semibold text-zinc-900 mb-2 tracking-tight leading-[1.1]">Job Tracker</h2>
-                    <p className="text-gray-400 text-sm sm:text-base">Track your job applications and manage your career pipeline</p>
+            <div className="bg-white border-b border-gray-200 border-t-4 border-t-orange-500">
+            <div className="px-4 sm:px-6 lg:px-8 py-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex flex-col items-start min-w-0">
+                    <h1 className="text-xl font-bold text-gray-900 leading-tight">Job Tracker</h1>
+                    <p className="text-sm text-gray-500 mt-1">Track your job applications and manage your career pipeline</p>
                 </div>
-                <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 sm:gap-4 w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center lg:justify-end gap-3 w-full lg:w-auto">
                     {role === "operations" && userDetails?.email && (
                         <button
                             onClick={() => {
@@ -918,12 +916,12 @@ const JobTracker = () => {
                                 setShowNotifyPasswordModal(true);
                             }}
                             disabled={notifyCooldown > 0 || notifyLoading}
-                            className={`w-full sm:w-auto justify-center whitespace-nowrap px-4 py-2 font-medium transition-all duration-200 shadow-sm flex items-center gap-2 ${
+                            className={`w-full sm:w-auto justify-center whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition-colors flex items-center gap-2 ${
                                 notifyCooldown > 0
-                                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                     : notifyLoading
                                     ? 'bg-green-400 text-white cursor-wait'
-                                    : 'bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:shadow-md'
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
                             }`}
                         >
                             {notifyLoading ? (
@@ -947,16 +945,16 @@ const JobTracker = () => {
                         </button>
                     )}
                     <div className="relative w-full sm:w-auto">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         <input
                             type="text"
                             placeholder="Search jobs..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full sm:w-auto pl-10 pr-6 py-3 border border-orange-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white shadow-sm"
+                            className="w-full sm:w-64 pl-10 pr-4 py-2.5 text-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 bg-white placeholder:text-gray-400"
                         />
                         {filteredJobs.length > 0 && (
-                            <div className="absolute top-full mt-2 w-full bg-white border border-gray-300 shadow-lg z-50 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full mt-1 w-full sm:min-w-[320px] bg-white border border-gray-300 shadow-lg z-50 max-h-72 overflow-y-auto">
                                 {filteredJobs.map((job) => (
                                     <div
                                         key={job.jobID}
@@ -966,10 +964,10 @@ const JobTracker = () => {
                                             setSearchQuery(''); // Clear after selection
                                             setFilteredJobs([]); // Hide box
                                         }}
-                                        className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-none"
+                                        className="px-3 py-2.5 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-none"
                                     >
-                                        <p className="font-semibold text-gray-900">{job.jobTitle}</p>
-                                        <p className="text-sm text-gray-500">{job.companyName}</p>
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{job.jobTitle}</p>
+                                        <p className="text-xs text-gray-500 truncate">{job.companyName}</p>
                                     </div>
                                 ))}
                             </div>
@@ -978,18 +976,19 @@ const JobTracker = () => {
                     <div className="flex gap-3 w-full sm:w-auto">
                         <button
                             onClick={() => setShowJobForm(true)}
-                            className="flex-1 sm:flex-none justify-center whitespace-nowrap bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 font-medium transition-all duration-200 shadow-sm hover:shadow-md flex items-center"
+                            className="flex-1 sm:flex-none justify-center whitespace-nowrap bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
                         >
+                            <Plus className="w-4 h-4" />
                             Add Jobs
                         </button>
                         {(role === "operations" || role === "operator") && (
                             <button
                                 onClick={handleQueueAutoOptimizeSavedJobs}
                                 disabled={autoOptimizeLoading}
-                                className={`flex-1 sm:flex-none justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-all duration-200 shadow-sm flex items-center ${
+                                className={`flex-1 sm:flex-none justify-center whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition-colors flex items-center ${
                                     autoOptimizeLoading
-                                        ? "bg-purple-300 text-white cursor-wait"
-                                        : "bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white hover:shadow-md"
+                                        ? "bg-indigo-300 text-white cursor-wait"
+                                        : "bg-indigo-600 hover:bg-indigo-700 text-white"
                                 }`}
                                 title="Optimize saved jobs only (5-minute spacing)"
                             >
@@ -999,17 +998,23 @@ const JobTracker = () => {
                     </div>
                 </div>
             </div>
+            </div>
 
+            <div className="px-4 sm:px-6 lg:px-8 py-6">
             {/* Filter */}
-            <div className="mb-4 relative inline-block">
+            <div className="mb-5 relative inline-block">
                 <button
                     onClick={() => setShowFilter((v) => !v)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-400 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                    className={`flex items-center gap-2 px-4 py-2 bg-white border text-sm font-medium transition-colors ${
+                        hiddenStatuses.length > 0
+                            ? "border-orange-400 text-orange-700 hover:bg-orange-50"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                     <Filter className="w-4 h-4" />
                     Filter
                     {hiddenStatuses.length > 0 && (
-                        <span className="ml-1 bg-[#ff4b00] text-white text-xs w-4 h-4 flex items-center justify-center leading-none">
+                        <span className="ml-1 bg-orange-500 text-white text-[11px] font-semibold min-w-[18px] h-[18px] px-1 flex items-center justify-center leading-none">
                             {hiddenStatuses.length}
                         </span>
                     )}
@@ -1017,10 +1022,10 @@ const JobTracker = () => {
                 {showFilter && (
                     <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-                        <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 shadow-lg z-50 p-3 min-w-[180px]">
+                        <div className="absolute top-full mt-1 left-0 bg-white border border-gray-300 shadow-lg z-50 p-3 min-w-[200px]">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Show Columns</p>
                             {statusColumns.map(({ status, label }) => (
-                                <label key={status} className="flex items-center gap-2 py-1.5 cursor-pointer select-none">
+                                <label key={status} className="flex items-center gap-2.5 px-1 py-1.5 cursor-pointer select-none hover:bg-gray-50">
                                     <input
                                         type="checkbox"
                                         checked={!hiddenStatuses.includes(status)}
@@ -1031,7 +1036,7 @@ const JobTracker = () => {
                                                     : [...prev, status]
                                             );
                                         }}
-                                        className="accent-[#ff4b00] w-4 h-4"
+                                        className="accent-orange-500 w-4 h-4"
                                     />
                                     <span className="text-sm text-gray-700">{label}</span>
                                 </label>
@@ -1044,7 +1049,7 @@ const JobTracker = () => {
             {/* Board */}
             <div
                 ref={boardRef}
-                className="flex gap-6 overflow-x-auto pb-6"
+                className="flex gap-4 overflow-x-auto pb-6"
                 onDragOver={handleDragOverBoard}
             >
                 {statusColumns.filter(({ status }) => !hiddenStatuses.includes(status)).map(({ status, label }) => {
@@ -1095,15 +1100,22 @@ const JobTracker = () => {
                     return (
                         <div
                             key={status}
-                            className="bg-white p-4 min-w-[280px] w-80 flex flex-col shadow-sm border border-gray-200 transition-all duration-200"
+                            className={`bg-gray-100/70 p-3 min-w-[280px] w-80 flex-shrink-0 flex flex-col border border-gray-200 border-t-4 transition-colors duration-150 ${
+                                status === "saved" ? "border-t-gray-400"
+                                : status === "applied" ? "border-t-blue-500"
+                                : status === "interviewing" ? "border-t-amber-500"
+                                : status === "offer" ? "border-t-green-500"
+                                : status === "rejected" ? "border-t-red-500"
+                                : "border-t-gray-700"
+                            }`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, status)}
                         >
                             {/* Column Header */}
-                            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                            <div className="flex items-center gap-2 mb-3 px-1 pb-3 border-b border-gray-200">
                                 <div
-                                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                                    className={`w-2.5 h-2.5 flex-shrink-0 ${
                                         status === "saved" ? "bg-gray-400"
                                         : status === "applied" ? "bg-blue-500"
                                         : status === "interviewing" ? "bg-amber-500"
@@ -1112,13 +1124,13 @@ const JobTracker = () => {
                                         : "bg-gray-700"
                                     }`}
                                 />
-                                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-widest">{label}</h3>
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">{label}</h3>
                                 {/* Total in this column. Counts every job in the
                                     status, not just the current page or the
                                     active search, so the number stays a stable
                                     "how many do I have here". */}
                                 <span
-                                    className={`ml-auto flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    className={`ml-auto flex-shrink-0 min-w-[24px] text-center px-2 py-0.5 text-xs font-semibold tabular-nums ${
                                         status === "saved" ? "bg-gray-100 text-gray-700"
                                         : status === "applied" ? "bg-blue-100 text-blue-700"
                                         : status === "interviewing" ? "bg-amber-100 text-amber-700"
@@ -1132,7 +1144,7 @@ const JobTracker = () => {
                             </div>
 
                             {/* Job Cards */}
-                            <div className="flex-1 space-y-3 min-h-[500px]">
+                            <div className="flex-1 space-y-2.5 min-h-[500px]">
                                 <Suspense fallback={<LoadingScreen />}>
                                     {paginatedJobs?.map((job) => (
                                         <div key={job.jobID} className="relative">
@@ -1156,8 +1168,8 @@ const JobTracker = () => {
                                 </Suspense>
                                 {filteredAndSortedJobs &&
                                     filteredAndSortedJobs.length === 0 && (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 flex items-center justify-center">
+                                        <div className="text-center py-10 px-4 text-gray-400 border border-dashed border-gray-300 bg-white/60">
+                                            <div className="w-10 h-10 mx-auto mb-3 bg-gray-100 flex items-center justify-center">
                                                 <Plus className="w-5 h-5" />
                                             </div>
                                             <p className="text-sm font-medium">No jobs yet</p>
@@ -1168,7 +1180,7 @@ const JobTracker = () => {
 
                             {/* Pagination */}
                             {totalPages > 1 && (
-                                <div className="mt-4 pt-3 border-t border-gray-200">
+                                <div className="mt-3 pt-3 border-t border-gray-200">
                                     <div className="flex items-center justify-between">
                                         <button
                                             onClick={() =>
@@ -1178,14 +1190,14 @@ const JobTracker = () => {
                                                 )
                                             }
                                             disabled={currentPage === 1}
-                                            className={`px-3 py-1 text-xs font-semibold transition-all duration-200 ${currentPage === 1
-                                                    ? "text-gray-400 cursor-not-allowed"
-                                                    : "text-gray-700 hover:text-gray-900 hover:bg-white/50"
+                                            className={`px-3 py-1 text-xs font-semibold border transition-colors ${currentPage === 1
+                                                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-600"
                                                 }`}
                                         >
                                             ← Prev
                                         </button>
-                                        <span className="text-xs text-gray-700 font-semibold bg-white/50 px-2 py-1">
+                                        <span className="text-xs text-gray-500 font-medium tabular-nums">
                                             {currentPage} of {totalPages}
                                         </span>
                                         <button
@@ -1198,9 +1210,9 @@ const JobTracker = () => {
                                             disabled={
                                                 currentPage === totalPages
                                             }
-                                            className={`px-3 py-1 text-xs font-medium transition-all duration-200 ${currentPage === totalPages
-                                                    ? "text-gray-400 cursor-not-allowed"
-                                                    : "text-gray-700 hover:text-gray-900 hover:bg-white/50"
+                                            className={`px-3 py-1 text-xs font-semibold border transition-colors ${currentPage === totalPages
+                                                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-600"
                                                 }`}
                                         >
                                             Next →

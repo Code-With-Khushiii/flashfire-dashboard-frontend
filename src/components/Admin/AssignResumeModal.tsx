@@ -229,7 +229,7 @@ export default function AssignResumeModal({ open, onClose, onAssignSuccess, defa
                 onClick={onClose}
             >
                 <div
-                    className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full mx-4"
+                    className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center pb-4 border-b border-gray-200">

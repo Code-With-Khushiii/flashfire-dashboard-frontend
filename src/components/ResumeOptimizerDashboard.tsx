@@ -1534,7 +1534,7 @@ export default function ResumeOptimizerDashboard() {
             {/* Optimize Confirmation Dialog */}
             {showOptimizeConfirmation && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl mx-4">
+                    <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                             Confirm Resume Optimization
                         </h2>
@@ -1544,20 +1544,20 @@ export default function ResumeOptimizerDashboard() {
                             </p>
                             <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border-2 border-purple-200">
                                 <div className="text-center">
-                                    <span className="text-3xl font-bold text-purple-700 block mb-3">
+                                    <span className="text-3xl font-bold text-purple-700 block mb-3 break-words">
                                         {resumeData.personalInfo?.name || "Unknown"}
                                     </span>
                                     <p className="text-xl text-gray-700 mb-2">at</p>
                                     <div className="flex flex-wrap justify-center items-center gap-6">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xl text-gray-700">Role:</span>
-                                            <span className="text-2xl font-bold text-blue-700">
+                                            <span className="text-2xl font-bold text-blue-700 break-words min-w-0">
                                                 {jobTitle || "Role not specified"}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xl text-gray-700">Company:</span>
-                                            <span className="text-2xl font-bold text-blue-700">
+                                            <span className="text-2xl font-bold text-blue-700 break-words min-w-0">
                                                 {companyName || "Company not specified"}
                                             </span>
                                         </div>

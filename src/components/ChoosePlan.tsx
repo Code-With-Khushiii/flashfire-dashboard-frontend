@@ -1,7 +1,7 @@
 import { useContext, useEffect } from "react";
 import { X, ArrowUpRight, Plus, CheckCircle2 } from "lucide-react";
 import { UserContext } from "../state_management/UserContext";
-import { PAGE_CONTAINER, PAGE_MAIN } from "../styles/layout";
+import { PAGE_CONTAINER, PAGE_HEADER_BAR, PAGE_MAIN } from "../styles/layout";
 
 type PlanKey = "prime" | "ignite" | "professional" | "executive";
 type Currency = "USD" | "CAD" | "GBP";
@@ -135,20 +135,21 @@ export default function ChoosePlan({ open, onClose, inline = false }: Props) {
     <div className={inline ? "w-full bg-gray-50 min-h-screen" : "fixed right-0 top-0 h-full w-full max-w-xl bg-gray-50 z-50 shadow-2xl flex flex-col overflow-hidden"}>
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-200">
+      <div className={PAGE_HEADER_BAR}>
         <div className={`flex items-center justify-between gap-4 py-5 ${inline ? PAGE_CONTAINER : "px-6"}`}>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">
               {currentPlan === "executive" ? "Boost Your Plan" : "Choose a Plan"}
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Currently on <span className="font-semibold text-gray-700">{PLAN_LABELS[currentPlan]}</span> · {PLAN_APPS[currentPlan]} Applications
+            <p className="text-sm text-gray-500 mt-1">
+              Currently on <span className="font-semibold text-orange-600">{PLAN_LABELS[currentPlan]}</span> · {PLAN_APPS[currentPlan].toLocaleString()} Applications
             </p>
           </div>
           {!inline && (
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              aria-label="Close"
+              className="p-2 border border-transparent hover:border-gray-900 hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -158,53 +159,55 @@ export default function ChoosePlan({ open, onClose, inline = false }: Props) {
 
       {/* ── Content ── */}
       <div className={inline ? `${PAGE_MAIN} w-full` : "flex-1 overflow-y-auto px-6 py-6"}>
-      <main className={inline ? "bg-white border border-gray-300 p-3 sm:p-4 md:p-6 space-y-6" : "space-y-6"}>
+      <main className={inline ? "bg-white border border-gray-300 p-4 sm:p-6 md:p-8 space-y-8" : "space-y-8"}>
 
         {/* UPGRADE */}
         {upgradesRaw.length > 0 && (
           <section>
-            <div className="flex items-center gap-1.5 mb-1">
-              <ArrowUpRight className="w-3.5 h-3.5 text-gray-900" />
-              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Upgrade Plan</h2>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="flex h-6 w-6 items-center justify-center bg-orange-50 border border-orange-100 text-orange-600">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </span>
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Upgrade Plan</h2>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Unlock more applications and premium features</p>
-            <div className={`grid gap-3 ${inline ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+            <p className="text-xs text-gray-500 mb-4">Unlock more applications and premium features</p>
+            <div className={`grid gap-5 ${inline ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
               {upgradesRaw.map(({ to, priceUSD, priceCAD, priceGBP, urlUSD, urlCAD, urlGBP }) => {
                 const isPopular = to === "executive";
                 const price = currency === "CAD" ? priceCAD : currency === "GBP" ? priceGBP : priceUSD;
                 const url = withEmail(currency === "CAD" ? urlCAD : currency === "GBP" ? urlGBP : urlUSD, email);
                 return (
-                  <div key={to} className={`relative overflow-hidden border border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${isPopular ? "" : "bg-white"}`}>
+                  <div key={to} className={`relative overflow-hidden border border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${isPopular ? "" : "bg-white"}`}>
                     {isPopular && (
-                      <div className="bg-orange-500 px-4 py-1 flex items-center justify-between">
+                      <div className="bg-orange-500 px-5 py-1.5 flex items-center justify-between">
                         <span className="text-white text-[11px] font-bold uppercase tracking-widest">Most Popular</span>
                         <span className="text-orange-100 text-[11px]">Best value</span>
                       </div>
                     )}
-                    <div className={`p-4 ${isPopular ? "bg-gray-50" : "bg-white"}`}>
+                    <div className={`p-5 ${isPopular ? "bg-orange-50/40" : "bg-white"}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-base font-extrabold text-gray-900">{PLAN_LABELS[to]}</span>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg font-extrabold text-gray-900">{PLAN_LABELS[to]}</span>
                             <span className="text-[11px] font-semibold text-white bg-gray-800 px-2 py-0.5">{PLAN_APPS[to].toLocaleString()} apps</span>
                           </div>
-                          <ul className="space-y-1">
+                          <ul className="space-y-1.5">
                             {PLAN_FEATURES[to].map((f) => (
                               <li key={f} className="flex items-center gap-1.5 text-xs text-gray-600">
-                                <CheckCircle2 className="w-3 h-3 text-gray-900 flex-shrink-0" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
                                 {f}
                               </li>
                             ))}
                           </ul>
                         </div>
-                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <div className="flex flex-col items-end gap-3 flex-shrink-0">
                           <div className="text-right">
-                            <div className="text-2xl font-extrabold text-gray-900">{sym}{price}</div>
+                            <div className="text-3xl font-extrabold text-gray-900 tabular-nums">{sym}{price}</div>
                             <div className="text-[10px] text-gray-400">upgrade price</div>
                           </div>
                           <a href={url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold transition-colors whitespace-nowrap bg-gray-900 hover:bg-gray-800 text-white">
-                            Upgrade <ArrowUpRight className="w-3 h-3" />
+                            className={`flex items-center gap-1 px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap text-white ${isPopular ? "bg-orange-500 hover:bg-orange-600" : "bg-gray-900 hover:bg-gray-800"}`}>
+                            Upgrade <ArrowUpRight className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       </div>
@@ -217,31 +220,33 @@ export default function ChoosePlan({ open, onClose, inline = false }: Props) {
         )}
 
         {/* BOOSTER */}
-        <section>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Plus className="w-3.5 h-3.5 text-gray-900" />
-            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Booster Add-On</h2>
+        <section className={upgradesRaw.length > 0 ? "pt-8 border-t border-gray-200" : ""}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="flex h-6 w-6 items-center justify-center bg-orange-50 border border-orange-100 text-orange-600">
+              <Plus className="w-3.5 h-3.5" />
+            </span>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Booster Add-On</h2>
           </div>
-          <p className="text-xs text-gray-400 mb-3">Add more applications to your {PLAN_LABELS[currentPlan]} plan — no tier change</p>
-          <div className="grid grid-cols-3 gap-3">
+          <p className="text-xs text-gray-500 mb-5">Add more applications to your {PLAN_LABELS[currentPlan]} plan — no tier change</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {boostersRaw.map(({ apps, priceUSD, priceCAD, priceGBP, urlUSD, urlCAD, urlGBP }, i) => {
               const isBest = i === 2;
               const price = currency === "CAD" ? priceCAD : currency === "GBP" ? priceGBP : priceUSD;
               const url = withEmail(currency === "CAD" ? urlCAD : currency === "GBP" ? urlGBP : urlUSD, email);
               return (
                 <a key={apps} href={url} target="_blank" rel="noopener noreferrer"
-                  className={`group relative flex flex-col items-center border border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pt-5 pb-4 px-3 transition-all text-center ${isBest ? "bg-gray-50" : "bg-white"}`}>
+                  className={`group relative flex flex-col items-center border border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pt-6 pb-5 px-3 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center ${isBest ? "bg-orange-50/40" : "bg-white"}`}>
                   {isBest && (
                     <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[9px] font-bold px-2.5 py-0.5 uppercase tracking-wider whitespace-nowrap">
                       Best Value
                     </span>
                   )}
-                  <span className={`text-2xl font-extrabold text-gray-900 transition-colors`}>+{apps}</span>
-                  <span className="text-[10px] text-gray-400 mt-0.5">Applications</span>
-                  <div className="w-full border-t border-gray-100 mt-3 pt-3">
-                    <span className="text-lg font-extrabold text-gray-900">{sym}{price}</span>
+                  <span className="text-3xl font-extrabold text-gray-900 tabular-nums">+{apps}</span>
+                  <span className="text-[11px] text-gray-500 mt-0.5">Applications</span>
+                  <div className="w-full border-t border-gray-200 mt-4 pt-3">
+                    <span className="text-xl font-extrabold text-gray-900 tabular-nums">{sym}{price}</span>
                   </div>
-                  <span className={`mt-2 text-[11px] font-bold px-2.5 py-0.5 border transition-colors ${isBest ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-900 border-gray-300 group-hover:bg-gray-900 group-hover:text-white"}`}>
+                  <span className={`mt-3 text-xs font-bold px-4 py-1 border transition-colors ${isBest ? "bg-orange-500 text-white border-orange-500 group-hover:bg-orange-600" : "bg-white text-gray-900 border-gray-900 group-hover:bg-gray-900 group-hover:text-white"}`}>
                     Add On
                   </span>
                 </a>
@@ -251,7 +256,7 @@ export default function ChoosePlan({ open, onClose, inline = false }: Props) {
         </section>
 
         {/* Footer */}
-        <p className="text-xs text-gray-400 text-center pb-2">
+        <p className="text-xs text-gray-500 text-center pt-6 pb-1 border-t border-gray-200">
           All plans include <span className="font-semibold text-gray-600">no time constraint</span> — applications run until completed.
         </p>
       </main>

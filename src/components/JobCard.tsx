@@ -191,21 +191,21 @@ const JobCard: React.FC<JobCardProps> = ({
       onMouseLeave={handleMouseLeave}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`w-full cursor-move border border-gray-200 p-3 shadow-sm transition-all duration-200 hover:shadow-md ${
+      className={`group w-full cursor-move border p-3.5 shadow-sm transition-all duration-150 hover:shadow-md ${
         shouldHighlight
           ? "bg-red-100 border-red-300"
           : hasUnseenResume
             ? "bg-amber-50 border-amber-300 ring-1 ring-amber-200"
-            : "bg-white"
+            : "bg-white border-gray-200 hover:border-orange-300"
       }`}
     >
       {/* Company row: logo + name */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-2">
         {job.companyName && (
           <img
             src={`https://www.google.com/s2/favicons?domain=${sanitizeCompanyDomain(job.companyName)}&sz=64`}
             alt={job.companyName}
-            className="h-8 w-8 flex-shrink-0 object-contain"
+            className="h-7 w-7 flex-shrink-0 object-contain border border-gray-100 bg-white p-0.5"
             style={{ display: 'none' }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
             onLoad={(e) => {
@@ -218,12 +218,12 @@ const JobCard: React.FC<JobCardProps> = ({
             }}
           />
         )}
-        <span className="text-sm text-gray-500 truncate">{job.companyName}</span>
+        <span className="text-xs font-medium text-gray-500 truncate">{job.companyName}</span>
       </div>
 
       {/* Job title */}
       <div className="flex items-start gap-1 mb-3">
-        <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-5 flex-1">{job.jobTitle}</h4>
+        <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-5 flex-1 group-hover:text-orange-700 transition-colors">{job.jobTitle}</h4>
         {autoOptCompleted && !job.optimizedResumeSeen && (
           <Sparkles className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" title="Resume auto optimized" />
         )}
